@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Assessment",
+  "type": "object",
+  "properties": {
+    "timestamp": {"type":"string"},
+    "hostname": {"type":"string"},
+    "hardware": {"type":"object"},
+    "firmware": {"type":"object"},
+    "storage": {"type":"object"},
+    "network": {"type":"object"},
+    "virtualization": {"type":"object"}
+  }
+}
