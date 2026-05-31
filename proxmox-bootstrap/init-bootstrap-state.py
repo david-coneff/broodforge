@@ -25,6 +25,7 @@ Values marked [DEFAULT] are reasonable defaults for this environment.
 Values marked [INPUT] require operator knowledge and cannot be discovered.
 """
 
+import importlib.util
 import json
 import os
 import shutil
@@ -33,6 +34,15 @@ import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+
+
+def _load_module(filename: str, mod_name: str):
+    spec = importlib.util.spec_from_file_location(
+        mod_name, Path(__file__).parent / filename
+    )
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
 
 
 # ---------------------------------------------------------------------------
@@ -222,9 +232,15 @@ def build_bootstrap_state(non_interactive: bool = False) -> dict:
     print("Answer the following questions. Press Enter to accept a [default].")
     print()
 
+    sn = _load_module("suggest-names.py", "suggest_names")
+    roles_mod = _load_module("roles.py", "roles_mod")
+
     # --- Cell identity ---
     print("--- Cell Identity ---")
-    cell_id = _prompt("Cell ID (unique, kebab-case)", f"{hostname}-cell", "INPUT", non_interactive)
+    cell_id_variants = sn.suggest_cell_id_variants(hostname)
+    suggested_cell_id = cell_id_variants[1]  # e.g. pve01-cell
+    print(f"  Suggestions: {', '.join(cell_id_variants)}")
+    cell_id = _prompt("Cell ID (unique, kebab-case)", suggested_cell_id, "SUGGESTED", non_interactive)
     print()
 
     # --- Host identity ---
@@ -263,11 +279,96 @@ def build_bootstrap_state(non_interactive: bool = False) -> dict:
 
     # --- KeePass ---
     print("--- KeePass Configuration ---")
-    print("  The KeePass root path is the top-level group in your KeePass database")
-    print("  that contains all secrets for this cell.")
-    kp_root = _prompt("KeePass root path", "Infrastructure", "INPUT", non_interactive)
-    kp_hint = _prompt("KeePass database filename hint (optional)", None, "INPUT", non_interactive)
+    best_db, db_candidates = sn.suggest_keepass_database()
+    if db_candidates:
+        print("  KeePass databases found:")
+        for i, c in enumerate(db_candidates[:3]):
+            print(f"    [{i+1}] {c}")
+        kp_hint_default = best_db
+    else:
+        kp_hint_default = None
+    kp_root = _prompt("KeePass root group path", "Infrastructure", "INPUT", non_interactive)
+    kp_hint = _prompt("KeePass database path (for reference)", kp_hint_default, "DISCOVERED", non_interactive)
     print()
+
+    # --- Infrastructure role selection ---
+    selected_roles = roles_mod.select_roles_interactive(non_interactive)
+
+    # --- VM IP assignment ---
+    print("--- VM IP Assignment ---")
+    vm_names = [roles_mod.ROLES[r]["default_hostname"] for r in selected_roles]
+    vmid_base = 100
+    if cidr and "/" in cidr:
+        ip_suggestions = sn.suggest_ips(cidr, vm_names)
+        host_ip = ip_suggestions["host"]
+        print(f"  Suggested host IP:  {host_ip}")
+        for name, ip in ip_suggestions["vms"].items():
+            print(f"  Suggested {name:<22} {ip}")
+        print()
+        confirmed_host_ip = _prompt("Proxmox host IP", host_ip, "SUGGESTED", non_interactive)
+        vm_ips = {}
+        for name, suggested_ip in ip_suggestions["vms"].items():
+            vm_ips[name] = _prompt(f"IP for {name}", suggested_ip, "SUGGESTED", non_interactive)
+    else:
+        confirmed_host_ip = _prompt("Proxmox host IP", None, "INPUT", non_interactive)
+        vm_ips = {name: _prompt(f"IP for {name}", None, "INPUT", non_interactive)
+                  for name in vm_names}
+    print()
+
+    # --- Generate VM definitions from roles ---
+    vms = []
+    for role_id in selected_roles:
+        name = roles_mod.ROLES[role_id]["default_hostname"]
+        vmid = roles_mod.vmid_for_role(role_id, vmid_base)
+        ip = vm_ips.get(name, "POPULATE")
+        vm = roles_mod.generate_vm_stub(role_id, vmid, ip)
+        # Apply vm_defaults overrides
+        vm["initial_user"] = initial_user
+        vm["bridge"] = bridges[0] if bridges else "vmbr0"
+        vms.append(vm)
+
+    # --- Generate service contracts from roles ---
+    service_contracts = []
+    for role_id in selected_roles:
+        name = roles_mod.ROLES[role_id]["default_hostname"]
+        contract = roles_mod.generate_service_contract_stub(role_id, name)
+        if contract:
+            service_contracts.append(contract)
+
+    # --- Generate DNS registry from suggested IPs ---
+    dns_registry = []
+    if confirmed_host_ip:
+        dns_registry = sn.dns_registry_entries(
+            hostname=h_hostname,
+            host_ip=confirmed_host_ip,
+            search_domain=sd or "internal",
+            vms=[{"name": roles_mod.ROLES[r]["default_hostname"],
+                  "vmid": roles_mod.vmid_for_role(r, vmid_base),
+                  "initial_ip": vm_ips.get(roles_mod.ROLES[r]["default_hostname"], "POPULATE"),
+                  "role": r}
+                 for r in selected_roles],
+        )
+
+    # --- Generate secret registry from naming convention ---
+    secret_registry = sn.secret_registry_entries(
+        kp_root=kp_root,
+        hostname=h_hostname,
+        cell_id=cell_id,
+        vms=[{"name": roles_mod.ROLES[r]["default_hostname"],
+              "vmid": roles_mod.vmid_for_role(r, vmid_base),
+              "role": r}
+             for r in selected_roles],
+    )
+
+    # Show naming convention preview before writing
+    sn.print_preview(
+        cell_id=cell_id,
+        hostname=h_hostname,
+        kp_root=kp_root,
+        management_cidr=cidr or "192.168.1.0/24",
+        vm_names=vm_names,
+        search_domain=sd or "internal",
+    )
 
     now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
@@ -308,14 +409,14 @@ def build_bootstrap_state(non_interactive: bool = False) -> dict:
             "interface_name": iface,
         },
 
-        # Empty collections — operator populates after init
-        "vms": [],
+        # VM definitions generated from selected roles
+        "vms": vms,
         "base_images": [],
         "templates": [],
         "provenance_records": [],
-        "secrets": [],
-        "dns_registry": [],
-        "service_contracts": [],
+        "secrets": secret_registry,
+        "dns_registry": dns_registry,
+        "service_contracts": service_contracts,
 
         "hardware_requirements": {
             "vtx_required": True,
@@ -327,7 +428,11 @@ def build_bootstrap_state(non_interactive: bool = False) -> dict:
             "notes": "Populate after reviewing hardware",
         },
 
-        "first_boot_order": [],
+        # Wave-ordered first-boot sequence derived from selected roles
+        "first_boot_order": [
+            roles_mod.ROLES[r]["default_hostname"]
+            for r in sorted(selected_roles, key=lambda r: roles_mod.ROLES[r]["wave"])
+        ],
     }
 
 

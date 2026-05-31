@@ -255,6 +255,130 @@ def dns_registry_entries(
 
 
 # ---------------------------------------------------------------------------
+# KeePass database discovery
+# ---------------------------------------------------------------------------
+
+def discover_keepass_databases() -> list[str]:
+    """
+    Search for KeePass database files (.kdbx) in common locations.
+
+    Resolution order:
+      1. KeePassXC recently-opened databases (most likely to be the right one)
+      2. Common filesystem locations for the current user
+      3. Mounted drives and cloud sync folders (Windows)
+
+    Returns a list of absolute path strings, deduplicated, most-likely first.
+    """
+    import os
+    import platform
+    from pathlib import Path
+
+    found: list[str] = []
+    seen: set[str] = set()
+
+    def _add(path: str | Path) -> None:
+        p = str(Path(path).resolve())
+        if p not in seen and Path(p).exists():
+            seen.add(p)
+            found.append(p)
+
+    system = platform.system()
+
+    # ── 1. KeePassXC recently-opened databases ─────────────────────────────
+    config_candidates: list[Path] = []
+    if system == "Windows":
+        appdata = os.environ.get("APPDATA", "")
+        if appdata:
+            config_candidates.append(
+                Path(appdata) / "KeePassXC" / "KeePassXC.ini"
+            )
+    elif system == "Darwin":
+        config_candidates.append(
+            Path.home() / "Library" / "Application Support" / "KeePassXC" / "KeePassXC.ini"
+        )
+    else:  # Linux / BSD
+        xdg_config = os.environ.get("XDG_CONFIG_HOME", str(Path.home() / ".config"))
+        config_candidates.append(Path(xdg_config) / "KeePassXC" / "KeePassXC.ini")
+
+    for config_path in config_candidates:
+        if config_path.exists():
+            try:
+                text = config_path.read_text(encoding="utf-8", errors="replace")
+                in_section = False
+                for line in text.splitlines():
+                    stripped = line.strip()
+                    if stripped == "[LastOpenedDatabases]":
+                        in_section = True
+                        continue
+                    if in_section:
+                        if stripped.startswith("["):
+                            break  # new section
+                        if "DatabasePath=" in stripped:
+                            db_path = stripped.split("DatabasePath=", 1)[1].strip()
+                            _add(db_path)
+            except Exception:
+                pass
+
+    # ── 2. Common filesystem locations ────────────────────────────────────
+    home = Path.home()
+    search_dirs: list[Path] = [
+        home,
+        home / "Documents",
+        home / "Desktop",
+    ]
+
+    # Windows: OneDrive, Google Drive, Dropbox
+    if system == "Windows":
+        for env_var in ("OneDrive", "OneDriveConsumer", "OneDriveCommercial"):
+            od = os.environ.get(env_var)
+            if od:
+                search_dirs.extend([Path(od), Path(od) / "Documents"])
+        # Dropbox
+        dropbox_info = Path(os.environ.get("APPDATA", "")) / "Dropbox" / "info.json"
+        if dropbox_info.exists():
+            try:
+                import json
+                info = json.loads(dropbox_info.read_text())
+                db_path = info.get("personal", {}).get("path")
+                if db_path:
+                    search_dirs.append(Path(db_path))
+            except Exception:
+                pass
+        # Check common drive letters for mapped network drives
+        for letter in "DEFGHIJKLMNOPQRSTUVWXYZ":
+            drive = Path(f"{letter}:\\")
+            if drive.exists():
+                search_dirs.append(drive)
+    else:
+        # Linux/Mac: Dropbox, Google Drive, Nextcloud
+        for cloud_dir in ("Dropbox", "Google Drive", "Nextcloud", "ownCloud"):
+            candidate = home / cloud_dir
+            if candidate.exists():
+                search_dirs.append(candidate)
+
+    for search_dir in search_dirs:
+        try:
+            for kdbx in search_dir.glob("*.kdbx"):
+                _add(kdbx)
+        except (PermissionError, OSError):
+            pass
+
+    return found
+
+
+def suggest_keepass_database() -> tuple[str | None, list[str]]:
+    """
+    Suggest the most likely KeePass database path.
+
+    Returns (best_suggestion, all_candidates).
+    best_suggestion is None if nothing found.
+    """
+    candidates = discover_keepass_databases()
+    best = candidates[0] if candidates else None
+    return best, candidates
+
+
+# ---------------------------------------------------------------------------
 # CLI preview
 # ---------------------------------------------------------------------------
 

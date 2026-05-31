@@ -301,19 +301,43 @@ def run_wizard(
         print("[dry-run] No secrets generated or stored. Re-run without --dry-run to proceed.")
         return
 
-    # KeePass database path
+    # KeePass database path — auto-discover, then confirm
     db_password = None
     if cli:
         if not keepass_db:
-            try:
-                keepass_db = input("  KeePass database path (.kdbx): ").strip()
-            except (EOFError, KeyboardInterrupt):
-                print("\n  Aborted.")
-                sys.exit(0)
+            best, candidates = sn.suggest_keepass_database()
+            if candidates:
+                print("  KeePass databases found:")
+                for i, c in enumerate(candidates[:5]):
+                    marker = " ← suggested" if i == 0 else ""
+                    print(f"    [{i+1}] {c}{marker}")
+                print()
+                try:
+                    raw = input(
+                        f"  KeePass database [Enter to use suggested, or type path]: "
+                    ).strip()
+                except (EOFError, KeyboardInterrupt):
+                    print("\n  Aborted.")
+                    sys.exit(0)
+                if not raw:
+                    keepass_db = best
+                elif raw.isdigit() and 1 <= int(raw) <= len(candidates):
+                    keepass_db = candidates[int(raw) - 1]
+                else:
+                    keepass_db = raw
+            else:
+                print("  No KeePass databases found automatically.")
+                try:
+                    keepass_db = input("  KeePass database path (.kdbx): ").strip()
+                except (EOFError, KeyboardInterrupt):
+                    print("\n  Aborted.")
+                    sys.exit(0)
+
         if not keepass_db or not Path(keepass_db).exists():
             print(f"  Warning: database not found at {keepass_db!r}. Switching to manual mode.")
             cli = None
         else:
+            print(f"  Using: {keepass_db}")
             import getpass
             try:
                 db_password = getpass.getpass("  KeePass master password: ")
