@@ -1,7 +1,7 @@
 # Session Handoff
 
-Date: 2026-05-31 22:30:00 UTC (2026-05-31 16:30:00 MDT)
-Status: Ready to resume at Milestone 6.7 — Tier 2 Collector (deferred from 6.5)
+Date: 2026-05-31 23:15:00 UTC (2026-05-31 17:15:00 MDT)
+Status: Ready to resume at Milestone 6.8 — Bootstrap Documentation Update
 
 ---
 
@@ -19,107 +19,109 @@ Full review: docs/ARCHITECTURE-REVIEW-v7.md | Roadmap: ROADMAP.md (12-phase)
 See ROADMAP.md for full detail. All complete.
 
 ### Milestone 6.1 — Bootstrap State Schema
-  data-model/bootstrap-state-schema.json   Full schema: Cloud-Init, templates, provenance,
-                                            secrets, DNS, service contracts, hardware
+  data-model/bootstrap-state-schema.json   Full schema with cell_id, Cloud-Init, templates,
+                                            provenance, secrets, DNS, service contracts, hardware
   data-model/service-state-schema.json     Service state schema
   tests/unit/test_bootstrap_service_schemas.py   90 tests
 
 ### Milestone 6.2 — Cloud-Init Template Library
   proxmox-bootstrap/snippets/              user-data/, network-config/, vendor-data/
-  proxmox-bootstrap/generate-network-configs.py   generator
-  proxmox-bootstrap/generate-user-data.py          generator
-  proxmox-bootstrap/SNIPPET-UPLOAD.md              upload procedure
-  tests/unit/test_cloudinit_templates.py           62 tests
+  proxmox-bootstrap/generate-network-configs.py
+  proxmox-bootstrap/generate-user-data.py
+  proxmox-bootstrap/SNIPPET-UPLOAD.md
+  tests/unit/test_cloudinit_templates.py   62 tests
 
 ### Milestone 6.3 — Secret Registry
-  proxmox-bootstrap/secret-registry.yaml   11 entries, owning_cell, KeePass paths
-  doc-gen/registries.py::SecretRegistry    by-id, by-component lookups
+  proxmox-bootstrap/secret-registry.yaml   11 entries
+  doc-gen/registries.py::SecretRegistry
   doc-gen/readiness.py                     ORANGE gap: secret registry missing
-  doc-gen/renderers/recovery_runbook.py    "Secrets Required for Recovery" + Appendix D
+  doc-gen/renderers/recovery_runbook.py    Appendix D
 
 ### Milestone 6.4 — DNS Registry
-  proxmox-bootstrap/dns-registry.yaml      5 entries (host + 4 VMs)
-  doc-gen/registries.py::DnsRegistry       by-vmid, by-hostname lookups
+  proxmox-bootstrap/dns-registry.yaml      5 entries
+  doc-gen/registries.py::DnsRegistry
   doc-gen/readiness.py                     YELLOW gap: DNS registry missing
   doc-gen/renderers/recovery_runbook.py    _resolve_vm_ip() + Appendix C
 
-### Milestone 6.5 — Deployment Provenance (complete, except Tier 2 collector)
-  doc-gen/provenance.py                    ProvenanceRegistry class (by-vmid, by-name, coverage())
-  doc-gen/engine.py                        Injects provenance_registry from bootstrap-state.json
-  doc-gen/readiness.py                     _score_provenance_completeness() — YELLOW per missing VM
-                                           registry_gaps list contains both registry + provenance gaps
-  doc-gen/renderers/recovery_runbook.py    Per-VM provenance block + Appendix E
+### Milestone 6.5 — Deployment Provenance
+  doc-gen/provenance.py                    ProvenanceRegistry (by-vmid, by-name, coverage())
+  doc-gen/engine.py                        Injects provenance_registry
+  doc-gen/readiness.py                     YELLOW per missing VM
+  doc-gen/renderers/recovery_runbook.py    Per-VM block + Appendix E
   tests/unit/test_provenance.py            44 tests
-  Note: Tier 2 collector (6.5 item 3) deferred → this is Milestone 6.7
 
-### Milestone 6.6 — Template Registry and Base Image Tracking (complete)
-  doc-gen/template_registry.py             TemplateRegistry class (get_base_image, get_template,
+### Milestone 6.6 — Template Registry and Base Image Tracking
+  doc-gen/template_registry.py             TemplateRegistry (get_base_image, get_template,
                                            template_for_vmid, available, counts, all_*)
-  doc-gen/engine.py                        Injects base_images + templates from bootstrap-state.json
-  doc-gen/readiness.py                     _score_template_registry_completeness() — ORANGE if missing
-  doc-gen/renderers/recovery_runbook.py    Appendix F — Template Registry
+  doc-gen/engine.py                        Injects base_images + templates
+  doc-gen/readiness.py                     ORANGE if templates missing
+  doc-gen/renderers/recovery_runbook.py    Appendix F
   tests/unit/test_template_registry.py     56 tests
-  tests/unit/test_registries.py            Updated 2 tests to also inject templates
 
-**Tests: 987 total, all passing**
+### Milestone 6.7 — Tier 2 Bootstrap State Collector
+  proxmox-bootstrap/collect_tier2.py       Library: parse_qm_list, parse_qm_config,
+                                           collect_templates, collect_provenance_records,
+                                           merge_into_state, _iso_to_base_image_name
+  proxmox-bootstrap/collect-tier2.py       CLI entry point (--host, --user, --port,
+                                           --key, --state, --dry-run, --verbose)
+  proxmox-bootstrap/TIER2-COLLECTION.md    Operator runbook
+  tests/unit/test_tier2_collector.py       54 tests
+
+  Key behaviours:
+    - SSH via subprocess (stdlib only)
+    - merge-only: existing entries never overwritten
+    - --dry-run prints updated JSON without writing
+    - ISO filename → normalized base image name (ubuntu/debian/talos heuristics)
+    - qm config \n-encoded description correctly decoded
+
+**Tests: 1041 total, all passing**
 
 ---
 
-## Next Action: Milestone 6.7 — Tier 2 Collector
+## Talos Linux — Optional Alternative (this session)
 
-This milestone was deferred from 6.5 (item 3). It adds a shell/Python collector
-that SSHs into Proxmox and populates provenance_records, base_images, and templates
-in bootstrap-state.json by reading live system state.
+Added Talos as a documented optional alternative OS for k3s VMs:
+  proxmox-bootstrap/metadata/vm-roles.yaml      os_variant comment on k3s-server-01 template field
+  proxmox-bootstrap/metadata/k3s-cluster.yaml   os_variant: ubuntu|talos field on server/worker nodes
+  docs/TALOS-ALTERNATIVE.md                     Full reference doc + OS migration CLI section
+  ROADMAP.md                                    Milestone 9.T (17 sub-milestones: foundation + Ubuntu↔Talos migration automation)
 
-### Background
+Ubuntu remains the default. Talos is activated by setting os_variant: talos.
+Migration scripts (9.T.9 and 9.T.13) are roadmapped but not yet built.
 
-The doc-gen engine already consumes provenance_records, base_images, and templates
-from bootstrap-state.json. The Tier 2 collector's job is to *generate* those arrays
-by inspecting the live Proxmox host — without requiring the operator to hand-populate them.
+---
 
-### Scope of 6.7
+## Next Action: Milestone 6.8 — Bootstrap Documentation Update
 
-**1. `proxmox-bootstrap/collect-tier2.py`** (new)
+### What ROADMAP.md says for 6.8
 
-A standalone Python script (stdlib only) that:
-- SSHs into Proxmox using paramiko or subprocess+ssh (subprocess preferred for stdlib compliance)
-- Runs `qm list`, `qm config <vmid>`, `pvesm status`, `pveversion` to enumerate state
-- Populates:
-  - `provenance_records` — one entry per VMID with vmid, name, deployed_at (stat mtime), template_name
-  - `templates` — one entry per template VMID (templates have `template: 1` in qm config)
-  - `base_images` — derived from template source_iso if discoverable via qm config notes or description
-- Writes results to bootstrap-state.json (merges, does not replace existing manual entries)
-- Flag: `--dry-run` prints what would be written without modifying bootstrap-state.json
+- Bootstrap Workbook Stage 02: template creation from registry
+- Bootstrap Workbook Stage 03–N: Cloud-Init pre-populated from Bootstrap State
+- Replace `[CLOUD_INIT_PATH]` and `[VM_IP]` with registry data
+- End-to-end test
 
-**2. `proxmox-bootstrap/TIER2-COLLECTION.md`** (new)
+### What this means in practice
 
-Procedure for running the Tier 2 collector, what credentials are needed,
-and how to verify output.
+The Bootstrap Workbook is the ODS spreadsheet generated by engine.py (`--mode bootstrap`).
+Its stages currently have placeholder values like `[CLOUD_INIT_PATH]` and `[VM_IP]`.
+6.8 wires in the registries and template data (now available from 6.3–6.7) to
+pre-populate those placeholders with real values.
 
-**3. `tests/unit/test_tier2_collector.py`** (new, ~30 tests)
+### Key files to read before starting
 
-- TestCollectorParsing — unit tests for each parse function with mock qm output
-- TestDryRun — verify --dry-run produces correct JSON to stdout without modifying file
-- TestMergeLogic — existing entries not overwritten when already populated
+  doc-gen/engine.py                        run_bootstrap() function — produces the ODS
+  doc-gen/renderers/bootstrap_workbook.py  Bootstrap Workbook ODS renderer (Stage 02, 03+)
+  doc-gen/registries.py                    SecretRegistry, DnsRegistry
+  doc-gen/template_registry.py             TemplateRegistry
+  tests/fixtures/bootstrap/bootstrap-state.json   canonical fixture
+  tests/unit/test_bootstrap_workbook.py    (check if it exists)
 
-### Design constraints
+### Before writing any code
 
-- stdlib only (no pip dependencies in proxmox-bootstrap/ scripts)
-- SSH via subprocess (avoids paramiko dependency)
-- Must not overwrite existing manually-entered provenance fields
-- ROADMAP.md says this milestone is YELLOW until at least one live collection run succeeds
-
-### Key files for context
-
-  proxmox-bootstrap/bootstrap-state.json schema:
-    provenance_records[].vmid, name, deployed_at, tofu_workspace, tofu_commit,
-                          template_name, cloudinit_user_data_hash, etc.
-    templates[].name, base_image, proxmox_template_id, created_at, additional_packages
-    base_images[].name, source_iso, checksum, created_at, included_packages
-
-  doc-gen/template_registry.py    TemplateRegistry — consumer of these arrays
-  doc-gen/provenance.py           ProvenanceRegistry — consumer of provenance_records
-  tests/fixtures/bootstrap/bootstrap-state.json   canonical fixture with all arrays
+Read doc-gen/renderers/bootstrap_workbook.py in full to understand:
+  - What stages exist and what placeholders they currently emit
+  - How the workbook renderer receives registry data
+  - Where [CLOUD_INIT_PATH] and [VM_IP] appear and what they should be replaced with
 
 ---
 
@@ -127,16 +129,12 @@ and how to verify output.
 
   doc-gen/registries.py             SecretRegistry + DnsRegistry
   doc-gen/provenance.py             ProvenanceRegistry
-  doc-gen/template_registry.py      TemplateRegistry (6.6 complete)
-  doc-gen/readiness.py              _score_registry_completeness, _score_provenance_completeness,
-                                     _score_template_registry_completeness
-                                     registry_gaps list (all registry + provenance gaps)
+  doc-gen/template_registry.py      TemplateRegistry
+  doc-gen/readiness.py              All completeness scorers + score_graph()
   doc-gen/engine.py                 Injects: secret_registry, dns_registry, provenance_registry,
                                      base_images, templates
+  proxmox-bootstrap/collect_tier2.py   Tier 2 SSH collector library
   tests/fixtures/bootstrap/bootstrap-state.json   canonical fixture
-  tests/unit/test_registries.py     75 tests (6.3 + 6.4)
-  tests/unit/test_provenance.py     44 tests (6.5)
-  tests/unit/test_template_registry.py   56 tests (6.6)
 
 ## Design Constraints
 
