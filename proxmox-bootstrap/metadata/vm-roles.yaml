@@ -70,6 +70,11 @@ k3s_vms:
     role: k3s-server
     purpose: "k3s control plane (Phase 3: single-node; Phase 11: first of 3)"
     template: ubuntu-2204-base
+      # default: ubuntu-2204-base (Cloud-Init, Ansible-provisioned)
+      # alternative: talos-1x-base (Talos Linux — see k3s-cluster.yaml os_variant)
+      # To use Talos: set os_variant: talos in k3s-cluster.yaml server_nodes entry,
+      #   create a talos-1x-base template, and use talosctl instead of Ansible for
+      #   k3s provisioning. Cloud-Init snippets are not used with Talos.
     resources:
       vcpus: 4
       ram_mb: 4096

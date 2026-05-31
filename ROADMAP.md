@@ -90,17 +90,19 @@ Track 3 begins after Phase 18 completes the expanded state model.
 - [x] Wire into recovery documentation (per-VM block + Appendix E)
 
 **6.6 — Template Registry and Base Image Tracking**
-- [ ] Template registry schema
-- [ ] Initial registry entries
-- [ ] Template registry reader in doc-gen
-- [ ] Template registry completeness in readiness scorer (ORANGE if missing)
-- [ ] Template rebuild playbook format
+- [x] Template registry schema (base_images + templates arrays in bootstrap-state-schema.json)
+- [x] Initial registry entries (ubuntu-2204-base ISO + template in bootstrap-state.json)
+- [x] Template registry reader in doc-gen (doc-gen/template_registry.py — TemplateRegistry)
+- [x] Template registry completeness in readiness scorer (ORANGE if missing)
+- [x] Appendix F — Template Registry in recovery runbook
+- [ ] Template rebuild playbook format (Phase 9)
 
 **6.7 — Tier 2 Bootstrap State Collector**
-- [ ] `assessment/tier2/collectors/bootstrap_state.py`
+- [ ] `proxmox-bootstrap/collect-tier2.py` — SSH collector for provenance_records, templates, base_images
+- [ ] `--dry-run` flag; merge-only logic (never overwrites existing manual entries)
 - [ ] Cloud-Init snippet comparison (deployed vs. repository)
 - [ ] Integration into Tier 2 manifest
-- [ ] Tests
+- [ ] Tests (~30 in test_tier2_collector.py)
 
 **6.8 — Bootstrap Documentation Update**
 - [ ] Bootstrap Workbook Stage 02: template creation from registry
@@ -148,11 +150,32 @@ Track 3 begins after Phase 18 completes the expanded state model.
 - [ ] 9.1: Reconstruction playbook format and schema
 - [ ] 9.2: Playbook generator (from state model) — organized under `reconstruction/<cell_id>/`
 - [ ] 9.3: Wave 0 (host restore) playbook
-- [ ] 9.4: Wave 0.5 (template rebuild) playbook
+- [ ] 9.4: Wave 0.5 (template rebuild) playbook — Ubuntu and Talos variants
+      Ubuntu path: cloud-init ISO + Ansible k3s-server role
+      Talos path:  talosctl gen config + talosctl apply-config (no Ansible, no cloud-init)
+      Variant selected from k3s-cluster.yaml server_nodes[].os_variant
 - [ ] 9.5: Per-VM reconstruction playbook
+      k3s-server playbook emits correct steps for os_variant (ubuntu or talos)
 - [ ] 9.6: Orchestrated `run-all.sh` generator
 - [ ] 9.7: Playbook validator (syntax check + dependency check)
 - [ ] 9.8: Playbook existence in readiness scorer
+
+**9.T — Talos Alternative Support** *(optional; activate by setting os_variant: talos)*
+- [ ] 9.T.1: `docs/TALOS-ALTERNATIVE.md` — prerequisites, build procedure for talos-1x-base
+        template, talosctl installation, machine config generation, migration checklist
+- [ ] 9.T.2: `proxmox-bootstrap/build-talos-template.sh` — downloads Talos ISO,
+        creates Proxmox VM, converts to template (talos-1x-base, VMID 9001)
+- [ ] 9.T.3: `proxmox-bootstrap/generate-talos-config.py` — generates talos machine
+        configs from k3s-cluster.yaml (control plane + worker patches); stdlib only
+- [ ] 9.T.4: Talos template entry in bootstrap-state.json template registry
+        (talos-1x-base alongside ubuntu-2204-base; separate base_image entry)
+- [ ] 9.T.5: bootstrap-state-schema.json — add `os_variant` enum (ubuntu | talos)
+        to template registry entries and provenance_records
+- [ ] 9.T.6: doc-gen readiness scorer — YELLOW if os_variant=talos but no Talos
+        machine config found in repo (talos-configs/ directory absent)
+- [ ] 9.T.7: Recovery runbook — emit Talos-specific reconstruction steps
+        (talosctl apply-config instead of Ansible) when os_variant=talos
+- [ ] 9.T.8: Tests for Talos config generator and runbook rendering
 
 ### Phase 10 — Operational Documentation
 

@@ -39,11 +39,21 @@ server_nodes:
     also_worker: true
       # reason: Single physical host — must schedule workloads on control plane VM.
       #         Set to false when dedicated worker nodes exist (Phase 9).
+    os_variant: ubuntu
+      # Options:
+      #   ubuntu  — default. Cloud-Init provisioned; Ansible roles apply.
+      #             Template: ubuntu-2204-base. Provisioning: SSH + Ansible k3s-server role.
+      #   talos   — alternative. Immutable OS designed for Kubernetes.
+      #             Template: talos-1x-base (separate build procedure — no cloud-init).
+      #             Provisioning: talosctl apply-config (Ansible roles do NOT apply).
+      #             Phase 9/11 consideration: evaluate when expanding to multi-node HA.
+      #             See docs/TALOS-ALTERNATIVE.md for migration prerequisites.
 
 worker_nodes: []
   # Add dedicated worker nodes in Phase 9 when additional RAM is available.
   # Example:
   # - vm_name: k3s-worker-01
+  #   os_variant: ubuntu   # or talos — must match server_nodes os_variant
   #   taints: []
 
 # ─── Storage ──────────────────────────────────────────────────────────────────
