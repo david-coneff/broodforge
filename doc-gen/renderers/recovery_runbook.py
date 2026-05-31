@@ -640,4 +640,61 @@ def build_recovery_runbook(
             "after each VM is provisioned."
         )
 
+    # ------------------------------------------------------------------
+    # Appendix F — Template Registry
+    # ------------------------------------------------------------------
+    rb.h1("Appendix F — Template Registry")
+    base_images = manifest.get("base_images") or []
+    templates   = manifest.get("templates") or []
+    if templates or base_images:
+        rb.body(
+            "Templates are Proxmox VM templates (VMID 9000+) built from base ISO images. "
+            "During reconstruction, clone the appropriate template rather than reinstalling "
+            "from ISO to ensure package parity with the original deployment."
+        )
+        rb.spacer()
+
+        if templates:
+            rb.h2("VM Templates")
+            for t in templates:
+                name     = t.get("name", "unknown")
+                base     = t.get("base_image", "unknown")
+                tmpl_id  = t.get("proxmox_template_id", "unknown")
+                created  = t.get("created_at", "unknown")
+                pkgs     = t.get("additional_packages") or []
+                notes    = t.get("build_notes") or ""
+                rb.h3(name)
+                rb.field("Proxmox template ID", str(tmpl_id), "AUTO", "")
+                rb.field("Base image",          base,         "AUTO", "")
+                rb.field("Created at",          created,      "AUTO", "")
+                if pkgs:
+                    rb.field("Additional packages", ", ".join(pkgs), "AUTO", "")
+                if notes:
+                    rb.body(f"Build notes: {notes}")
+
+        if base_images:
+            rb.spacer()
+            rb.h2("Base Images")
+            for bi in base_images:
+                name     = bi.get("name", "unknown")
+                iso      = bi.get("source_iso", "unknown")
+                checksum = bi.get("checksum", "unknown")
+                created  = bi.get("created_at", "unknown")
+                pkgs     = bi.get("included_packages") or []
+                notes    = bi.get("notes") or ""
+                rb.h3(name)
+                rb.field("Source ISO",  iso,      "AUTO", "")
+                rb.field("Checksum",    checksum, "AUTO", "")
+                rb.field("Created at",  created,  "AUTO", "")
+                if pkgs:
+                    rb.field("Included packages", ", ".join(pkgs), "AUTO", "")
+                if notes:
+                    rb.body(f"Notes: {notes}")
+    else:
+        rb.body(
+            "Template registry not available. "
+            "Populate base_images and templates in bootstrap-state.json "
+            "to enable pre-populated reconstruction steps."
+        )
+
     return rb.build_odt()

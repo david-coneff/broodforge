@@ -477,6 +477,8 @@ class TestRegistryCompletenessScoring(unittest.TestCase):
             "host": {"hostname": "pve01"},
             "secret_registry": [{"id": "s1"}],
             "dns_registry": [{"hostname": "h1", "ip": "1.2.3.4"}],
+            "templates": [{"name": "ubuntu-2204-base", "proxmox_template_id": 9000,
+                           "base_image": "ubuntu-2204-base", "created_at": "2026-04-01T11:00:00Z"}],
         }
         # Minimal empty graph
         from dependencies import DependencyGraph
@@ -686,6 +688,8 @@ class TestFixtureIntegration(unittest.TestCase):
             }
             for vm in vms if vm.get("vmid") is not None
         ]
+        manifest["templates"] = fixture_bs["templates"]
+        manifest["base_images"] = fixture_bs["base_images"]
 
         graph = dep_mod.build_graph(manifest)
         report = score_graph(graph, manifest)

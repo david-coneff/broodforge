@@ -474,6 +474,39 @@ def _score_registry_completeness(manifest: dict) -> list:
     return gaps
 
 
+def _score_template_registry_completeness(manifest: dict) -> list:
+    """
+    Check template registry completeness and return a list of Gap objects.
+
+    Templates missing → ORANGE (VM reconstruction requires manual base-image
+    research; same severity as missing secret registry since it blocks automated
+    reconstruction).
+    """
+    gaps: list[Gap] = []
+
+    templates = manifest.get("templates")
+    if not templates:
+        gaps.append(Gap(
+            component_id="infrastructure:registries",
+            gap_type="MISSING_TEMPLATE_REGISTRY",
+            severity="ORANGE",
+            description=(
+                "Template registry not available — base image and template IDs cannot "
+                "be pre-populated in recovery runbook"
+            ),
+            remediation=(
+                "Populate base_images and templates in bootstrap-state.json"
+            ),
+            readiness_impact=(
+                "VM reconstruction requires manual research to locate the correct "
+                "Proxmox template ID and base image; VMID 9000 may not be obvious "
+                "under time pressure"
+            ),
+        ))
+
+    return gaps
+
+
 def _score_provenance_completeness(graph, manifest: dict) -> list:
     """
     Check deployment provenance completeness for every VM node in the graph.
@@ -591,6 +624,7 @@ def score_graph(graph, manifest: dict) -> ReadinessReport:
     # Registry and provenance completeness
     registry_gaps = _score_registry_completeness(manifest)
     registry_gaps += _score_provenance_completeness(graph, manifest)
+    registry_gaps += _score_template_registry_completeness(manifest)
 
     # Overall score — worst of component scores and infrastructure gaps
     overall = "GREEN"

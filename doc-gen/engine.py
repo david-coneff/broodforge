@@ -470,6 +470,16 @@ def run_recovery(args):
     else:
         print("[doc-gen] Provenance registry: not found in bootstrap-state (per-VM provenance unavailable)")
 
+    _base_images = bootstrap_state.get("base_images") or []
+    _templates   = bootstrap_state.get("templates") or []
+    if _base_images or _templates:
+        manifest["base_images"] = _base_images
+        manifest["templates"]   = _templates
+        print(f"[doc-gen] Template registry: {len(_templates)} template(s), "
+              f"{len(_base_images)} base image(s)")
+    else:
+        print("[doc-gen] Template registry: not found in bootstrap-state")
+
     print("[doc-gen] Building dependency graph...")
     sys.path.insert(0, str(REPO_ROOT / "doc-gen"))
     import dependencies as dep_mod
