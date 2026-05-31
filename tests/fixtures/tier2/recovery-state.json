@@ -1,0 +1,129 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-05-29T02:10:00Z",
+  "assessment_id": "assessment_2026-05-29_02_05_00",
+
+  "dependency_graph": {
+    "nodes": [
+      {"id": "pve:host",          "type": "host",      "label": "pve01 (Proxmox host)",           "readiness": "GREEN",   "metadata": {}},
+      {"id": "zfs:rpool",         "type": "storage",   "label": "rpool (ZFS mirror, sda+sdb)",    "readiness": "GREEN",   "metadata": {"topology": "mirror", "free_gb": 412.8}},
+      {"id": "vm:infra-bootstrap","type": "vm",        "label": "infra-bootstrap (VM 100)",       "readiness": "GREEN",   "metadata": {"vmid": 100}},
+      {"id": "vm:forgejo",        "type": "vm",        "label": "forgejo (VM 101)",               "readiness": "YELLOW",  "metadata": {"vmid": 101}},
+      {"id": "vm:inventory",      "type": "vm",        "label": "inventory (VM 102)",             "readiness": "GREEN",   "metadata": {"vmid": 102}},
+      {"id": "vm:assessment",     "type": "vm",        "label": "assessment-engine (VM 103)",     "readiness": "GREEN",   "metadata": {"vmid": 103}}
+    ],
+    "edges": [
+      {"from": "vm:infra-bootstrap", "to": "pve:host",   "type": "DEPENDS_ON", "label": "runs on host"},
+      {"from": "vm:forgejo",         "to": "pve:host",   "type": "DEPENDS_ON", "label": "runs on host"},
+      {"from": "vm:inventory",       "to": "pve:host",   "type": "DEPENDS_ON", "label": "runs on host"},
+      {"from": "vm:assessment",      "to": "pve:host",   "type": "DEPENDS_ON", "label": "runs on host"},
+      {"from": "vm:infra-bootstrap", "to": "zfs:rpool",  "type": "STORAGE",    "label": "primary storage"},
+      {"from": "vm:forgejo",         "to": "zfs:rpool",  "type": "STORAGE",    "label": "primary storage"},
+      {"from": "vm:inventory",       "to": "zfs:rpool",  "type": "STORAGE",    "label": "primary storage"},
+      {"from": "vm:assessment",      "to": "zfs:rpool",  "type": "STORAGE",    "label": "primary storage"},
+      {"from": "vm:assessment",      "to": "vm:forgejo", "type": "NETWORK",    "label": "git remote (assessment repos)"},
+      {"from": "vm:inventory",       "to": "vm:forgejo", "type": "NETWORK",    "label": "git remote (inventory repo)"}
+    ],
+    "restore_waves": [
+      {"wave": 1, "components": ["pve:host"],           "note": "Physical host must come first",            "estimated_minutes": 60},
+      {"wave": 2, "components": ["zfs:rpool"],           "note": "Storage must be available before VMs",     "estimated_minutes": 15},
+      {"wave": 3, "components": ["vm:forgejo"],          "note": "Git infrastructure before dependents",     "estimated_minutes": 20},
+      {"wave": 4, "components": ["vm:infra-bootstrap", "vm:inventory", "vm:assessment"], "note": "Remaining VMs — no mutual dependencies", "estimated_minutes": 30}
+    ]
+  },
+
+  "readiness_report": {
+    "overall_score": "YELLOW",
+    "overall_score_reason": "forgejo VM backup age exceeds threshold",
+    "components": [
+      {
+        "component_id": "pve:host",
+        "score": "GREEN",
+        "score_reason": "Full backup present, < 1 day old, restore procedure documented",
+        "blocked_by": null,
+        "backup_present": true,
+        "backup_age_days": 1,
+        "restore_tested": false,
+        "gaps": [
+          {
+            "component_id": "pve:host",
+            "gap_type": "UNTESTED_RESTORE",
+            "severity": "YELLOW",
+            "description": "No verified restore test on record for pve01",
+            "remediation": "Perform restore test to isolated environment",
+            "readiness_impact": "Restore procedure is unvalidated; actual RTO unknown"
+          }
+        ]
+      },
+      {
+        "component_id": "zfs:rpool",
+        "score": "GREEN",
+        "score_reason": "ZFS mirror topology; pool healthy; no offsite backup detected",
+        "blocked_by": null,
+        "backup_present": true,
+        "backup_age_days": 1,
+        "restore_tested": false,
+        "gaps": []
+      },
+      {
+        "component_id": "vm:forgejo",
+        "score": "YELLOW",
+        "score_reason": "Backup age 12 days; threshold for tier-1 services is 7 days",
+        "blocked_by": null,
+        "backup_present": true,
+        "backup_age_days": 12,
+        "restore_tested": false,
+        "gaps": [
+          {
+            "component_id": "vm:forgejo",
+            "gap_type": "STALE_BACKUP",
+            "severity": "YELLOW",
+            "description": "Last backup 12 days ago; threshold 7 days for tier-1 services",
+            "remediation": "Run manual backup or verify PBS schedule is active",
+            "readiness_impact": "Recovery point may be 12 days old; data loss risk"
+          },
+          {
+            "component_id": "vm:forgejo",
+            "gap_type": "UNTESTED_RESTORE",
+            "severity": "YELLOW",
+            "description": "No verified restore test on record",
+            "remediation": "Perform restore test to isolated environment",
+            "readiness_impact": "Restore procedure is unvalidated"
+          }
+        ]
+      },
+      {
+        "component_id": "vm:assessment",
+        "score": "GREEN",
+        "score_reason": "Backup present, 1 day old, all dependency info available",
+        "blocked_by": null,
+        "backup_present": true,
+        "backup_age_days": 1,
+        "restore_tested": false,
+        "gaps": []
+      },
+      {
+        "component_id": "vm:inventory",
+        "score": "GREEN",
+        "score_reason": "Backup present, 1 day old",
+        "blocked_by": null,
+        "backup_present": true,
+        "backup_age_days": 1,
+        "restore_tested": false,
+        "gaps": []
+      },
+      {
+        "component_id": "vm:infra-bootstrap",
+        "score": "GREEN",
+        "score_reason": "Backup present, 1 day old",
+        "blocked_by": null,
+        "backup_present": true,
+        "backup_age_days": 1,
+        "restore_tested": false,
+        "gaps": []
+      }
+    ],
+    "single_points_of_failure": ["zfs:rpool"],
+    "recovery_blockers": []
+  }
+}

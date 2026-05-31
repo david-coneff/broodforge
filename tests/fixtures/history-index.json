@@ -1,0 +1,26 @@
+{
+  "snapshots": [
+    {
+      "id": "bootstrap_2026-05-01_10_00_00",
+      "tier": 1,
+      "collected_at": "2026-05-01T10:00:00Z",
+      "archive_path": "history/snapshots/bootstrap_2026-05-01_10_00_00.tar.gz",
+      "manifest_path": "history/snapshots/bootstrap_2026-05-01_10_00_00/manifest.json",
+      "template_version": "bootstrap-v1.0",
+      "doc_generation_ids": ["bootstrap_2026-05-01_10_00_00"],
+      "notes": "Initial Proxmox installation — fresh host, no VMs"
+    },
+    {
+      "id": "assessment_2026-05-29_02_05_00",
+      "tier": 2,
+      "collected_at": "2026-05-29T02:05:00Z",
+      "archive_path": "history/snapshots/assessment_2026-05-29_02_05_00.tar.gz",
+      "manifest_path": "history/snapshots/assessment_2026-05-29_02_05_00/manifest.json",
+      "template_version": null,
+      "doc_generation_ids": [],
+      "notes": "Scheduled nightly assessment — all services running"
+    }
+  ],
+  "latest_tier1_id": "bootstrap_2026-05-01_10_00_00",
+  "latest_tier2_id": "assessment_2026-05-29_02_05_00"
+}

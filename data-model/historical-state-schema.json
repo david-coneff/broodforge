@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "historical-state-schema",
+  "title": "Historical State",
+  "description": "Schema for the history/index.json snapshot index and individual drift records",
+
+  "definitions": {
+    "snapshot_entry": {
+      "type": "object",
+      "required": ["id", "tier", "collected_at", "archive_path", "manifest_path"],
+      "properties": {
+        "id":                  { "type": "string" },
+        "tier":                { "type": "integer", "enum": [1, 2] },
+        "collected_at":        { "type": "string", "format": "date-time" },
+        "archive_path":        { "type": "string" },
+        "manifest_path":       { "type": "string" },
+        "template_version":    { "type": ["string", "null"] },
+        "doc_generation_ids":  { "type": "array", "items": { "type": "string" } },
+        "notes":               { "type": ["string", "null"] }
+      }
+    },
+
+    "drift_field": {
+      "type": "object",
+      "required": ["path", "from_value", "to_value", "severity"],
+      "properties": {
+        "path":                  { "type": "string", "description": "dot-notation path in manifest, e.g. network.bridges[0].addresses[0]" },
+        "from_value":            {},
+        "to_value":              {},
+        "severity":              { "type": "string", "enum": ["LOW", "MEDIUM", "HIGH", "CRITICAL"] },
+        "documentation_impact":  { "type": ["string", "null"] },
+        "affected_doc_fields":   { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  },
+
+  "oneOf": [
+    {
+      "title": "Snapshot Index",
+      "type": "object",
+      "required": ["snapshots"],
+      "properties": {
+        "snapshots": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/snapshot_entry" }
+        },
+        "latest_tier1_id": { "type": ["string", "null"] },
+        "latest_tier2_id": { "type": ["string", "null"] }
+      }
+    },
+    {
+      "title": "Drift Record",
+      "type": "object",
+      "required": ["from_snapshot", "to_snapshot", "generated_at", "diffs"],
+      "properties": {
+        "from_snapshot":    { "type": "string" },
+        "to_snapshot":      { "type": "string" },
+        "generated_at":     { "type": "string", "format": "date-time" },
+        "diffs":            { "type": "array", "items": { "$ref": "#/definitions/drift_field" } },
+        "drift_severity":   { "type": "string", "enum": ["NONE", "LOW", "MEDIUM", "HIGH", "CRITICAL"] },
+        "doc_fields_stale": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  ]
+}

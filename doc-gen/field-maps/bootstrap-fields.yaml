@@ -1,0 +1,511 @@
+# Bootstrap Field Map — v1.0
+# Defines every field in the bootstrap-generated documents.
+#
+# Classifications:
+#   AUTO       — populated directly from manifest.json path
+#   DERIVED    — computed by an analyzer module
+#   HUMAN      — operator must provide; cannot be discovered
+#   UNRESOLVED — expected but unavailable; shown with reason + impact
+
+schema_version: "1.0"
+mode: bootstrap
+
+# ---------------------------------------------------------------------------
+# Stage 01 — Host Preparation
+# ---------------------------------------------------------------------------
+stage_01:
+  title: "Stage 01 — Host Preparation"
+  description: "Physical host setup, network configuration, and ZFS pool creation."
+
+  sections:
+
+    - id: s01_host_identification
+      title: "Host Identification"
+      fields:
+        - id: host.hostname
+          label: "Hostname"
+          class: AUTO
+          manifest_path: "host.hostname"
+          description: "Short hostname of the Proxmox host"
+
+        - id: host.fqdn
+          label: "Fully Qualified Domain Name"
+          class: AUTO
+          manifest_path: "host.fqdn"
+          nullable: true
+          description: "FQDN if DNS is configured"
+
+        - id: host.proxmox_version
+          label: "Proxmox VE Version"
+          class: AUTO
+          manifest_path: "host.proxmox_version"
+
+        - id: host.kernel_version
+          label: "Kernel Version"
+          class: AUTO
+          manifest_path: "host.kernel_version"
+          nullable: true
+
+        - id: host.timezone
+          label: "System Timezone"
+          class: AUTO
+          manifest_path: "host.timezone"
+          nullable: true
+
+    - id: s01_hardware_summary
+      title: "Hardware Summary"
+      fields:
+        - id: cpu.model
+          label: "CPU Model"
+          class: AUTO
+          manifest_path: "cpu.model"
+          nullable: true
+
+        - id: cpu.total_threads
+          label: "Logical CPU Count"
+          class: AUTO
+          manifest_path: "cpu.total_threads"
+          format: "{value} logical CPUs"
+
+        - id: cpu.sockets_cores
+          label: "CPU Topology"
+          class: AUTO
+          manifest_path: "_derived"
+          derive_inline: "'{sockets} socket(s) × {cores_per_socket} cores × {threads_per_core} threads'.format(**manifest.get('cpu', {}))"
+          nullable: true
+
+        - id: memory.total_gb
+          label: "Total RAM"
+          class: AUTO
+          manifest_path: "memory.total_gb"
+          format: "{value} GB"
+
+        - id: memory.available_gb
+          label: "Available RAM"
+          class: AUTO
+          manifest_path: "memory.available_gb"
+          format: "{value} GB"
+          nullable: true
+
+        - id: cpu.virtualization
+          label: "Virtualization Support"
+          class: AUTO
+          manifest_path: "cpu.virtualization"
+          nullable: true
+
+    - id: s01_storage_inventory
+      title: "Storage Inventory"
+      fields:
+        - id: storage.block_devices_summary
+          label: "Detected Block Devices"
+          class: AUTO
+          manifest_path: "storage.block_devices"
+          format: list
+          item_template: "{name}: {size_gb} GB, {model}, {'SSD' if not rotational else 'HDD'}"
+
+        - id: storage.zfs_pools_existing
+          label: "Existing ZFS Pools"
+          class: AUTO
+          manifest_path: "storage.zfs_pools"
+          format: list
+          item_template: "{name} ({topology}, {free_gb} GB free)"
+          nullable: true
+
+    - id: s01_zfs_recommendation
+      title: "ZFS Configuration Recommendation"
+      fields:
+        - id: derived.zfs_topology
+          label: "Recommended ZFS Topology"
+          class: DERIVED
+          analyzer: "storage.zfs_topology"
+
+        - id: derived.storage_pool_name
+          label: "Recommended Pool Name"
+          class: DERIVED
+          analyzer: "storage.pool_name"
+
+        - id: human.zfs_pool_confirm
+          label: "ZFS pool configuration approved by operator"
+          class: HUMAN
+          prompt: "Review the ZFS topology recommendation above. Confirm pool devices and topology before proceeding."
+          type: checkbox
+
+    - id: s01_network_inventory
+      title: "Network Inventory"
+      fields:
+        - id: network.interfaces_summary
+          label: "Detected Interfaces"
+          class: AUTO
+          manifest_path: "network.interfaces"
+          format: list
+          item_template: "{name}: {state}, {addresses}"
+
+        - id: network.bridges_summary
+          label: "Existing Bridges"
+          class: AUTO
+          manifest_path: "network.bridges"
+          format: list
+          item_template: "{name}: ports={ports}, addresses={addresses}"
+          nullable: true
+
+        - id: network.default_gateway
+          label: "Default Gateway"
+          class: AUTO
+          manifest_path: "network.default_gateway"
+          nullable: true
+
+        - id: network.dns_servers
+          label: "DNS Servers"
+          class: AUTO
+          manifest_path: "network.dns_servers"
+          format: join
+
+        - id: derived.bridge_recommendation
+          label: "Recommended VM Bridge"
+          class: DERIVED
+          analyzer: "network.recommend_bridge"
+
+        - id: derived.vm_ip_plan
+          label: "Suggested VM IP Range"
+          class: DERIVED
+          analyzer: "network.recommend_ip_plan"
+
+    - id: s01_credentials
+      title: "Credential Locations (Human Input Required)"
+      fields:
+        - id: human.root_password_location
+          label: "Root password — KeePass path"
+          class: HUMAN
+          prompt: "Enter the KeePass path where the root password will be stored. Example: Infrastructure/proxmox/pve01-root"
+
+        - id: human.recovery_passphrase_location
+          label: "ZFS / disk encryption passphrase — KeePass path"
+          class: HUMAN
+          prompt: "Enter KeePass path for disk encryption passphrase (if applicable). Leave blank if not using encryption."
+          optional: true
+
+    - id: s01_validation
+      title: "Validation Checkpoints"
+      fields:
+        - id: human.validate_ssh
+          label: "SSH access to host confirmed"
+          class: HUMAN
+          type: checkbox
+          prompt: "ssh root@{host.hostname} — verify login succeeds"
+
+        - id: human.validate_web_ui
+          label: "Proxmox web UI accessible"
+          class: HUMAN
+          type: checkbox
+          prompt: "https://{host.hostname}:8006 — verify login succeeds"
+
+        - id: human.validate_zfs
+          label: "ZFS pool healthy"
+          class: HUMAN
+          type: checkbox
+          prompt: "Run: zpool status — verify ONLINE state"
+
+# ---------------------------------------------------------------------------
+# Stage 02 — Host Assessment
+# ---------------------------------------------------------------------------
+stage_02:
+  title: "Stage 02 — Host Assessment"
+  description: "Complete observed-state inventory of the Proxmox host."
+
+  sections:
+
+    - id: s02_cpu
+      title: "CPU Inventory"
+      fields:
+        - id: cpu.model
+          label: "CPU Model"
+          class: AUTO
+          manifest_path: "cpu.model"
+          nullable: true
+
+        - id: cpu.architecture
+          label: "Architecture"
+          class: AUTO
+          manifest_path: "cpu.architecture"
+          nullable: true
+
+        - id: cpu.total_threads
+          label: "Logical CPUs"
+          class: AUTO
+          manifest_path: "cpu.total_threads"
+
+        - id: cpu.cores_per_socket
+          label: "Cores per Socket"
+          class: AUTO
+          manifest_path: "cpu.cores_per_socket"
+          nullable: true
+
+        - id: cpu.sockets
+          label: "Sockets"
+          class: AUTO
+          manifest_path: "cpu.sockets"
+          nullable: true
+
+        - id: cpu.virtualization
+          label: "Virtualization"
+          class: AUTO
+          manifest_path: "cpu.virtualization"
+          nullable: true
+
+    - id: s02_memory
+      title: "Memory Inventory"
+      fields:
+        - id: memory.total_gb
+          label: "Total RAM"
+          class: AUTO
+          manifest_path: "memory.total_gb"
+          format: "{value} GB"
+
+        - id: memory.available_gb
+          label: "Available RAM"
+          class: AUTO
+          manifest_path: "memory.available_gb"
+          format: "{value} GB"
+          nullable: true
+
+        - id: memory.swap_total_gb
+          label: "Swap"
+          class: AUTO
+          manifest_path: "memory.swap_total_gb"
+          format: "{value} GB"
+          nullable: true
+
+        - id: memory.numa_nodes
+          label: "NUMA Nodes"
+          class: AUTO
+          manifest_path: "memory.numa_nodes"
+          nullable: true
+
+    - id: s02_storage
+      title: "Storage Inventory"
+      fields:
+        - id: storage.block_devices
+          label: "Block Devices"
+          class: AUTO
+          manifest_path: "storage.block_devices"
+          format: list
+          item_template: "{name}: {size_gb} GB  type={type}  rotational={rotational}  model={model}  transport={transport}"
+
+        - id: storage.zfs_pools
+          label: "ZFS Pools"
+          class: AUTO
+          manifest_path: "storage.zfs_pools"
+          format: list
+          item_template: "{name}: state={state}  topology={topology}  total={total_gb} GB  free={free_gb} GB  devices={devices}"
+          nullable: true
+
+        - id: storage.pve_storage
+          label: "Proxmox Storage"
+          class: AUTO
+          manifest_path: "storage.pve_storage"
+          format: list
+          item_template: "{name} ({type}): total={total_gb} GB  free={free_gb} GB  active={active}"
+
+    - id: s02_network
+      title: "Network Inventory"
+      fields:
+        - id: network.interfaces
+          label: "Network Interfaces"
+          class: AUTO
+          manifest_path: "network.interfaces"
+          format: list
+          item_template: "{name}: state={state}  mac={mac}  addresses={addresses}  mtu={mtu}"
+
+        - id: network.bridges
+          label: "Bridges"
+          class: AUTO
+          manifest_path: "network.bridges"
+          format: list
+          item_template: "{name}: ports={ports}  addresses={addresses}  vlan_aware={vlan_aware}"
+          nullable: true
+
+        - id: network.vlans
+          label: "VLANs"
+          class: AUTO
+          manifest_path: "network.vlans"
+          format: list
+          item_template: "{name}: vlan_id={vlan_id}  parent={parent}"
+          nullable: true
+
+        - id: network.default_gateway
+          label: "Default Gateway"
+          class: AUTO
+          manifest_path: "network.default_gateway"
+          nullable: true
+
+        - id: network.dns_servers
+          label: "DNS Servers"
+          class: AUTO
+          manifest_path: "network.dns_servers"
+          format: join
+
+    - id: s02_vms
+      title: "VM and Container Inventory"
+      fields:
+        - id: vms
+          label: "Virtual Machines"
+          class: AUTO
+          manifest_path: "vms"
+          format: list
+          item_template: "VM {vmid} ({name}): status={status}  cores={cores}  mem={memory_mb} MB"
+          empty_value: "No existing VMs"
+
+        - id: containers
+          label: "Containers"
+          class: AUTO
+          manifest_path: "containers"
+          format: list
+          item_template: "CT {ctid} ({name}): status={status}"
+          empty_value: "No existing containers"
+
+    - id: s02_software
+      title: "Software Inventory"
+      fields:
+        - id: software.automation_readiness
+          label: "Automation Tool Availability"
+          class: AUTO
+          manifest_path: "software.automation_readiness"
+          format: kv
+
+        - id: derived.automation_summary
+          label: "Automation Readiness Summary"
+          class: DERIVED
+          analyzer: "software.automation_readiness"
+
+        - id: software.running_services
+          label: "Running Services"
+          class: AUTO
+          manifest_path: "software.running_services"
+          format: join
+
+    - id: s02_assessment_gaps
+      title: "Assessment Gaps"
+      fields:
+        - id: collection_errors
+          label: "Collection Errors"
+          class: AUTO
+          manifest_path: "collection_errors"
+          format: list
+          item_template: "[{collector}] {message}"
+          empty_value: "No collection errors"
+
+        - id: collection_warnings
+          label: "Collection Warnings"
+          class: AUTO
+          manifest_path: "collection_warnings"
+          format: list
+          item_template: "[{collector}] {message}"
+          empty_value: "No collection warnings"
+
+# ---------------------------------------------------------------------------
+# Stage 03 — Infra Bootstrap VM
+# ---------------------------------------------------------------------------
+stage_03:
+  title: "Stage 03 — Infra Bootstrap VM"
+  description: "Create and configure the infra-bootstrap VM from which the automation platform will be built."
+
+  sections:
+
+    - id: s03_vm_config
+      title: "VM Configuration"
+      fields:
+        - id: derived.vm_id
+          label: "VM ID"
+          class: DERIVED
+          analyzer: "vm_ids.next_available"
+
+        - id: derived.vm_ram
+          label: "RAM Allocation"
+          class: DERIVED
+          analyzer: "vm_sizing.infra_bootstrap_ram"
+
+        - id: derived.vm_cores
+          label: "vCPU Count"
+          class: DERIVED
+          analyzer: "vm_sizing.infra_bootstrap_cores"
+
+        - id: derived.vm_disk
+          label: "Boot Disk Size"
+          class: DERIVED
+          analyzer: "vm_sizing.infra_bootstrap_disk"
+
+        - id: derived.vm_storage_pool
+          label: "Storage Pool"
+          class: DERIVED
+          analyzer: "storage.pool_name"
+
+        - id: derived.vm_bridge
+          label: "Network Bridge"
+          class: DERIVED
+          analyzer: "network.recommend_bridge"
+
+        - id: human.vm_ip_address
+          label: "VM IP Address"
+          class: HUMAN
+          prompt: "Enter the static IP address for the infra-bootstrap VM. Suggested range: see Stage 01 network section."
+
+        - id: human.vm_name
+          label: "VM Name"
+          class: HUMAN
+          prompt: "Enter the VM name (e.g. infra-bootstrap). Must be unique on this host."
+          default: "infra-bootstrap"
+
+    - id: s03_os_config
+      title: "OS Configuration"
+      fields:
+        - id: human.iso_location
+          label: "Ubuntu ISO path on host"
+          class: HUMAN
+          prompt: "Enter the path to the Ubuntu 22.04 LTS ISO in Proxmox local storage. Example: local:iso/ubuntu-22.04-live-server-amd64.iso"
+
+        - id: human.vm_username
+          label: "VM OS username"
+          class: HUMAN
+          prompt: "Enter the initial OS username for the infra-bootstrap VM."
+          default: "ubuntu"
+
+        - id: human.vm_password_location
+          label: "VM password — KeePass path"
+          class: HUMAN
+          prompt: "Enter the KeePass path where the VM password will be stored."
+
+    - id: s03_sequence
+      title: "VM ID Sequence (Full Bootstrap)"
+      fields:
+        - id: derived.vm_id_sequence
+          label: "VM IDs for Stages 03–12"
+          class: DERIVED
+          analyzer: "vm_ids.sequence_4"
+          description: "Next 4 available VM IDs for the full bootstrap sequence (infra-bootstrap, forgejo, inventory, assessment-engine)"
+
+    - id: s03_validation
+      title: "Validation Checkpoints"
+      fields:
+        - id: human.validate_vm_created
+          label: "VM created in Proxmox"
+          class: HUMAN
+          type: checkbox
+          prompt: "Verify VM appears in Proxmox web UI with correct ID and name"
+
+        - id: human.validate_vm_boots
+          label: "VM boots to OS"
+          class: HUMAN
+          type: checkbox
+          prompt: "Start VM and verify OS boots successfully"
+
+        - id: human.validate_vm_ssh
+          label: "SSH access to VM confirmed"
+          class: HUMAN
+          type: checkbox
+          prompt: "ssh {human.vm_username}@{human.vm_ip_address} — verify login succeeds"
+
+        - id: human.validate_vm_internet
+          label: "VM internet access confirmed"
+          class: HUMAN
+          type: checkbox
+          prompt: "From VM: ping 1.1.1.1 — verify network access"

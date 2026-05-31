@@ -1,0 +1,825 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "observed-state-schema",
+  "title": "Observed State",
+  "description": "Schema for the manifest.json produced by Tier 1 and Tier 2 assessment collectors",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "assessment_tier",
+    "collected_at",
+    "host",
+    "cpu",
+    "memory",
+    "storage",
+    "network",
+    "vms",
+    "containers",
+    "software",
+    "collection_errors",
+    "collection_warnings"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "enum": [
+        "1.0",
+        "2.0"
+      ]
+    },
+    "assessment_tier": {
+      "type": "integer",
+      "enum": [
+        1,
+        2
+      ]
+    },
+    "collected_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "host": {
+      "type": "object",
+      "required": [
+        "hostname",
+        "proxmox_version"
+      ],
+      "properties": {
+        "hostname": {
+          "type": "string"
+        },
+        "fqdn": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "proxmox_version": {
+          "type": "string"
+        },
+        "uptime_seconds": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "kernel_version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "timezone": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "cpu": {
+      "type": "object",
+      "required": [
+        "total_threads"
+      ],
+      "properties": {
+        "model": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "architecture": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sockets": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "cores_per_socket": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "threads_per_core": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "total_threads": {
+          "type": "integer"
+        },
+        "virtualization": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "VT-x/AMD-V/none"
+        }
+      }
+    },
+    "memory": {
+      "type": "object",
+      "required": [
+        "total_gb"
+      ],
+      "properties": {
+        "total_gb": {
+          "type": "number"
+        },
+        "available_gb": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "swap_total_gb": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "numa_nodes": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      }
+    },
+    "storage": {
+      "type": "object",
+      "required": [
+        "block_devices"
+      ],
+      "properties": {
+        "block_devices": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "size_gb",
+              "type"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "disk",
+                  "part",
+                  "rom",
+                  "loop",
+                  "lvm"
+                ]
+              },
+              "size_gb": {
+                "type": "number"
+              },
+              "rotational": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              },
+              "model": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "transport": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "wwn": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        },
+        "zfs_pools": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "state"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "state": {
+                "type": "string"
+              },
+              "topology": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "mirror, raidz1, raidz2, stripe"
+              },
+              "total_gb": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "free_gb": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "devices": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "pve_storage": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "type"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string"
+              },
+              "path": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "total_gb": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "free_gb": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "content": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "active": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "network": {
+      "type": "object",
+      "required": [
+        "interfaces"
+      ],
+      "properties": {
+        "interfaces": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "name"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "mac": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "state": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "addresses": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "mtu": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              }
+            }
+          }
+        },
+        "bridges": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "name"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "ports": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "addresses": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "vlan_aware": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              },
+              "comment": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        },
+        "vlans": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "vlan_id"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "vlan_id": {
+                "type": "integer"
+              },
+              "parent": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        },
+        "default_gateway": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "dns_servers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "dns_search": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "vms": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "vmid",
+          "name",
+          "status"
+        ],
+        "properties": {
+          "vmid": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "cores": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "memory_mb": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "disk_gb": {
+            "type": [
+              "number",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "containers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "ctid",
+          "name",
+          "status"
+        ],
+        "properties": {
+          "ctid": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "cores": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "memory_mb": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "disk_gb": {
+            "type": [
+              "number",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "software": {
+      "type": "object",
+      "required": [
+        "automation_readiness"
+      ],
+      "properties": {
+        "installed_packages": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "name"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "version": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        },
+        "running_services": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "automation_readiness": {
+          "type": "object",
+          "description": "Presence of key automation tools",
+          "properties": {
+            "git": {
+              "type": "boolean"
+            },
+            "python3": {
+              "type": "boolean"
+            },
+            "ansible": {
+              "type": "boolean"
+            },
+            "terraform": {
+              "type": "boolean"
+            },
+            "curl": {
+              "type": "boolean"
+            },
+            "wget": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    },
+    "collection_errors": {
+      "type": "array",
+      "description": "Errors encountered during collection (non-fatal)",
+      "items": {
+        "type": "object",
+        "required": [
+          "collector",
+          "message"
+        ],
+        "properties": {
+          "collector": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "field": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "collection_warnings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "collector",
+          "message"
+        ],
+        "properties": {
+          "collector": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "backup_inventory": {
+      "type": "object",
+      "description": "Backup inventory collected by Tier 2 assessment",
+      "properties": {
+        "pbs_server": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "pbs_jobs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "job_id",
+              "vmid",
+              "datastore"
+            ],
+            "properties": {
+              "job_id": {
+                "type": "string"
+              },
+              "vmid": {
+                "type": "integer"
+              },
+              "name": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "datastore": {
+                "type": "string"
+              },
+              "schedule": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "last_run_at": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date-time"
+              },
+              "last_run_state": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "enum": [
+                  "ok",
+                  "failed",
+                  "warning",
+                  null
+                ]
+              },
+              "age_days": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "size_bytes": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "restore_tested": {
+                "type": "boolean"
+              },
+              "last_restore_test_at": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date-time"
+              }
+            }
+          }
+        },
+        "vzdump_schedules": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "vmid"
+            ],
+            "properties": {
+              "vmid": {
+                "type": "integer"
+              },
+              "name": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "schedule": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "storage": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "last_run_at": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date-time"
+              },
+              "age_days": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "restore_tested": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "offsite_backups": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "target"
+            ],
+            "properties": {
+              "target": {
+                "type": "string"
+              },
+              "method": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "last_sync_at": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date-time"
+              },
+              "age_days": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "covers": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "restore_tests": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "component_id",
+              "tested_at",
+              "outcome"
+            ],
+            "properties": {
+              "component_id": {
+                "type": "string"
+              },
+              "tested_at": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "outcome": {
+                "type": "string",
+                "enum": [
+                  "SUCCESS",
+                  "FAILURE",
+                  "PARTIAL"
+                ]
+              },
+              "notes": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

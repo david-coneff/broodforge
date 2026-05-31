@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "recovery-state-schema",
+  "title": "Recovery State",
+  "description": "Schema for dependency graphs, restore sequences, and recovery readiness reports",
+
+  "definitions": {
+    "readiness_score": {
+      "type": "string",
+      "enum": ["GREEN", "YELLOW", "ORANGE", "RED", "BLOCKED", "UNKNOWN"]
+    },
+
+    "graph_node": {
+      "type": "object",
+      "required": ["id", "type", "label"],
+      "properties": {
+        "id":        { "type": "string" },
+        "type":      { "type": "string", "enum": ["host", "vm", "container", "storage", "service", "network", "repository"] },
+        "label":     { "type": "string" },
+        "readiness": { "$ref": "#/definitions/readiness_score" },
+        "metadata":  { "type": "object" }
+      }
+    },
+
+    "graph_edge": {
+      "type": "object",
+      "required": ["from", "to", "type"],
+      "properties": {
+        "from":  { "type": "string" },
+        "to":    { "type": "string" },
+        "type":  { "type": "string", "enum": ["DEPENDS_ON", "NETWORK", "STORAGE", "SERVICE", "BACKUP"] },
+        "label": { "type": ["string", "null"] }
+      }
+    },
+
+    "restore_wave": {
+      "type": "object",
+      "required": ["wave", "components"],
+      "properties": {
+        "wave":       { "type": "integer" },
+        "components": { "type": "array", "items": { "type": "string" } },
+        "note":       { "type": ["string", "null"] },
+        "estimated_minutes": { "type": ["integer", "null"] }
+      }
+    },
+
+    "readiness_gap": {
+      "type": "object",
+      "required": ["component_id", "gap_type", "severity", "description"],
+      "properties": {
+        "component_id":       { "type": "string" },
+        "gap_type":           { "type": "string", "enum": ["MISSING_BACKUP", "STALE_BACKUP", "MISSING_RESTORE_PROCEDURE", "MISSING_DEPENDENCY_INFO", "MISSING_CONFIG_DOC", "UNTESTED_RESTORE", "UNRESOLVED_FIELD"] },
+        "severity":           { "$ref": "#/definitions/readiness_score" },
+        "description":        { "type": "string" },
+        "remediation":        { "type": ["string", "null"] },
+        "readiness_impact":   { "type": ["string", "null"] }
+      }
+    },
+
+    "component_readiness": {
+      "type": "object",
+      "required": ["component_id", "score"],
+      "properties": {
+        "component_id":    { "type": "string" },
+        "score":           { "$ref": "#/definitions/readiness_score" },
+        "score_reason":    { "type": ["string", "null"] },
+        "blocked_by":      { "type": ["string", "null"], "description": "component_id that caused BLOCKED status" },
+        "backup_present":  { "type": ["boolean", "null"] },
+        "backup_age_days": { "type": ["number", "null"] },
+        "restore_tested":  { "type": ["boolean", "null"] },
+        "gaps":            { "type": "array", "items": { "$ref": "#/definitions/readiness_gap" } }
+      }
+    }
+  },
+
+  "type": "object",
+  "required": ["schema_version", "generated_at", "assessment_id"],
+  "properties": {
+    "schema_version":  { "type": "string" },
+    "generated_at":    { "type": "string", "format": "date-time" },
+    "assessment_id":   { "type": "string" },
+
+    "dependency_graph": {
+      "type": "object",
+      "required": ["nodes", "edges"],
+      "properties": {
+        "nodes":          { "type": "array", "items": { "$ref": "#/definitions/graph_node" } },
+        "edges":          { "type": "array", "items": { "$ref": "#/definitions/graph_edge" } },
+        "restore_waves":  { "type": "array", "items": { "$ref": "#/definitions/restore_wave" } }
+      }
+    },
+
+    "readiness_report": {
+      "type": "object",
+      "required": ["overall_score", "components"],
+      "properties": {
+        "overall_score":          { "$ref": "#/definitions/readiness_score" },
+        "overall_score_reason":   { "type": ["string", "null"] },
+        "components":             { "type": "array", "items": { "$ref": "#/definitions/component_readiness" } },
+        "single_points_of_failure": { "type": "array", "items": { "type": "string" } },
+        "recovery_blockers":      { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  }
+}
