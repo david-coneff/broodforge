@@ -1,0 +1,93 @@
+# cell-identity.yaml — Infrastructure Cell Identity
+# Tier 1: Authoritative intent. Do not generate or overwrite this file.
+#
+# This file identifies the Infrastructure Cell within the federation.
+# A cell is the primary independently-recoverable unit of the platform.
+
+# ─── Cell Identity ────────────────────────────────────────────────────────────
+
+cell_id: proxmox-cell-a
+  # Stable, unique identifier for this cell. Used in:
+  #   - all schema fields (cell_id is mandatory in all state documents)
+  #   - archive filenames: {cell_id}_{timestamp}_{hash}.tar.gz.gpg
+  #   - KeePass path prefix: {keepass_root}/{hostname}/...
+  #   - Forgejo repository names: {cell_id}-infrastructure, {cell_id}-bootstrap
+  # Kebab-case. Never change after first deployment.
+
+cell_name: "Primary Homelab Cell"
+  # Human-readable name for this cell. Used in documentation headers.
+
+cell_type: proxmox-single-node
+  # Describes the cell's topology. One of:
+  #   proxmox-single-node    Single Proxmox host (current)
+  #   proxmox-cluster        Proxmox cluster (Phase 11 upgrade)
+  #   pbs-deployment         Proxmox Backup Server
+  #   k3s-cluster            Kubernetes-only cell
+
+# ─── Federation ───────────────────────────────────────────────────────────────
+
+federation_id: homelab
+  # Federation this cell belongs to. A federation is a collection of cells
+  # with trusted relationships. Single-cell deployments still declare a
+  # federation for forward compatibility.
+
+federation_role: primary
+  # Role within the federation: primary, secondary, dr, edge, witness
+
+# ─── Ownership and Operations ─────────────────────────────────────────────────
+
+primary_operator: POPULATE: operator name or handle
+  # Name or handle of the primary operator responsible for this cell.
+
+timezone: America/Boise
+  # IANA timezone of the operator. Used for local-time display in documentation.
+  # All stored timestamps are UTC. This is display-only.
+
+criticality: HIGH
+  # Criticality tier: CRITICAL, HIGH, MEDIUM, LOW
+  # Affects recovery priority and backup frequency recommendations.
+
+recovery_priority: 1
+  # Recovery priority within the federation. Lower = higher priority.
+  # When multiple cells fail simultaneously, recover in priority order.
+
+# ─── Lifecycle ────────────────────────────────────────────────────────────────
+
+established_date: POPULATE: YYYY-MM-DD
+  # Date this cell was first provisioned.
+
+architecture_version: "7.0"
+  # Architecture review version this cell was designed under.
+
+# ─── Repository References ────────────────────────────────────────────────────
+# These are declared once here and used by all generators.
+# Update after Forgejo is operational and repositories are created.
+
+repositories:
+  bootstrap: POPULATE: https://forgejo.internal/infra/proxmox-bootstrap
+    # This repository — bootstrap toolchain and metadata
+  infrastructure: POPULATE: https://forgejo.internal/infra/proxmox-infrastructure
+    # OpenTofu workspace
+  configuration: POPULATE: https://forgejo.internal/infra/proxmox-ansible
+    # Ansible playbooks and roles
+  platform_config: POPULATE: https://forgejo.internal/infra/platform-config
+    # Flux CD GitOps declarations
+  docs: POPULATE: https://forgejo.internal/infra/docs
+    # Generated documentation output
+
+  # External mirrors (disaster recovery fallback — Forgejo not required)
+  bootstrap_mirror: POPULATE: https://github.com/POPULATE/proxmox-bootstrap
+  infrastructure_mirror: POPULATE: https://github.com/POPULATE/proxmox-infrastructure
+
+# ─── Capability Declarations ──────────────────────────────────────────────────
+# Declared capabilities of this cell (verified by Tier 2 assessment).
+
+capabilities:
+  can_host_vms: true
+  can_provide_pbs_service: false
+    # reason: No dedicated PBS VM planned; backups go to external PBS or cloud
+  can_act_as_recovery_coordinator: true
+    # reason: Cell has operations-vm with bootstrap toolchain for recovery execution
+  can_execute_opentofu: true
+  can_execute_ansible: true
+  can_execute_reconstruction_playbooks: true

@@ -1,0 +1,139 @@
+# backup-policy.yaml — Backup Policy Declarations
+# Tier 1: Authoritative intent.
+#
+# Declares RPO (Recovery Point Objective) and RTO (Recovery Time Objective) for
+# every component in the cell. Used by: Assessment Engine (Recovery Readiness Score —
+# backup age is compared against RPO; violation drives RRS down).
+#
+# RPO: maximum acceptable data loss (time). If a backup is older than RPO, RRS degrades.
+# RTO: maximum acceptable recovery time. Measured during reconstruction drills.
+
+# ─── Backup Infrastructure ────────────────────────────────────────────────────
+
+backup_providers:
+  pbs:
+    enabled: true
+    host: POPULATE: e.g. pbs.internal or external PBS host IP
+    datastore: POPULATE: e.g. main
+    api_token_reference: backup-encryption-passphrase
+      # Secret Registry ID for PBS API authentication
+
+  external_archive:
+    enabled: true
+    provider: POPULATE: github or encrypted-archive
+    destination: POPULATE: from setup-external-backup.py configuration
+    schedule: "0 2 * * *"
+      # reason: Nightly at 02:00 UTC; low-traffic period; daily cadence sufficient
+    retention_count: 30
+
+  velero:
+    enabled: false
+      # reason: Velero not deployed until Phase 7 (application platform).
+      #         Enable when stateful application workloads exist.
+    destination: POPULATE: S3-compatible endpoint (MinIO on operations-vm or external)
+
+# ─── Component Backup Policies ────────────────────────────────────────────────
+
+components:
+
+  - name: forgejo-vm
+    criticality: CRITICAL
+    recovery_strategy: RESTORE
+    pbs:
+      job_id: POPULATE: e.g. pbs-daily-vms
+      schedule: "0 2 * * *"
+        # reason: Daily backup at off-peak; forgejo is read-heavy, write-light
+      secondary_schedule: "0 14 * * *"
+        # reason: CRITICAL tier gets a second daily snapshot at 14:00
+      retention:
+        daily: 7
+        weekly: 4
+        monthly: 3
+    rpo_hours: 12
+      # reason: Git repos and issues; 12-hour data loss acceptable for homelab
+    rto_minutes: 60
+      # reason: Restore PBS snapshot + verify Forgejo API health + Flux re-sync
+
+  - name: operations-vm
+    criticality: LOW
+    recovery_strategy: RECREATE
+    pbs:
+      enabled: false
+        # reason: operations-vm is stateless (all config in bootstrap repo)
+    rpo_hours: null
+      # reason: RECREATE — no data loss concept; VM is rebuilt from repo
+    rto_minutes: 30
+      # reason: OpenTofu provision + Ansible configure + clone repos
+
+  - name: k3s-server-01
+    criticality: HIGH
+    recovery_strategy: RECREATE
+    pbs:
+      job_id: POPULATE: e.g. pbs-daily-vms
+      schedule: "0 3 * * *"
+        # reason: After Forgejo backup completes; staggered to avoid PBS contention
+      retention:
+        daily: 3
+    rpo_hours: null
+      # reason: k3s node is stateless; PVCs backed up separately via Velero
+    rto_minutes: 45
+      # reason: OpenTofu provision + k3s install + Flux bootstrap + intelligence layer
+
+  - name: k3s-pvcs
+    criticality: HIGH
+    recovery_strategy: RESTORE
+    velero:
+      schedule: "0 4 * * *"
+        # reason: After k3s node backup; PVC content changes more frequently
+      retention_days: 14
+    rpo_hours: 24
+    rto_minutes: 30
+      # reason: Velero restore is fast; depends on PVC size
+
+  - name: metadata-repositories
+    criticality: CRITICAL
+    recovery_strategy: RESTORE
+    method: git-mirror
+      # reason: Git repos are mirrored nightly to external Git provider.
+      #         Recovery: git clone from mirror, re-push to restored Forgejo.
+    schedule: "0 1 * * *"
+    rpo_hours: 24
+    rto_minutes: 15
+
+  - name: opentofu-state
+    criticality: CRITICAL
+    recovery_strategy: RESTORE
+    method: remote-backend
+      # reason: State stored on Forgejo (HTTP backend). Backed up via Forgejo PBS backup.
+    rpo_hours: 24
+    rto_minutes: 5
+      # reason: terraform.tfstate is a small file; recovery is just git clone
+
+  - name: external-config-archive
+    criticality: HIGH
+    recovery_strategy: RESTORE
+    method: encrypted-archive
+      # reason: bootstrap-state.json + snippets + registries backed up nightly
+      #         as GPG-encrypted archive to cloud storage
+    schedule: "0 2 * * *"
+    rpo_hours: 24
+    rto_minutes: 10
+
+# ─── Assessment Engine Thresholds ─────────────────────────────────────────────
+# Recovery Readiness Score (RRS) degradation thresholds.
+
+rrs_thresholds:
+  backup_age_warn_multiplier: 1.0
+    # RRS YELLOW when backup_age > rpo_hours × 1.0
+  backup_age_crit_multiplier: 2.0
+    # RRS ORANGE when backup_age > rpo_hours × 2.0
+  absolute_blocker_multiplier: 3.0
+    # RRS = 0 when any CRITICAL component backup_age > rpo_hours × 3.0
+  recovery_test_warn_days: 90
+    # RRS YELLOW when last recovery test > 90 days ago
+  recovery_test_crit_days: 180
+    # RRS ORANGE when last recovery test > 180 days ago
+  package_age_warn_days: 7
+    # RRS YELLOW when recovery package > 7 days old
+  package_age_crit_days: 14
+    # RRS = 0 blocker when recovery package > 14 days old

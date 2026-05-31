@@ -1,0 +1,112 @@
+# network-topology.yaml — Network Topology Declaration
+# Tier 1: Authoritative intent.
+#
+# Declares the management network topology for this cell.
+# Used by: network-planner.py, generate-network-configs.py,
+#          Assessment Engine (placement compliance, drift detection).
+#
+# This file is the single source of truth for all network values.
+# Cloud-Init network-config snippets are GENERATED from this file —
+# never edit the snippets directly.
+
+# ─── Management Network ───────────────────────────────────────────────────────
+
+management_network:
+  cidr: POPULATE: e.g. 192.168.50.0/24
+    # The subnet used for all infrastructure VMs.
+    # Must match the physical network this Proxmox host is connected to.
+  gateway: POPULATE: e.g. 192.168.50.1
+    # Default gateway for all VMs. Typically the router/firewall LAN IP.
+  nameservers:
+    - POPULATE: e.g. 192.168.50.1
+      # primary: local DNS (router or Pi-hole)
+    - 8.8.8.8
+      # fallback: Google DNS
+  search_domain: internal
+    # DNS search domain for all VM FQDNs: forgejo.internal, etc.
+
+# ─── Proxmox Host Network ─────────────────────────────────────────────────────
+
+proxmox_host:
+  hostname: POPULATE: e.g. pve01
+  ip: POPULATE: e.g. 192.168.50.10
+    # reason: .10 is the conventional address for infrastructure hosts
+  management_interface: POPULATE: e.g. enp2s0
+    # Physical NIC name on the Proxmox host (discovered by discover-network.py)
+
+# ─── Bridges ──────────────────────────────────────────────────────────────────
+
+bridges:
+  - name: vmbr0
+    purpose: management
+    ports:
+      - POPULATE: e.g. enp2s0
+    address: POPULATE: e.g. 192.168.50.10/24
+    gateway: POPULATE: e.g. 192.168.50.1
+    description: "Management bridge — all infrastructure VMs attach here"
+
+  # Add additional bridges if VLANs or separate networks are needed:
+  # - name: vmbr1
+  #   purpose: storage
+  #   ports: []   (internal bridge, no physical ports)
+  #   address: 10.10.10.1/24
+  #   description: "Storage network bridge for Longhorn replication"
+
+# ─── VM Interface ─────────────────────────────────────────────────────────────
+
+vm_nic_interface: ens18
+  # Interface name inside VMs using VirtIO NIC (Proxmox default).
+  # Cloud-Init network-config files use this interface name.
+  # Change only if VMs consistently enumerate a different interface.
+
+# ─── VLANs ────────────────────────────────────────────────────────────────────
+# Declare VLANs if used. Empty list is valid for a flat network.
+
+vlans: []
+  # Example:
+  # - id: 100
+  #   name: management
+  #   purpose: "Infrastructure management traffic"
+  # - id: 200
+  #   name: storage
+  #   purpose: "Longhorn storage replication"
+
+# ─── k3s Networking ───────────────────────────────────────────────────────────
+
+k3s_networking:
+  pod_cidr: 10.42.0.0/16
+    # reason: k3s default; does not overlap with management_network.cidr
+    # Must not overlap with management_network.cidr or service_cidr
+  service_cidr: 10.43.0.0/16
+    # reason: k3s default; does not overlap with pod_cidr or management_network
+  cni: flannel
+    # reason: k3s default CNI; acceptable for single-node; Cilium for Phase 11+
+  ingress_ip: POPULATE: e.g. 192.168.50.20
+    # External IP for ingress-nginx LoadBalancer service.
+    # Set to the k3s-server-01 VM IP for single-node, or a dedicated VIP for HA.
+
+# ─── DNS Registry ─────────────────────────────────────────────────────────────
+# Authoritative hostname-to-IP mapping for all infrastructure hosts and VMs.
+# The Assessment Engine compares this against observed DNS to detect drift.
+# Doc-gen reads this to pre-populate commands (replaces [VM_IP] placeholders).
+
+dns_registry:
+  - hostname: POPULATE.internal
+    # e.g. pve01.internal
+    ip: POPULATE: Proxmox host IP
+    role: proxmox-host
+
+  - hostname: forgejo.internal
+    ip: POPULATE: e.g. 192.168.50.21
+    role: forgejo
+    vmid: 100
+
+  - hostname: operations.internal
+    ip: POPULATE: e.g. 192.168.50.22
+    role: operations-vm
+    vmid: 101
+
+  - hostname: k3s-server.internal
+    ip: POPULATE: e.g. 192.168.50.30
+    role: k3s-server
+    vmid: 110

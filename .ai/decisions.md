@@ -184,3 +184,59 @@ populated but may no longer be current. These require different remediation: UNR
 requires collection; STALE requires re-verification. An operator making recovery
 decisions needs to know whether they are working with never-collected data (UNRESOLVED)
 or potentially-outdated data (STALE). Conflating the two is a safety issue.
+
+## AD-032: Infrastructure Assessment Engine as first-class subsystem
+**Date:** 2026-05-31
+**Decision:** The Assessment Engine is a separate k3s subsystem from the Documentation
+Engine, with its own Deployment (API server), PostgreSQL StatefulSet, and five assessor
+CronJobs. Five categories: Resource Health, Architectural Drift, Recovery Readiness,
+Documentation Coverage, Placement Compliance.
+**Rationale:** Documenting what is and evaluating whether what is is correct are
+different concerns. Conflating them produces a system that does both poorly.
+
+## AD-033: Five scoring dimensions with composite Platform Health Score
+**Date:** 2026-05-31
+**Decision:** ACS (Architecture Compliance), RRS (Recovery Readiness), DCS
+(Documentation Coverage), CRS (Capacity Risk), OSS (Operational Stability) aggregate
+into composite PHS. Scores use weighted averages with absolute blockers.
+**Rationale:** Without scores and thresholds, the platform produces documentation
+but provides no signal about whether anything needs attention.
+
+## AD-034: Phase 1 rebalancing is detect/document/recommend only
+**Date:** 2026-05-31
+**Decision:** The Assessment Engine never takes autonomous infrastructure action.
+Phase 2 automation is deferred to after Phase 12 and requires defined safeguards.
+**Rationale:** Autonomous infrastructure actions can cause downtime, have cascading
+effects, and must have tested rollback paths. These prerequisites take time to build.
+
+## AD-035: intelligence/ namespace deploys before applications/ namespace
+**Date:** 2026-05-31
+**Decision:** All intelligence-layer workloads (documentation engine, assessment engine,
+recovery generator) must be Running and healthy before any user application is deployed.
+Enforced by Flux CD dependency declarations. Gate: PHS >= 80.
+**Rationale:** The platform must understand itself before hosting workloads.
+An undocumented platform cannot be recovered reliably.
+
+## AD-036: Failure packages are generated before script exit
+**Date:** 2026-05-31
+**Decision:** failure-package.sh is sourced at the top of every recovery script.
+Error traps fire failure package generation before exit. Failure analysis capability
+must not itself fail.
+**Rationale:** The failure package is the input to the self-improvement loop.
+Losing it because the generation code ran after the error means losing the data
+needed to fix the problem.
+
+## AD-037: ODS updates are atomic with plaintext fallback
+**Date:** 2026-05-31
+**Decision:** Every ODS update creates a backup, modifies a temp file, validates the
+temp file, then atomically replaces the original. If ODS update fails, recovery
+continues and logs to recovery-fallback.log.
+**Rationale:** The audit trail is important; recovery is more important.
+
+## AD-038: Documentation commits are batched to reduce Git noise
+**Date:** 2026-05-31
+**Decision:** Documentation Engine batches commits with a minimum 10-minute interval.
+Assessment reports have a dedicated repository (docs-assessments/) separate from
+architectural documentation.
+**Rationale:** Frequent automated commits to a shared repository create noise that
+obscures human-authored changes and makes git log unusable for review.

@@ -1,0 +1,121 @@
+# k3s-cluster.yaml — k3s Cluster Policy Declaration
+# Tier 1: Authoritative intent.
+#
+# Declares the k3s cluster topology, HA policy, and node role assignments.
+# Used by: cluster-planner.py, k3s-config generator, Assessment Engine
+#          (placement compliance — control-plane distribution checks).
+
+# ─── Cluster Identity ─────────────────────────────────────────────────────────
+
+cluster_name: homelab-k3s
+  # k3s cluster label. Used in kubeconfig context name and Flux bootstrap.
+
+kubernetes_version: POPULATE: e.g. v1.29.4+k3s1
+  # Pin a specific k3s release for reproducibility.
+  # Find releases: https://github.com/k3s-io/k3s/releases
+  # Update this field when upgrading; planner validates compatibility.
+
+# ─── HA Policy ────────────────────────────────────────────────────────────────
+
+ha_policy:
+  control_plane_ha_threshold: 3
+    # reason: etcd quorum requires minimum 3 server nodes for HA.
+    #         Below 3 physical hosts: single-node mode (no HA).
+    #         At 3+ physical hosts: upgrade to 3-server embedded etcd.
+  current_physical_hosts: 1
+    # reason: Single physical Proxmox host — HA not yet triggered.
+    #         Update when a second host is added; planner will recommend upgrade.
+  ha_enabled: false
+    # Computed by planner: true when current_physical_hosts >= ha_threshold.
+    # Do not edit directly — planner updates this field.
+
+# ─── Node Roles ───────────────────────────────────────────────────────────────
+
+server_nodes:
+  # Control plane nodes. In single-node mode, this node also schedules workloads.
+  - vm_name: k3s-server-01
+    embedded_etcd: false
+      # reason: Single-node mode uses SQLite. Phase 11 upgrades to embedded etcd.
+    also_worker: true
+      # reason: Single physical host — must schedule workloads on control plane VM.
+      #         Set to false when dedicated worker nodes exist (Phase 9).
+
+worker_nodes: []
+  # Add dedicated worker nodes in Phase 9 when additional RAM is available.
+  # Example:
+  # - vm_name: k3s-worker-01
+  #   taints: []
+
+# ─── Storage ──────────────────────────────────────────────────────────────────
+
+storage:
+  initial_class: local-path
+    # reason: local-path-provisioner is k3s bundled; requires no additional setup.
+    #         Sufficient for single-node intelligence layer workloads.
+  phase_11_class: longhorn
+    # reason: Longhorn provides distributed block storage across multiple nodes.
+    #         Required for data replication when Phase 11 adds worker nodes.
+  longhorn_replicas: 2
+    # reason: Minimum replication factor for Phase 11 HA (data survives one node loss).
+
+# ─── Networking ───────────────────────────────────────────────────────────────
+
+networking:
+  cni: flannel
+    # reason: k3s bundled CNI; no additional configuration required.
+    #         Phase 11 may evaluate Cilium for eBPF-based network policy.
+  pod_cidr: 10.42.0.0/16
+    # Matches network-topology.yaml k3s_networking.pod_cidr
+  service_cidr: 10.43.0.0/16
+    # Matches network-topology.yaml k3s_networking.service_cidr
+
+  ingress:
+    controller: ingress-nginx
+      # reason: Battle-tested, well-documented, Helm-installable via Flux.
+    mode: NodePort
+      # reason: Single node without LoadBalancer — NodePort is simplest.
+      #         Phase 9/11: upgrade to LoadBalancer with MetalLB.
+    http_port: 80
+    https_port: 443
+
+# ─── Workload Namespace Ordering ──────────────────────────────────────────────
+# Flux dependency graph enforces this ordering.
+# No namespace in wave N deploys before all namespaces in wave N-1 are healthy.
+
+deployment_waves:
+  wave_1:
+    namespaces: [flux-system, cert-manager, ingress-nginx]
+    description: "Core platform services"
+    gate: "All pods Running and Ready"
+
+  wave_2:
+    namespaces: [intelligence]
+      # Subnamespaces: documentation, assessment, recovery
+    description: "Intelligence layer — documentation and assessment engines"
+    gate: "Documentation Engine generating docs; Assessment Engine returning scores"
+    policy: "No user workload deploys before this wave completes"
+      # reason: Platform must understand itself before hosting anything
+
+  wave_3:
+    namespaces: [monitoring]
+    description: "Observability — Prometheus, Grafana, Loki"
+    gate: "Prometheus scraping all targets; Grafana accessible"
+
+  wave_4:
+    namespaces: [applications]
+    description: "User workloads"
+    gate: "Platform Health Score >= 80"
+      # reason: PHS < 80 indicates unresolved platform issues; deploying workloads
+      #         before resolution increases recovery complexity
+
+# ─── etcd Configuration ───────────────────────────────────────────────────────
+
+etcd:
+  mode: sqlite
+    # Current: SQLite (single-node). Set to embedded-etcd after Phase 11 upgrade.
+  backup_schedule: "0 * * * *"
+    # reason: etcd backup every hour; k3s snapshots to /var/lib/rancher/k3s/db/snapshots/
+  snapshot_retention: 5
+    # reason: Keep 5 snapshots = 5 hours of point-in-time recovery options
+  external_backup: true
+    # reason: etcd snapshots copied to operations-vm nightly for off-node retention

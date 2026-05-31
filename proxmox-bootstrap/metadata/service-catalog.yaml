@@ -1,0 +1,170 @@
+# service-catalog.yaml — Service Catalog
+# Tier 1: Authoritative intent.
+#
+# Declares every service running on the platform, its purpose, dependencies,
+# and which metadata created it. Used by: Documentation Engine (service-map.md,
+# dependency graph), Assessment Engine (documentation coverage, drift detection).
+#
+# Every service must have an entry here. Undocumented services are flagged as
+# Documentation Coverage gaps by the Assessment Engine.
+
+# ─── Pre-k3s Platform Services ────────────────────────────────────────────────
+
+platform_vms:
+
+  - id: forgejo
+    name: Forgejo Git Server
+    vm: forgejo
+    vmid: 100
+    category: infrastructure
+    description: "Self-hosted Git server. All infrastructure and application repositories."
+    why: "Self-hosted Git is required to avoid dependency on external services for
+          GitOps reconciliation. Forgejo is chosen over Gitea for its active FOSS
+          governance and feature parity."
+    policy: "cell-identity.yaml#repositories"
+    provided_interfaces:
+      - protocol: https
+        port: 3000
+        url: POPULATE: https://forgejo.internal
+        health_check: GET /api/healthz
+      - protocol: ssh
+        port: 22
+    dependencies: []
+    backup_policy: forgejo-vm
+      # references backup-policy.yaml component name
+    secret_references:
+      - forgejo-admin-password
+      - forgejo-api-token
+
+  - id: operations-vm
+    name: Operations VM
+    vm: operations
+    vmid: 101
+    category: infrastructure
+    description: "Phase A toolchain runner. Ansible controller. Emergency shell access."
+    why: "Must exist outside k3s to enable recovery when k3s is unavailable.
+          Ansible playbooks that provision k3s run from here."
+    policy: "vm-roles.yaml#pre_k3s_vms"
+    provided_interfaces:
+      - protocol: ssh
+        port: 22
+    dependencies: []
+    backup_policy: null
+      # reason: Stateless — rebuilt from bootstrap repo
+
+# ─── k3s Platform Namespace: platform/ ────────────────────────────────────────
+
+k3s_platform:
+
+  - id: flux-system
+    name: Flux CD
+    namespace: flux-system
+    category: gitops
+    description: "Continuous reconciliation engine. Applies all manifests from Forgejo."
+    why: "GitOps provides automatic drift correction, audit trail via Git history,
+          and recovery bootstrapping via flux bootstrap."
+    policy: "k3s-cluster.yaml — GitOps is the deployment paradigm (AD-023)"
+    dependencies:
+      - forgejo
+        # reason: Flux pulls manifests from Forgejo
+
+  - id: cert-manager
+    name: cert-manager
+    namespace: cert-manager
+    category: platform
+    description: "Automatic TLS certificate management for all ingress services."
+    why: "All services require TLS. Manual certificate management is operationally
+          unsustainable. cert-manager automates issuance and renewal."
+    dependencies: []
+
+  - id: ingress-nginx
+    name: ingress-nginx
+    namespace: ingress-nginx
+    category: platform
+    description: "HTTP/HTTPS ingress controller. Routes external traffic to services."
+    why: "Single ingress point for all k3s services. Standard Kubernetes ingress
+          implementation with wide documentation and Flux Helm support."
+    dependencies: [cert-manager]
+
+# ─── k3s Intelligence Namespace: intelligence/ ────────────────────────────────
+
+k3s_intelligence:
+
+  - id: documentation-engine
+    name: Documentation Engine
+    namespace: intelligence
+    category: intelligence
+    description: "Continuously generates and commits infrastructure documentation."
+    why: "Documentation is a generated artifact. Manual documentation maintenance
+          diverges from reality. The engine ensures documentation is always current."
+    policy: "AD-020: Digital Twin is the authoritative source for all generated outputs"
+    dependencies:
+      - forgejo
+      - flux-system
+    deployed_before: [monitoring, applications]
+      # reason: Platform must document itself before hosting user workloads
+
+  - id: assessment-engine
+    name: Assessment Engine
+    namespace: intelligence
+    category: intelligence
+    description: "Evaluates platform health across 5 categories. Produces scored reports."
+    why: "Documentation describes what is. Assessment evaluates whether what is
+          is correct. These are distinct concerns requiring separate architecture."
+    policy: "AD-032: Infrastructure Assessment Engine as first-class subsystem"
+    dependencies:
+      - documentation-engine
+      - forgejo
+    deployed_before: [applications]
+
+  - id: recovery-generator
+    name: Recovery Generator
+    namespace: intelligence
+    category: intelligence
+    description: "Generates recovery packages, scripts, and ODS workbooks."
+    why: "Recovery artifacts must be generated, not authored. Generated scripts are
+          always consistent with current state; manually authored scripts diverge."
+    policy: "AD-012: Reconstruction Playbooks are generated artifacts"
+    dependencies:
+      - assessment-engine
+      - documentation-engine
+
+# ─── k3s Monitoring Namespace: monitoring/ ────────────────────────────────────
+
+k3s_monitoring:
+
+  - id: prometheus
+    name: Prometheus
+    namespace: monitoring
+    category: observability
+    description: "Metrics collection and alerting."
+    dependencies: []
+
+  - id: grafana
+    name: Grafana
+    namespace: monitoring
+    category: observability
+    description: "Metrics visualization. Platform Health Score dashboard."
+    dependencies: [prometheus]
+
+  - id: loki
+    name: Loki
+    namespace: monitoring
+    category: observability
+    description: "Log aggregation."
+    dependencies: []
+
+# ─── k3s Applications Namespace: applications/ ────────────────────────────────
+# Populated as user workloads are added in Phase 7.
+# Each must have a service-catalog entry before deployment is approved.
+
+k3s_applications: []
+  # Example entry format:
+  # - id: nextcloud
+  #   name: Nextcloud
+  #   namespace: applications
+  #   category: user-service
+  #   description: "Self-hosted file storage and collaboration."
+  #   why: "Personal file storage; replaces Google Drive dependency."
+  #   dependencies: [postgresql]
+  #   backup_policy: nextcloud-pvc

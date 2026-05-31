@@ -1,0 +1,99 @@
+# placement-policy.yaml — VM and Workload Placement Policy
+# Tier 1: Authoritative intent.
+#
+# Declares how VMs and k3s workloads should be distributed across physical hosts.
+# Used by: Assessment Engine (Placement Compliance category — policy violations
+#          are Architectural Drift findings).
+#
+# Single-host note: Many of these policies are aspirational for Phase 3 (single
+# physical host). They become enforceable in Phase 11 (multi-node).
+
+# ─── Proxmox VM Placement ─────────────────────────────────────────────────────
+
+proxmox_placement:
+
+  rules:
+
+    - id: "pvc-backup-separation"
+      description: "PBS backup server must not run on the same host as backed-up VMs"
+      enforcement: advisory
+        # reason: Single host — cannot enforce; document for Phase 11
+      applies_to: pbs-deployment
+      policy: "Backup server on separate physical host minimises correlated failure
+               risk (host failure takes out both VMs and backup server)"
+
+    - id: "pre-k3s-vm-colocation"
+      description: "Forgejo and operations-vm may colocate on same host"
+      enforcement: allowed
+        # reason: These VMs are small and their colocation failure mode is
+        #         acceptable since the bootstrap repo provides recovery path
+
+    - id: "control-plane-distribution"
+      description: "k3s server nodes must be distributed across physical hosts"
+      enforcement: required-when-ha-enabled
+        # reason: All control plane on one host = HA provides no protection
+      applies_when: "k3s-cluster.yaml ha_enabled == true"
+      target: "One k3s server node per physical Proxmox host"
+
+# ─── k3s Workload Placement ───────────────────────────────────────────────────
+
+k3s_placement:
+
+  rules:
+
+    - id: "intelligence-layer-priority"
+      description: "Intelligence layer workloads get priority scheduling"
+      enforcement: required
+      implementation:
+        priorityClassName: system-cluster-critical
+          # reason: Documentation and assessment must survive resource pressure
+        namespace: intelligence
+
+    - id: "intelligence-layer-anti-affinity"
+      description: "Documentation Engine and Assessment Engine on different nodes"
+      enforcement: preferred-when-multi-node
+        # reason: If both pods land on the same node and that node fails,
+        #         the intelligence layer is unavailable. Anti-affinity prevents this.
+      applies_when: "k3s node count >= 2"
+      implementation:
+        podAntiAffinity: preferredDuringSchedulingIgnoredDuringExecution
+
+    - id: "stateful-workload-storage"
+      description: "Stateful workloads must use appropriate storage class"
+      enforcement: required
+      rules:
+        - "intelligence-layer: local-path or longhorn (depending on Phase)"
+        - "user-applications: longhorn (Phase 11+) for replication"
+        - "never: hostPath for user-facing stateful workloads"
+
+    - id: "forgejo-vm-not-in-k3s"
+      description: "Forgejo runs as a Proxmox VM, not a k3s workload"
+      enforcement: required
+      reason: "Forgejo must exist before k3s (bootstrap dependency). A k3s-hosted
+               Forgejo creates circular dependency: k3s needs Forgejo for GitOps,
+               but Forgejo needs k3s to run."
+
+# ─── Assessment Engine Compliance Checks ──────────────────────────────────────
+# These map directly to the Placement Compliance category of the Assessment Engine.
+
+compliance_checks:
+
+  - check_id: "no-unmanaged-vms"
+    description: "All Proxmox VMs must have entries in vm-roles.yaml"
+    severity: MAJOR
+    action: "Document unmanaged VM or decommission it via OpenTofu"
+
+  - check_id: "no-shadow-deployments"
+    description: "All k3s workloads must have Flux HelmRelease declarations"
+    severity: MAJOR
+    action: "Add to GitOps repository or remove manually-applied resources"
+
+  - check_id: "k3s-server-node-count"
+    description: "k3s server count must match k3s-cluster.yaml server_nodes list"
+    severity: CRITICAL
+    action: "Re-run cluster-planner.py and reprovisioning if mismatch"
+
+  - check_id: "intelligence-before-applications"
+    description: "Intelligence layer pods must be Running before applications"
+    severity: MAJOR
+    action: "Verify intelligence namespace is healthy; check Flux reconciliation"

@@ -1,0 +1,135 @@
+# naming-convention.yaml — Naming Convention Rules
+# Tier 1: Authoritative intent.
+#
+# Formalises the naming convention implemented by suggest-names.py.
+# Used by: naming-planner.py (generates names), naming-validator.py (checks
+#          compliance), Assessment Engine (architectural drift — naming violations).
+#
+# All names use kebab-case (lowercase, hyphens). No underscores in names.
+# Underscores appear in TIMESTAMPS and FILENAMES only.
+
+# ─── Cell Naming ──────────────────────────────────────────────────────────────
+
+cell:
+  pattern: "{purpose}-cell-{index}"
+    # Examples: proxmox-cell-a, homelab-cell-01
+  current: proxmox-cell-a
+  rule: "Kebab-case. Stable after first deployment — never rename."
+
+# ─── Proxmox Host Naming ──────────────────────────────────────────────────────
+
+proxmox_hosts:
+  pattern: "pve{index:02d}"
+    # Examples: pve01, pve02, pve03
+  rule: "Short, numeric suffix. pve = Proxmox VE."
+
+# ─── VM Naming ────────────────────────────────────────────────────────────────
+
+vms:
+  pre_k3s:
+    pattern: "{role}"
+      # Examples: forgejo, operations
+    rule: "Use the role name directly. Prefix with cell_id only if multi-cell."
+
+  k3s_servers:
+    pattern: "k3s-server-{index:02d}"
+      # Examples: k3s-server-01, k3s-server-02, k3s-server-03
+    nic_interface: ens18
+      # VirtIO NIC default interface name inside k3s VMs.
+      # Matches network-topology.yaml vm_nic_interface.
+
+  k3s_workers:
+    pattern: "k3s-worker-{index:02d}"
+      # Examples: k3s-worker-01, k3s-worker-02
+
+# ─── Hostname and FQDN ────────────────────────────────────────────────────────
+
+hostnames:
+  pattern: "{vm_name}.{search_domain}"
+    # Examples: forgejo.internal, k3s-server-01.internal
+  search_domain: internal
+    # Matches network-topology.yaml management_network.search_domain
+
+# ─── IP Address Conventions ───────────────────────────────────────────────────
+
+ip_assignments:
+  proxmox_host_offset: 10
+    # reason: .10 is conventional for infrastructure hosts within a /24
+    # Example: 192.168.50.0/24 → proxmox host at 192.168.50.10
+
+  pre_k3s_vms_start: 20
+    # Pre-k3s VMs start at .20: forgejo=.20, operations=.21, ...
+
+  k3s_nodes_start: 30
+    # k3s nodes start at .30: k3s-server-01=.30, k3s-server-02=.31, ...
+
+  reserved_range: "1-9"
+    # .1 = gateway; .2-.9 = network infrastructure (router, switches, etc.)
+
+  application_range: "50-99"
+    # Future: application-specific IPs or floating IPs for LoadBalancer services
+
+# ─── KeePass Path Convention ──────────────────────────────────────────────────
+# Implemented in suggest-names.py keepass_paths().
+
+keepass_paths:
+  root: POPULATE: e.g. Infrastructure
+    # Top-level KeePass group. All secrets for this cell live under this group.
+    # Matches keepass_config.root_path in bootstrap-state.json.
+
+  structure:
+    proxmox_host_secrets: "{root}/{hostname}/"
+      # Examples:
+      #   Infrastructure/pve01/root-password
+      #   Infrastructure/pve01/api-token-tofu
+    vm_passwords: "{root}/vms/{vmid}-{vmname}/password"
+      # Examples:
+      #   Infrastructure/vms/100-forgejo/password
+    ssh_deploy_keys: "{root}/ssh/deploy-keys/{vmname}"
+      # Examples:
+      #   Infrastructure/ssh/deploy-keys/forgejo
+    service_credentials: "{root}/services/{service}/{credential}"
+      # Examples:
+      #   Infrastructure/services/forgejo/admin-password
+    external_backup: "{root}/{hostname}/backup-encryption-passphrase"
+
+# ─── Repository Naming ────────────────────────────────────────────────────────
+
+repositories:
+  pattern: "{cell_id}-{purpose}"
+    # Examples:
+    #   proxmox-cell-a-bootstrap
+    #   proxmox-cell-a-infrastructure
+    #   proxmox-cell-a-ansible
+    #   proxmox-cell-a-platform-config
+    #   proxmox-cell-a-docs
+
+# ─── Archive Filename Convention ──────────────────────────────────────────────
+# Implemented in backup.py.
+
+archive_filenames:
+  config_archive: "{cell_id}_{YYYY-MM-DD_HH_MM_SS}_{6-char-hash}.tar.gz.gpg"
+  volume_archive: "{cell_id}_{vm_name}_{container}_{volume}_{ts}_{hash}.tar.gz.gpg"
+  pbs_offsite: "{cell_id}_pbs_vm{vmid}_{vm_name}_{ts}_{hash}.tar.zst"
+  failure_package: "failure-{cell_id}_{phase}_{step}_{ts}_{hash}.tar.gz"
+  rule: |
+    Timestamps in filenames use YYYY-MM-DD_HH_MM_SS format (underscores, UTC, filesystem-safe).
+    Timestamps in documents use YYYY-MM-DD HH:MM:SS UTC (HH:MM:SS MDT) format.
+
+# ─── Assessment Engine Compliance ─────────────────────────────────────────────
+
+compliance_checks:
+
+  - check_id: "vm-name-convention"
+    description: "VM names match declared pattern for their role"
+    severity: MINOR
+    source: "Assessment Engine Architectural Drift category"
+
+  - check_id: "hostname-fqdn-convention"
+    description: "VM hostnames follow {vm_name}.{search_domain} pattern"
+    severity: MINOR
+
+  - check_id: "keepass-path-convention"
+    description: "All secret registry entries follow the declared KeePass path structure"
+    severity: MAJOR
+    reason: "Non-standard KeePass paths are harder to find during recovery under stress"

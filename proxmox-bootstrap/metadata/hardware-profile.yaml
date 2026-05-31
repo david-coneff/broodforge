@@ -1,0 +1,92 @@
+# hardware-profile.yaml — Hardware Capability Declaration
+# Tier 1: Authoritative intent.
+#
+# Declares the hardware capabilities this cell requires and actually has.
+# Used by: cluster-planner.py (sizing), capacity validator (checks),
+#          Assessment Engine (hardware state assessment).
+#
+# POPULATE fields must be filled from hardware discovery output:
+#   python3 proxmox-bootstrap/discovery/discover-hardware.py
+
+# ─── Minimum Requirements (policy declarations) ───────────────────────────────
+# These are the MINIMUM hardware this deployment requires to function.
+# If discovered hardware does not meet these requirements, deployment is blocked.
+
+minimum_requirements:
+  ram_gb: 16
+    # reason: forgejo-vm (2GB) + operations-vm (2GB) + k3s-server (4GB)
+    #         + 8GB headroom for OS and future workloads = 16GB minimum
+  cpu_cores: 4
+    # reason: 2 cores per VM × 2 pre-k3s VMs + k3s overhead = 4 minimum
+  storage_gb: 500
+    # reason: ZFS pool for VM disks, backups, and Longhorn volumes
+  nic_ports: 1
+    # reason: Single NIC acceptable for lab; bonding preferred but not required
+
+  bios_requirements:
+    vtx_required: true
+      # reason: Hardware virtualization required for Proxmox VM hosting
+    iommu_required: false
+      # reason: No PCI passthrough planned in initial deployment
+    secure_boot_required: false
+      # reason: Proxmox does not require Secure Boot; adds complexity without benefit
+
+# ─── Declared Hardware (fill from discovery output) ───────────────────────────
+
+declared_hardware:
+  # Physical host: fill from discovery/hardware-report.json after running
+  # python3 proxmox-bootstrap/discovery/discover-hardware.py
+
+  cpu:
+    model: POPULATE: e.g. "Intel Core i7-12700K"
+    sockets: POPULATE: 1
+    cores_per_socket: POPULATE: e.g. 12
+    threads_per_core: POPULATE: e.g. 2
+    total_threads: POPULATE: e.g. 24
+    architecture: x86_64
+    virtualization: POPULATE: VT-x or AMD-V
+
+  memory:
+    total_gb: POPULATE: e.g. 64
+    ecc: POPULATE: true or false
+    dimm_slots_total: POPULATE: e.g. 4
+    dimm_slots_populated: POPULATE: e.g. 2
+
+  storage:
+    # List all physical disks. Planner uses this for ZFS pool topology.
+    disks:
+      - label: disk-0
+        model: POPULATE: e.g. "Samsung 870 QVO 4TB"
+        serial: POPULATE: e.g. "S5SSNX0T123456"
+        capacity_gb: POPULATE: e.g. 4000
+        type: POPULATE: SSD or HDD or NVMe
+        interface: POPULATE: SATA or NVMe or SAS
+        smart_healthy: POPULATE: true
+
+  nics:
+    - label: nic-0
+      model: POPULATE: e.g. "Intel I225-V"
+      ports: POPULATE: 1
+      speed_gbps: POPULATE: e.g. 2.5
+      mac: POPULATE: e.g. "aa:bb:cc:dd:ee:ff"
+
+# ─── Firmware Requirements ────────────────────────────────────────────────────
+
+firmware_requirements:
+  bios_notes: POPULATE: BIOS version and required settings (VT-x enabled, etc.)
+  hba_firmware: null
+    # reason: No HBA in current deployment; set if storage controller requires
+    #         specific firmware for ZFS compatibility
+
+# ─── Assessment Thresholds ────────────────────────────────────────────────────
+# Used by Assessment Engine Capacity Risk Score (CRS)
+
+assessment_thresholds:
+  cpu_warn_percent: 70
+  cpu_crit_percent: 90
+  memory_warn_percent: 80
+  memory_crit_percent: 95
+  storage_warn_percent: 70
+  storage_crit_percent: 85
+    # reason: ZFS performance degrades significantly above 80% full;
+    #         85% threshold allows buffer before performance impact

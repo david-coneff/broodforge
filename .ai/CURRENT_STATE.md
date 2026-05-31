@@ -2,11 +2,13 @@
 
 Last updated: 2026-05-31 14:05:41 UTC (2026-05-31 08:05:41 MDT)
 
-## Active Architecture: v5.0
+## Active Architecture: v7.0
 
-Federated Infrastructure Digital Twin Platform.
+Self-Documenting, Self-Assessing, Self-Recovering Infrastructure Platform.
+  k3s + Flux CD + Proxmox + four intelligence layers.
+  See ARCHITECTURE.md and docs/ARCHITECTURE-REVIEW-v7.md for full detail.
 Seventeen-state model. Six-layer lifecycle. Three assessment tiers. Five dependency graphs.
-See ARCHITECTURE.md and docs/ARCHITECTURE-REVIEW-v5.md for full detail.
+
 
 ## Next Action
 

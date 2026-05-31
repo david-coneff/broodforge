@@ -1,0 +1,159 @@
+# recovery-priority.yaml — Recovery Wave and Priority Declarations
+# Tier 1: Authoritative intent.
+#
+# Declares the ordered sequence in which components are recovered.
+# Used by: Recovery Generator (Layer C) to produce recovery scripts and workbooks.
+# Assessment Engine: validates that recovery dependencies are satisfiable.
+#
+# RESTORE vs RECREATE:
+#   RESTORE: Component has state that must be recovered from backup
+#   RECREATE: Component is stateless; rebuilt from repository + IaC
+
+# ─── Recovery Phases ──────────────────────────────────────────────────────────
+# Each phase is a checkpoint. Phase N does not begin until Phase N-1 validates.
+
+recovery_phases:
+
+  - phase: "01-hardware-verification"
+    label: "Hardware Verification"
+    description: "Verify replacement hardware meets minimum requirements"
+    components:
+      - name: physical-hardware
+        action: VERIFY
+        steps:
+          - "Verify CPU, RAM, storage meet hardware-profile.yaml minimums"
+          - "Verify BIOS settings: VT-x enabled"
+          - "Verify network connectivity to management network"
+    estimated_minutes: 15
+    validation: "Hardware report JSON matches hardware-profile.yaml minimums"
+
+  - phase: "02-proxmox"
+    label: "Proxmox Host Restoration"
+    description: "Restore or reinstall Proxmox; configure networking and storage"
+    components:
+      - name: proxmox-host
+        action: RESTORE
+          # First choice: restore from PBS snapshot (if PBS accessible)
+          # Fallback: fresh Proxmox install + OpenTofu apply + Ansible configure
+        recovery_order: 1
+    depends_on: ["01-hardware-verification"]
+    estimated_minutes: 30
+    validation: "Proxmox API accessible; pvesh get /nodes returns healthy status"
+
+  - phase: "03-forgejo"
+    label: "Forgejo Restoration"
+    description: "Restore Forgejo VM; verify all repositories accessible"
+    components:
+      - name: forgejo-vm
+        action: RESTORE
+          # Restore VM from PBS backup (qmrestore)
+          # Then verify Forgejo API and repository access
+        recovery_order: 1
+      - name: metadata-repositories
+        action: RESTORE
+          # If Forgejo PBS backup unavailable: git clone from external mirror
+        recovery_order: 2
+    depends_on: ["02-proxmox"]
+    estimated_minutes: 30
+    criticality: CRITICAL
+    validation: "Forgejo API returns 200; all repositories cloned and accessible"
+      # reason: All subsequent phases depend on Forgejo being accessible.
+      #         Recovery cannot proceed without it.
+
+  - phase: "04-k3s-cluster"
+    label: "k3s Cluster Restoration"
+    description: "Provision k3s server VM; install k3s; verify API server"
+    components:
+      - name: k3s-server-01
+        action: RECREATE
+          # OpenTofu provision VM + Ansible install k3s
+          # If OpenTofu state lost: recover state from Forgejo remote backend first
+    depends_on: ["03-forgejo"]
+    estimated_minutes: 30
+    validation: "kubectl get nodes returns Ready status"
+
+  - phase: "05-gitops"
+    label: "Flux CD Bootstrap"
+    description: "Bootstrap Flux CD from Forgejo platform-config; reconcile platform"
+    components:
+      - name: flux-system
+        action: RECREATE
+          # flux bootstrap git --url=forgejo_url --branch=main --path=clusters/homelab
+    depends_on: ["04-k3s-cluster", "03-forgejo"]
+    estimated_minutes: 15
+    validation: "flux get all shows all HelmReleases as Ready"
+
+  - phase: "06-intelligence-layer"
+    label: "Intelligence Layer"
+    description: "Verify Documentation Engine and Assessment Engine are operational"
+    components:
+      - name: documentation-engine
+        action: RECREATE
+          # Flux reconciles this from GitOps repo
+      - name: assessment-engine
+        action: RECREATE
+          # Flux reconciles this from GitOps repo
+    depends_on: ["05-gitops"]
+    estimated_minutes: 10
+    validation: |
+      Documentation Engine: GET /health returns 200
+      Assessment Engine: GET /scores returns PHS value
+      docs/ repository has received a new commit within 15 minutes
+
+  - phase: "07-monitoring"
+    label: "Monitoring Stack"
+    description: "Verify Prometheus, Grafana, and Loki are operational"
+    components:
+      - name: monitoring-stack
+        action: RECREATE
+    depends_on: ["05-gitops"]
+    estimated_minutes: 10
+    validation: "Grafana dashboard accessible; Prometheus targets showing healthy"
+
+  - phase: "08-applications"
+    label: "Application Workloads"
+    description: "Restore application data volumes; verify application health"
+    components:
+      - name: application-pvcs
+        action: RESTORE
+          # Velero restore: velero restore create --from-backup <latest>
+      - name: applications
+        action: RECREATE
+          # Flux reconciles application HelmReleases after PVC restore
+    depends_on: ["06-intelligence-layer", "07-monitoring"]
+    estimated_minutes: 30
+    validation: "All application pods Running and Ready; health checks passing"
+
+# ─── Recovery RTO Targets ─────────────────────────────────────────────────────
+
+rto_targets:
+  phase_01_hardware: 15
+  phase_02_proxmox: 30
+  phase_03_forgejo: 30
+  phase_04_k3s: 30
+  phase_05_gitops: 15
+  phase_06_intelligence: 10
+  phase_07_monitoring: 10
+  phase_08_applications: 30
+  total_rto_minutes: 170
+    # reason: ~2.8 hours end-to-end recovery for full platform reconstruction
+    #         from complete loss with all backups available
+
+# ─── Single Points of Failure ─────────────────────────────────────────────────
+# Known SPOFs — document rather than silently accept.
+
+single_points_of_failure:
+  - component: proxmox-host
+    severity: CRITICAL
+    description: "Single physical host — all VMs fail if host fails"
+    mitigation: "PBS backups; external archive; Phase 11 adds second host"
+
+  - component: forgejo-vm
+    severity: CRITICAL
+    description: "Single Forgejo VM — GitOps fails if Forgejo fails"
+    mitigation: "Daily PBS backup + external Git mirror; recovery Phase 03 restores first"
+
+  - component: management-network
+    severity: HIGH
+    description: "Single network path — all management traffic on one bridge"
+    mitigation: "Phase 11 evaluates bonded NICs for network redundancy"

@@ -1,0 +1,102 @@
+# vm-roles.yaml — VM Role Declarations
+# Tier 1: Authoritative intent.
+#
+# Declares every VM that should exist in this cell, its purpose, and its
+# resource sizing. Used by: roles.py, cluster-planner.py, tofu-vars generator,
+# Assessment Engine (architectural drift — unmanaged VMs are flagged).
+#
+# Consolidation modes (from roles.py):
+#   full:        one VM per role (3 VMs for required roles)
+#   recommended: forgejo alone + automation (infra-bootstrap + assessment-engine)
+#   minimal:     all roles on one toolchain VM
+
+consolidation_mode: recommended
+  # reason: Single-node Proxmox host — node is the SPOF regardless of VM count.
+  #         'recommended' saves RAM while preserving Forgejo lifecycle independence.
+
+vmid_base: 100
+  # First VMID assigned. All VMs use vmid_base + role_offset.
+
+# ─── Pre-k3s Infrastructure VMs ───────────────────────────────────────────────
+# These VMs must exist BEFORE k3s. They host the services that k3s depends on.
+
+pre_k3s_vms:
+
+  - vmid: 100
+    name: forgejo
+    role: forgejo
+    purpose: "Forgejo Git hosting — stores all repositories; the foundation of GitOps"
+    template: ubuntu-2204-base
+    resources:
+      vcpus: 2
+      ram_mb: 2048
+      disk_gb: 50
+        # reason: Forgejo repos + SQLite DB + log storage. Scale up as repos grow.
+    network:
+      bridge: vmbr0
+      ip: POPULATE: from network-topology.yaml dns_registry
+    must_exist_before:
+      - k3s-server
+        # reason: Flux CD bootstraps from Forgejo; Forgejo must be operational first
+    recovery_strategy: RESTORE
+      # reason: Forgejo holds the source of truth; data must be restored not recreated.
+      #         Application layer is recreated via Ansible after data restore.
+
+  - vmid: 101
+    name: operations
+    role: operations-vm
+    purpose: "Phase A toolchain runner; Ansible controller; emergency shell access"
+    template: ubuntu-2204-base
+    resources:
+      vcpus: 2
+      ram_mb: 2048
+      disk_gb: 20
+    network:
+      bridge: vmbr0
+      ip: POPULATE: from network-topology.yaml dns_registry
+    must_exist_before:
+      - k3s-server
+        # reason: Ansible playbooks for k3s provisioning run from this VM
+    recovery_strategy: RECREATE
+      # reason: operations-vm is stateless; rebuilt from bootstrap repo + Ansible
+
+# ─── k3s Node VMs ────────────────────────────────────────────────────────────
+# These VMs host the k3s cluster. Stateless — rebuilt from OpenTofu + Ansible.
+
+k3s_vms:
+
+  - vmid: 110
+    name: k3s-server-01
+    role: k3s-server
+    purpose: "k3s control plane (Phase 3: single-node; Phase 11: first of 3)"
+    template: ubuntu-2204-base
+    resources:
+      vcpus: 4
+      ram_mb: 4096
+        # reason: k3s control plane needs 2GB min; 4GB provides workload headroom
+        #         for intelligence layer + monitoring on single-node deployment
+      disk_gb: 80
+        # reason: OS (20GB) + k3s data + local-path PVC storage for intelligence layer
+    network:
+      bridge: vmbr0
+      ip: POPULATE: from network-topology.yaml dns_registry
+    recovery_strategy: RECREATE
+      # reason: k3s control plane is rebuilt from OpenTofu + Ansible + Flux bootstrap
+      #         Persistent data lives in PVCs (restored via Velero)
+
+  # Future: add k3s-worker VMs in Phase 9/11 when additional RAM is available
+  # - vmid: 120
+  #   name: k3s-worker-01
+  #   role: k3s-worker
+  #   resources: {vcpus: 4, ram_mb: 8192, disk_gb: 100}
+
+# ─── Resource Totals (computed from above) ───────────────────────────────────
+# These are informational — updated by cluster-planner.py output.
+# The planner validates these against hardware-profile.yaml minimum_requirements.
+
+resource_summary:
+  total_vcpus: 8           # 2 + 2 + 4
+  total_ram_mb: 8192       # 2048 + 2048 + 4096
+  total_ram_gb: 8
+  total_disk_gb: 150       # 50 + 20 + 80
+  vm_count: 3
