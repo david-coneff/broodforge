@@ -1,0 +1,494 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "bootstrap-state-schema",
+  "title": "Bootstrap State",
+  "description": "Schema for the Bootstrap State manifest: Cloud-Init snippets, base image registry, VM template registry, deployment provenance records, secret registry, DNS registry, service contracts, hardware requirements, and first-boot ordering.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "cell_id",
+    "declared_at",
+    "vms",
+    "base_images",
+    "templates",
+    "provenance_records",
+    "secrets",
+    "dns_registry",
+    "service_contracts",
+    "hardware_requirements",
+    "first_boot_order"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "enum": ["1.0"]
+    },
+    "cell_id": {
+      "type": "string",
+      "description": "Stable unique identity of the Infrastructure Cell this bootstrap state belongs to"
+    },
+    "declared_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp when this bootstrap state was last updated"
+    },
+    "notes": {
+      "type": ["string", "null"]
+    },
+
+    "vms": {
+      "type": "array",
+      "description": "Per-VM bootstrap manifest — one entry per managed VM",
+      "items": { "$ref": "#/definitions/vm_bootstrap" }
+    },
+
+    "base_images": {
+      "type": "array",
+      "description": "ISO and base image registry — authoritative source of truth for base images",
+      "items": { "$ref": "#/definitions/base_image" }
+    },
+
+    "templates": {
+      "type": "array",
+      "description": "VM template registry — one entry per named Proxmox template",
+      "items": { "$ref": "#/definitions/vm_template" }
+    },
+
+    "provenance_records": {
+      "type": "array",
+      "description": "Deployment provenance records — one record per VM deployment event",
+      "items": { "$ref": "#/definitions/provenance_record" }
+    },
+
+    "secrets": {
+      "type": "array",
+      "description": "Secret reference registry — KeePass paths only, never secret values",
+      "items": { "$ref": "#/definitions/secret_reference" }
+    },
+
+    "dns_registry": {
+      "type": "array",
+      "description": "Authoritative hostname-to-IP registry for all managed VMs and services",
+      "items": { "$ref": "#/definitions/dns_entry" }
+    },
+
+    "service_contracts": {
+      "type": "array",
+      "description": "Service contract declarations — interfaces provided and required per service",
+      "items": { "$ref": "#/definitions/service_contract" }
+    },
+
+    "hardware_requirements": {
+      "$ref": "#/definitions/hardware_requirements",
+      "description": "BIOS and firmware requirements that must be met before Proxmox installation"
+    },
+
+    "first_boot_order": {
+      "type": "array",
+      "description": "Ordered list of VM names specifying first-boot provisioning sequence",
+      "items": { "type": "string" }
+    }
+  },
+
+  "definitions": {
+
+    "vm_bootstrap": {
+      "type": "object",
+      "required": ["vmid", "name", "role", "template_name", "cloudinit", "initial_ip", "initial_hostname", "bridge", "initial_user"],
+      "properties": {
+        "vmid": {
+          "type": "integer",
+          "description": "Proxmox VM ID"
+        },
+        "name": {
+          "type": "string",
+          "description": "VM name as configured in Proxmox"
+        },
+        "role": {
+          "type": "string",
+          "description": "Functional role of this VM, e.g. forgejo, inventory, assessment-engine"
+        },
+        "template_name": {
+          "type": "string",
+          "description": "Name of the Proxmox VM template this VM is cloned from"
+        },
+        "cloudinit": {
+          "$ref": "#/definitions/cloudinit_config"
+        },
+        "initial_ip": {
+          "type": "string",
+          "description": "Static IP address assigned by Cloud-Init network-config on first boot"
+        },
+        "initial_hostname": {
+          "type": "string",
+          "description": "Hostname set by Cloud-Init user-data on first boot"
+        },
+        "bridge": {
+          "type": "string",
+          "description": "Proxmox bridge the VM's primary NIC is attached to, e.g. vmbr0"
+        },
+        "initial_user": {
+          "type": "string",
+          "description": "OS username created by Cloud-Init, e.g. ubuntu"
+        },
+        "ssh_key_reference": {
+          "type": ["string", "null"],
+          "description": "Secret Registry ID for the SSH public key placed by Cloud-Init"
+        },
+        "password_reference": {
+          "type": ["string", "null"],
+          "description": "Secret Registry ID for the initial OS user password"
+        },
+        "notes": {
+          "type": ["string", "null"]
+        }
+      }
+    },
+
+    "cloudinit_config": {
+      "type": "object",
+      "required": ["user_data_path", "network_config_path"],
+      "properties": {
+        "user_data_path": {
+          "type": "string",
+          "description": "Repository-relative path to the Cloud-Init user-data snippet"
+        },
+        "user_data_hash": {
+          "type": ["string", "null"],
+          "description": "SHA-256 hash of user-data content at time of last deployment"
+        },
+        "network_config_path": {
+          "type": "string",
+          "description": "Repository-relative path to the Cloud-Init network-config snippet"
+        },
+        "network_config_hash": {
+          "type": ["string", "null"],
+          "description": "SHA-256 hash of network-config content at time of last deployment"
+        },
+        "vendor_data_path": {
+          "type": ["string", "null"],
+          "description": "Repository-relative path to the Proxmox vendor-data snippet, if used"
+        },
+        "vendor_data_hash": {
+          "type": ["string", "null"]
+        }
+      }
+    },
+
+    "base_image": {
+      "type": "object",
+      "required": ["name", "source_iso", "checksum", "created_at"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Internal template name, e.g. ubuntu-2204-base"
+        },
+        "source_iso": {
+          "type": "string",
+          "description": "ISO filename, e.g. ubuntu-22.04.4-live-server-amd64.iso"
+        },
+        "source_url": {
+          "type": ["string", "null"],
+          "description": "Canonical download URL for the ISO"
+        },
+        "checksum": {
+          "type": "string",
+          "description": "SHA-256 checksum of the ISO file, prefixed with sha256:"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the Proxmox template was created from this ISO"
+        },
+        "included_packages": {
+          "type": "array",
+          "description": "Packages pre-installed in the template beyond the base ISO",
+          "items": { "type": "string" }
+        },
+        "notes": {
+          "type": ["string", "null"]
+        }
+      }
+    },
+
+    "vm_template": {
+      "type": "object",
+      "required": ["name", "base_image", "created_at"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Proxmox template name"
+        },
+        "base_image": {
+          "type": "string",
+          "description": "Name of the base image this template was built from"
+        },
+        "proxmox_template_id": {
+          "type": ["integer", "null"],
+          "description": "Proxmox VM ID of the template, if stored on this host"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "additional_packages": {
+          "type": "array",
+          "description": "Packages added to this template beyond the base image",
+          "items": { "type": "string" }
+        },
+        "build_notes": {
+          "type": ["string", "null"]
+        }
+      }
+    },
+
+    "provenance_record": {
+      "type": "object",
+      "required": ["vmid", "name", "deployed_at"],
+      "properties": {
+        "vmid": {
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "deployed_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "tofu_workspace": {
+          "type": ["string", "null"],
+          "description": "OpenTofu workspace name used for this deployment"
+        },
+        "tofu_commit": {
+          "type": ["string", "null"],
+          "description": "Git commit hash of the OpenTofu repository at deployment time"
+        },
+        "template_name": {
+          "type": ["string", "null"]
+        },
+        "template_checksum": {
+          "type": ["string", "null"],
+          "description": "SHA-256 checksum of the template used"
+        },
+        "cloudinit_user_data_hash": {
+          "type": ["string", "null"]
+        },
+        "cloudinit_network_config_hash": {
+          "type": ["string", "null"]
+        },
+        "ansible_playbook": {
+          "type": ["string", "null"],
+          "description": "Playbook file applied during deployment"
+        },
+        "ansible_commit": {
+          "type": ["string", "null"],
+          "description": "Git commit hash of the Ansible repository at deployment time"
+        },
+        "ansible_inventory_commit": {
+          "type": ["string", "null"],
+          "description": "Git commit hash of the Ansible inventory repository at deployment time"
+        },
+        "deployed_by": {
+          "type": ["string", "null"],
+          "description": "Operator identifier who performed the deployment"
+        },
+        "notes": {
+          "type": ["string", "null"]
+        }
+      }
+    },
+
+    "secret_reference": {
+      "type": "object",
+      "required": ["id", "description", "keepass_path", "owning_cell"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Stable unique identifier for this secret reference, e.g. pve01-root-password"
+        },
+        "description": {
+          "type": "string",
+          "description": "Human-readable description of what this secret is"
+        },
+        "keepass_path": {
+          "type": "string",
+          "description": "Full path within KeePass to the entry, e.g. Infrastructure/proxmox/pve01-root"
+        },
+        "owning_cell": {
+          "type": "string",
+          "description": "cell_id of the Infrastructure Cell whose KeePass database holds this secret"
+        },
+        "secret_type": {
+          "type": "string",
+          "enum": ["password", "ssh-private-key", "api-token", "certificate-private-key", "other"],
+          "description": "Category of secret"
+        },
+        "required_by": {
+          "type": "array",
+          "description": "Component identifiers that require this secret, e.g. host:pve01 or vm:forgejo",
+          "items": { "type": "string" }
+        },
+        "required_for": {
+          "type": "array",
+          "description": "Operations enabled by this secret, e.g. ssh-access, ansible-execution",
+          "items": { "type": "string" }
+        },
+        "rotation_schedule": {
+          "type": ["string", "null"],
+          "description": "Human-readable rotation schedule, e.g. annually or on-compromise"
+        },
+        "recovery_path": {
+          "type": ["string", "null"],
+          "description": "How to obtain this secret if KeePass is inaccessible during recovery"
+        }
+      }
+    },
+
+    "dns_entry": {
+      "type": "object",
+      "required": ["hostname", "ip"],
+      "properties": {
+        "hostname": {
+          "type": "string",
+          "description": "FQDN or short hostname, e.g. forgejo.internal"
+        },
+        "ip": {
+          "type": "string",
+          "description": "IPv4 address"
+        },
+        "vmid": {
+          "type": ["integer", "null"],
+          "description": "Proxmox VM ID if this entry corresponds to a VM"
+        },
+        "role": {
+          "type": ["string", "null"],
+          "description": "Functional role, e.g. proxmox-host, forgejo, dns-server"
+        },
+        "notes": {
+          "type": ["string", "null"]
+        }
+      }
+    },
+
+    "service_contract": {
+      "type": "object",
+      "required": ["service", "vm"],
+      "properties": {
+        "service": {
+          "type": "string",
+          "description": "Unique service identifier, e.g. forgejo"
+        },
+        "vm": {
+          "type": "string",
+          "description": "VM name hosting this service"
+        },
+        "provided_interfaces": {
+          "type": "array",
+          "description": "Network interfaces exposed by this service",
+          "items": { "$ref": "#/definitions/provided_interface" }
+        },
+        "required_interfaces": {
+          "type": "array",
+          "description": "Interfaces this service depends on from other services",
+          "items": { "$ref": "#/definitions/required_interface" }
+        },
+        "startup_after": {
+          "type": "array",
+          "description": "Service identifiers that must be running before this service starts",
+          "items": { "type": "string" }
+        },
+        "backup_job": {
+          "type": ["string", "null"],
+          "description": "PBS backup job identifier covering this service"
+        },
+        "secret_references": {
+          "type": "array",
+          "description": "Secret Registry IDs required by this service",
+          "items": { "type": "string" }
+        },
+        "owner": {
+          "type": ["string", "null"],
+          "description": "Team or operator responsible for this service"
+        }
+      }
+    },
+
+    "provided_interface": {
+      "type": "object",
+      "required": ["protocol", "port"],
+      "properties": {
+        "protocol": {
+          "type": "string",
+          "description": "Protocol name, e.g. https, postgresql, smtp"
+        },
+        "port": {
+          "type": "integer"
+        },
+        "url_pattern": {
+          "type": ["string", "null"],
+          "description": "URL pattern for the interface, e.g. https://forgejo.internal"
+        },
+        "health_check": {
+          "type": ["string", "null"],
+          "description": "Health check method and path, e.g. GET /api/healthz"
+        }
+      }
+    },
+
+    "required_interface": {
+      "type": "object",
+      "required": ["service", "protocol", "port"],
+      "properties": {
+        "service": {
+          "type": "string",
+          "description": "Service identifier providing this interface"
+        },
+        "protocol": {
+          "type": "string"
+        },
+        "port": {
+          "type": "integer"
+        },
+        "critical": {
+          "type": "boolean",
+          "description": "If true, this service cannot start without this dependency"
+        }
+      }
+    },
+
+    "hardware_requirements": {
+      "type": "object",
+      "description": "BIOS and firmware requirements that must be verified before Proxmox installation",
+      "properties": {
+        "vtx_required": {
+          "type": "boolean",
+          "description": "Intel VT-x or AMD-V hardware virtualization must be enabled"
+        },
+        "iommu_required": {
+          "type": "boolean",
+          "description": "IOMMU must be enabled for PCI passthrough"
+        },
+        "secure_boot_required": {
+          "type": "boolean",
+          "description": "UEFI Secure Boot state required"
+        },
+        "minimum_ram_gb": {
+          "type": ["number", "null"],
+          "description": "Minimum RAM in GB required for this deployment"
+        },
+        "minimum_cores": {
+          "type": ["integer", "null"],
+          "description": "Minimum physical CPU core count required"
+        },
+        "minimum_storage_gb": {
+          "type": ["number", "null"],
+          "description": "Minimum total storage in GB required"
+        },
+        "notes": {
+          "type": ["string", "null"]
+        }
+      }
+    }
+  }
+}

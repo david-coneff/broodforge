@@ -1,0 +1,196 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "service-state-schema",
+  "title": "Service State",
+  "description": "Schema for the Service State manifest: observed running services, DNS registrations, backup job assignments, and service contract references. Populated by Tier 2 assessment and service metadata repositories.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "cell_id",
+    "collected_at",
+    "services",
+    "dns_registrations",
+    "backup_assignments"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "enum": ["1.0"]
+    },
+    "cell_id": {
+      "type": "string",
+      "description": "Stable unique identity of the Infrastructure Cell this service state belongs to"
+    },
+    "collected_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp when this service state was collected"
+    },
+    "collection_errors": {
+      "type": "array",
+      "description": "Errors encountered during service state collection",
+      "items": { "type": "string" }
+    },
+
+    "services": {
+      "type": "array",
+      "description": "Observed running service inventory",
+      "items": { "$ref": "#/definitions/service_entry" }
+    },
+
+    "dns_registrations": {
+      "type": "array",
+      "description": "Observed DNS registration state for services in this cell",
+      "items": { "$ref": "#/definitions/dns_registration" }
+    },
+
+    "backup_assignments": {
+      "type": "array",
+      "description": "PBS backup job assignments for VMs and services in this cell",
+      "items": { "$ref": "#/definitions/backup_assignment" }
+    }
+  },
+
+  "definitions": {
+
+    "service_entry": {
+      "type": "object",
+      "required": ["name", "vm", "vmid"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Service identifier, matching service contract name if declared"
+        },
+        "vm": {
+          "type": "string",
+          "description": "VM name hosting this service"
+        },
+        "vmid": {
+          "type": "integer",
+          "description": "Proxmox VM ID"
+        },
+        "port": {
+          "type": ["integer", "null"],
+          "description": "Primary port the service listens on"
+        },
+        "protocol": {
+          "type": ["string", "null"],
+          "description": "Protocol, e.g. https, postgresql, smtp"
+        },
+        "url": {
+          "type": ["string", "null"],
+          "description": "Primary URL for the service"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["running", "stopped", "degraded", "unknown"],
+          "description": "Observed service status at collection time"
+        },
+        "health_check_url": {
+          "type": ["string", "null"],
+          "description": "Health check endpoint URL"
+        },
+        "last_health_check": {
+          "type": ["string", "null"],
+          "format": "date-time",
+          "description": "Timestamp of the most recent successful health check"
+        },
+        "contract_declared": {
+          "type": "boolean",
+          "description": "Whether a Service Contract is declared for this service in Bootstrap State"
+        },
+        "secret_references": {
+          "type": "array",
+          "description": "Secret Registry IDs required by this service",
+          "items": { "type": "string" }
+        },
+        "owner": {
+          "type": ["string", "null"]
+        },
+        "notes": {
+          "type": ["string", "null"]
+        }
+      }
+    },
+
+    "dns_registration": {
+      "type": "object",
+      "required": ["hostname", "ip"],
+      "properties": {
+        "hostname": {
+          "type": "string"
+        },
+        "ip": {
+          "type": "string"
+        },
+        "ttl": {
+          "type": ["integer", "null"],
+          "description": "DNS TTL in seconds"
+        },
+        "record_type": {
+          "type": "string",
+          "enum": ["A", "AAAA", "CNAME", "PTR", "other"],
+          "description": "DNS record type"
+        },
+        "in_dns_registry": {
+          "type": "boolean",
+          "description": "Whether this registration matches an entry in the Bootstrap State DNS Registry"
+        },
+        "drift_from_registry": {
+          "type": "boolean",
+          "description": "True if the observed IP differs from the DNS Registry entry"
+        }
+      }
+    },
+
+    "backup_assignment": {
+      "type": "object",
+      "required": ["vmid", "vm_name"],
+      "properties": {
+        "vmid": {
+          "type": "integer"
+        },
+        "vm_name": {
+          "type": "string"
+        },
+        "backup_job_id": {
+          "type": ["string", "null"],
+          "description": "PBS backup job identifier, e.g. pbs-daily-vms"
+        },
+        "schedule": {
+          "type": ["string", "null"],
+          "description": "Backup schedule expression, e.g. daily at 02:00"
+        },
+        "datastore": {
+          "type": ["string", "null"],
+          "description": "PBS datastore name"
+        },
+        "pbs_host": {
+          "type": ["string", "null"],
+          "description": "Hostname or IP of the PBS server"
+        },
+        "last_run_at": {
+          "type": ["string", "null"],
+          "format": "date-time"
+        },
+        "last_run_status": {
+          "type": ["string", "null"],
+          "enum": ["ok", "failed", "partial", "never", null],
+          "description": "Status of the most recent backup job run"
+        },
+        "last_successful_backup_at": {
+          "type": ["string", "null"],
+          "format": "date-time"
+        },
+        "backup_age_hours": {
+          "type": ["number", "null"],
+          "description": "Hours since the most recent successful backup"
+        },
+        "in_contract": {
+          "type": "boolean",
+          "description": "Whether a backup_job is declared in the Service Contract for this VM"
+        }
+      }
+    }
+  }
+}

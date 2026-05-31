@@ -1,0 +1,32 @@
+# DNS Registry
+# Cell: proxmox-cell-a
+#
+# Authoritative hostname-to-IP mappings for all managed VMs and services.
+# This file is the source of truth. Doc-gen reads it to pre-populate recovery
+# commands with actual IP addresses instead of [VM_IP] placeholders.
+
+dns_registry:
+  - hostname: pve01.internal
+    ip: 192.168.1.10
+    vmid: null
+    role: proxmox-host
+
+  - hostname: infra-bootstrap.internal
+    ip: 192.168.1.20
+    vmid: 100
+    role: infra-bootstrap
+
+  - hostname: forgejo.internal
+    ip: 192.168.1.21
+    vmid: 101
+    role: forgejo
+
+  - hostname: inventory.internal
+    ip: 192.168.1.22
+    vmid: 102
+    role: inventory
+
+  - hostname: assessment.internal
+    ip: 192.168.1.23
+    vmid: 103
+    role: assessment-engine

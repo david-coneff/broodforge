@@ -150,6 +150,8 @@ SCHEMA_MAP = {
     "recovery": "recovery-state-schema.json",
     "declared": "declared-state-schema.json",
     "configured": "configured-state-schema.json",
+    "bootstrap": "bootstrap-state-schema.json",
+    "service": "service-state-schema.json",
 }
 
 def detect_schema(manifest: dict) -> Optional[Path]:
@@ -165,6 +167,10 @@ def detect_schema(manifest: dict) -> Optional[Path]:
         return SCHEMA_DIR / "declared-state-schema.json"
     if "ansible_inventory" in manifest:
         return SCHEMA_DIR / "configured-state-schema.json"
+    if "base_images" in manifest and "dns_registry" in manifest:
+        return SCHEMA_DIR / "bootstrap-state-schema.json"
+    if "backup_assignments" in manifest and "dns_registrations" in manifest:
+        return SCHEMA_DIR / "service-state-schema.json"
     return None
 
 

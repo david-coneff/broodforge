@@ -1,0 +1,327 @@
+{
+  "schema_version": "1.0",
+  "cell_id": "proxmox-cell-a",
+  "declared_at": "2026-05-31T00:00:00Z",
+  "notes": "Primary homelab cell — single Proxmox node with four managed VMs",
+
+  "vms": [
+    {
+      "vmid": 100,
+      "name": "infra-bootstrap",
+      "role": "infra-bootstrap",
+      "template_name": "ubuntu-2204-base",
+      "cloudinit": {
+        "user_data_path": "snippets/user-data/infra-bootstrap.yaml",
+        "user_data_hash": "sha256:aabbcc1122334455aabbcc1122334455aabbcc1122334455aabbcc1122334455",
+        "network_config_path": "snippets/network-config/infra-bootstrap.yaml",
+        "network_config_hash": "sha256:ddeeff6677889900ddeeff6677889900ddeeff6677889900ddeeff6677889900",
+        "vendor_data_path": "snippets/vendor-data/proxmox-hooks.yaml",
+        "vendor_data_hash": "sha256:112233445566778899001122334455667788990011223344556677889900aabb"
+      },
+      "initial_ip": "192.168.1.20",
+      "initial_hostname": "infra-bootstrap",
+      "bridge": "vmbr0",
+      "initial_user": "ubuntu",
+      "ssh_key_reference": "infra-bootstrap-deploy-key",
+      "password_reference": "vm-100-password",
+      "notes": null
+    },
+    {
+      "vmid": 101,
+      "name": "forgejo",
+      "role": "forgejo",
+      "template_name": "ubuntu-2204-base",
+      "cloudinit": {
+        "user_data_path": "snippets/user-data/forgejo.yaml",
+        "user_data_hash": "sha256:aabbcc1122334455aabbcc1122334455aabbcc1122334455aabbcc1122334456",
+        "network_config_path": "snippets/network-config/forgejo.yaml",
+        "network_config_hash": "sha256:ddeeff6677889900ddeeff6677889900ddeeff6677889900ddeeff6677889901",
+        "vendor_data_path": null,
+        "vendor_data_hash": null
+      },
+      "initial_ip": "192.168.1.21",
+      "initial_hostname": "forgejo",
+      "bridge": "vmbr0",
+      "initial_user": "ubuntu",
+      "ssh_key_reference": "forgejo-deploy-key",
+      "password_reference": "vm-101-password",
+      "notes": null
+    },
+    {
+      "vmid": 102,
+      "name": "inventory",
+      "role": "inventory",
+      "template_name": "ubuntu-2204-base",
+      "cloudinit": {
+        "user_data_path": "snippets/user-data/inventory.yaml",
+        "user_data_hash": "sha256:aabbcc1122334455aabbcc1122334455aabbcc1122334455aabbcc1122334457",
+        "network_config_path": "snippets/network-config/inventory.yaml",
+        "network_config_hash": "sha256:ddeeff6677889900ddeeff6677889900ddeeff6677889900ddeeff6677889902",
+        "vendor_data_path": null,
+        "vendor_data_hash": null
+      },
+      "initial_ip": "192.168.1.22",
+      "initial_hostname": "inventory",
+      "bridge": "vmbr0",
+      "initial_user": "ubuntu",
+      "ssh_key_reference": "inventory-deploy-key",
+      "password_reference": "vm-102-password",
+      "notes": null
+    },
+    {
+      "vmid": 103,
+      "name": "assessment-engine",
+      "role": "assessment-engine",
+      "template_name": "ubuntu-2204-base",
+      "cloudinit": {
+        "user_data_path": "snippets/user-data/assessment-engine.yaml",
+        "user_data_hash": "sha256:aabbcc1122334455aabbcc1122334455aabbcc1122334455aabbcc1122334458",
+        "network_config_path": "snippets/network-config/assessment-engine.yaml",
+        "network_config_hash": "sha256:ddeeff6677889900ddeeff6677889900ddeeff6677889900ddeeff6677889903",
+        "vendor_data_path": null,
+        "vendor_data_hash": null
+      },
+      "initial_ip": "192.168.1.23",
+      "initial_hostname": "assessment-engine",
+      "bridge": "vmbr0",
+      "initial_user": "ubuntu",
+      "ssh_key_reference": "assessment-engine-deploy-key",
+      "password_reference": "vm-103-password",
+      "notes": null
+    }
+  ],
+
+  "base_images": [
+    {
+      "name": "ubuntu-2204-base",
+      "source_iso": "ubuntu-22.04.4-live-server-amd64.iso",
+      "source_url": "https://releases.ubuntu.com/22.04/ubuntu-22.04.4-live-server-amd64.iso",
+      "checksum": "sha256:45f873de9f8cb637345d6e66a583762730bbea30277ef7b32c9c3bd6700a32b2",
+      "created_at": "2026-04-01T10:00:00Z",
+      "included_packages": ["python3", "qemu-guest-agent", "openssh-server", "cloud-init"],
+      "notes": null
+    }
+  ],
+
+  "templates": [
+    {
+      "name": "ubuntu-2204-base",
+      "base_image": "ubuntu-2204-base",
+      "proxmox_template_id": 9000,
+      "created_at": "2026-04-01T11:00:00Z",
+      "additional_packages": [],
+      "build_notes": "Minimal base template — no additional packages beyond ISO defaults"
+    }
+  ],
+
+  "provenance_records": [
+    {
+      "vmid": 101,
+      "name": "forgejo",
+      "deployed_at": "2026-04-15T12:00:00Z",
+      "tofu_workspace": "proxmox-vms",
+      "tofu_commit": "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2",
+      "template_name": "ubuntu-2204-base",
+      "template_checksum": "sha256:45f873de9f8cb637345d6e66a583762730bbea30277ef7b32c9c3bd6700a32b2",
+      "cloudinit_user_data_hash": "sha256:aabbcc1122334455aabbcc1122334455aabbcc1122334455aabbcc1122334456",
+      "cloudinit_network_config_hash": "sha256:ddeeff6677889900ddeeff6677889900ddeeff6677889900ddeeff6677889901",
+      "ansible_playbook": "site.yml",
+      "ansible_commit": "b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3",
+      "ansible_inventory_commit": "c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4",
+      "deployed_by": "dave",
+      "notes": null
+    }
+  ],
+
+  "secrets": [
+    {
+      "id": "pve01-root-password",
+      "description": "Proxmox host root password",
+      "keepass_path": "Infrastructure/proxmox/pve01-root",
+      "owning_cell": "proxmox-cell-a",
+      "secret_type": "password",
+      "required_by": ["host:pve01"],
+      "required_for": ["ssh-access", "pve-api-auth"],
+      "rotation_schedule": "annually",
+      "recovery_path": "Contact primary operator for out-of-band access to KeePass backup"
+    },
+    {
+      "id": "pve01-api-token",
+      "description": "Proxmox API token for OpenTofu provider",
+      "keepass_path": "Infrastructure/proxmox/pve01-tofu-token",
+      "owning_cell": "proxmox-cell-a",
+      "secret_type": "api-token",
+      "required_by": ["host:pve01"],
+      "required_for": ["opentofu-execution"],
+      "rotation_schedule": "annually",
+      "recovery_path": null
+    },
+    {
+      "id": "infra-bootstrap-deploy-key",
+      "description": "SSH deploy key for infra-bootstrap VM",
+      "keepass_path": "Infrastructure/ssh/deploy-keys/infra-bootstrap",
+      "owning_cell": "proxmox-cell-a",
+      "secret_type": "ssh-private-key",
+      "required_by": ["vm:infra-bootstrap"],
+      "required_for": ["ansible-execution"],
+      "rotation_schedule": null,
+      "recovery_path": null
+    },
+    {
+      "id": "forgejo-deploy-key",
+      "description": "SSH deploy key for forgejo VM",
+      "keepass_path": "Infrastructure/ssh/deploy-keys/forgejo",
+      "owning_cell": "proxmox-cell-a",
+      "secret_type": "ssh-private-key",
+      "required_by": ["vm:forgejo"],
+      "required_for": ["ansible-execution"],
+      "rotation_schedule": null,
+      "recovery_path": null
+    },
+    {
+      "id": "vm-100-password",
+      "description": "Initial OS user password for infra-bootstrap VM",
+      "keepass_path": "Infrastructure/vms/vm-100-ubuntu-password",
+      "owning_cell": "proxmox-cell-a",
+      "secret_type": "password",
+      "required_by": ["vm:infra-bootstrap"],
+      "required_for": ["first-boot-access"],
+      "rotation_schedule": null,
+      "recovery_path": null
+    },
+    {
+      "id": "vm-101-password",
+      "description": "Initial OS user password for forgejo VM",
+      "keepass_path": "Infrastructure/vms/vm-101-ubuntu-password",
+      "owning_cell": "proxmox-cell-a",
+      "secret_type": "password",
+      "required_by": ["vm:forgejo"],
+      "required_for": ["first-boot-access"],
+      "rotation_schedule": null,
+      "recovery_path": null
+    },
+    {
+      "id": "forgejo-admin-password",
+      "description": "Forgejo administrator account password",
+      "keepass_path": "Infrastructure/forgejo/admin-password",
+      "owning_cell": "proxmox-cell-a",
+      "secret_type": "password",
+      "required_by": ["vm:forgejo"],
+      "required_for": ["post-restore-validation", "service-administration"],
+      "rotation_schedule": "annually",
+      "recovery_path": null
+    }
+  ],
+
+  "dns_registry": [
+    {
+      "hostname": "pve01.internal",
+      "ip": "192.168.1.10",
+      "vmid": null,
+      "role": "proxmox-host",
+      "notes": null
+    },
+    {
+      "hostname": "infra-bootstrap.internal",
+      "ip": "192.168.1.20",
+      "vmid": 100,
+      "role": "infra-bootstrap",
+      "notes": null
+    },
+    {
+      "hostname": "forgejo.internal",
+      "ip": "192.168.1.21",
+      "vmid": 101,
+      "role": "forgejo",
+      "notes": null
+    },
+    {
+      "hostname": "inventory.internal",
+      "ip": "192.168.1.22",
+      "vmid": 102,
+      "role": "inventory",
+      "notes": null
+    },
+    {
+      "hostname": "assessment.internal",
+      "ip": "192.168.1.23",
+      "vmid": 103,
+      "role": "assessment-engine",
+      "notes": null
+    }
+  ],
+
+  "service_contracts": [
+    {
+      "service": "forgejo",
+      "vm": "forgejo",
+      "provided_interfaces": [
+        {
+          "protocol": "https",
+          "port": 3000,
+          "url_pattern": "https://forgejo.internal",
+          "health_check": "GET /api/healthz"
+        },
+        {
+          "protocol": "ssh",
+          "port": 22,
+          "url_pattern": null,
+          "health_check": null
+        }
+      ],
+      "required_interfaces": [
+        {
+          "service": "postgresql",
+          "protocol": "postgresql",
+          "port": 5432,
+          "critical": true
+        }
+      ],
+      "startup_after": ["postgresql"],
+      "backup_job": "pbs-daily-vms",
+      "secret_references": ["forgejo-admin-password", "forgejo-deploy-key"],
+      "owner": "infrastructure"
+    },
+    {
+      "service": "assessment-engine",
+      "vm": "assessment-engine",
+      "provided_interfaces": [
+        {
+          "protocol": "ssh",
+          "port": 22,
+          "url_pattern": null,
+          "health_check": null
+        }
+      ],
+      "required_interfaces": [
+        {
+          "service": "forgejo",
+          "protocol": "https",
+          "port": 3000,
+          "critical": true
+        }
+      ],
+      "startup_after": ["forgejo"],
+      "backup_job": "pbs-daily-vms",
+      "secret_references": ["assessment-engine-deploy-key"],
+      "owner": "infrastructure"
+    }
+  ],
+
+  "hardware_requirements": {
+    "vtx_required": true,
+    "iommu_required": false,
+    "secure_boot_required": false,
+    "minimum_ram_gb": 32,
+    "minimum_cores": 4,
+    "minimum_storage_gb": 500,
+    "notes": "iommu not required — no PCI passthrough in this deployment"
+  },
+
+  "first_boot_order": [
+    "infra-bootstrap",
+    "forgejo",
+    "inventory",
+    "assessment-engine"
+  ]
+}

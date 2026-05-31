@@ -1,0 +1,18 @@
+# Base Image Registry
+# Cell: proxmox-cell-a
+#
+# Tracks ISOs and the Proxmox VM templates built from them.
+# Checksums enable verification that the correct ISO was used.
+
+base_images:
+  - name: ubuntu-2204-base
+    source_iso: ubuntu-22.04.4-live-server-amd64.iso
+    source_url: https://releases.ubuntu.com/22.04/ubuntu-22.04.4-live-server-amd64.iso
+    checksum: sha256:45f873de9f8cb637345d6e66a583762730bbea30277ef7b32c9c3bd6700a32b2
+    created_at: "2026-04-01T10:00:00Z"
+    included_packages:
+      - python3
+      - qemu-guest-agent
+      - openssh-server
+      - cloud-init
+    notes: null
