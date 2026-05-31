@@ -1,7 +1,7 @@
 # Session Handoff
 
-Date: 2026-05-31 21:15:00 UTC (2026-05-31 15:15:00 MDT)
-Status: Ready to resume at Milestone 6.6 — Template Registry and Base Image Tracking
+Date: 2026-05-31 22:30:00 UTC (2026-05-31 16:30:00 MDT)
+Status: Ready to resume at Milestone 6.7 — Tier 2 Collector (deferred from 6.5)
 
 ---
 
@@ -50,127 +50,93 @@ See ROADMAP.md for full detail. All complete.
                                            registry_gaps list contains both registry + provenance gaps
   doc-gen/renderers/recovery_runbook.py    Per-VM provenance block + Appendix E
   tests/unit/test_provenance.py            44 tests
-  Note: Tier 2 collector (6.5 item 3) deferred to Milestone 6.7
+  Note: Tier 2 collector (6.5 item 3) deferred → this is Milestone 6.7
 
-**Tests: 931 total, all passing**
+### Milestone 6.6 — Template Registry and Base Image Tracking (complete)
+  doc-gen/template_registry.py             TemplateRegistry class (get_base_image, get_template,
+                                           template_for_vmid, available, counts, all_*)
+  doc-gen/engine.py                        Injects base_images + templates from bootstrap-state.json
+  doc-gen/readiness.py                     _score_template_registry_completeness() — ORANGE if missing
+  doc-gen/renderers/recovery_runbook.py    Appendix F — Template Registry
+  tests/unit/test_template_registry.py     56 tests
+  tests/unit/test_registries.py            Updated 2 tests to also inject templates
+
+**Tests: 987 total, all passing**
 
 ---
 
-## Next Action: Milestone 6.6 — Template Registry and Base Image Tracking
+## Next Action: Milestone 6.7 — Tier 2 Collector
 
-### What already exists
+This milestone was deferred from 6.5 (item 3). It adds a shell/Python collector
+that SSHs into Proxmox and populates provenance_records, base_images, and templates
+in bootstrap-state.json by reading live system state.
 
-`bootstrap-state.json` already has `base_images` and `templates` arrays.
-The bootstrap-state fixture has:
-  - `base_images`: one entry (ubuntu-2204-base ISO, checksum, included_packages)
-  - `templates`:   one entry (ubuntu-2204-base, proxmox_template_id=9000)
+### Background
 
-### Files to create
+The doc-gen engine already consumes provenance_records, base_images, and templates
+from bootstrap-state.json. The Tier 2 collector's job is to *generate* those arrays
+by inspecting the live Proxmox host — without requiring the operator to hand-populate them.
 
-**1. `doc-gen/template_registry.py`** (new)
+### Scope of 6.7
 
-```python
-class TemplateRegistry:
-    def __init__(self, base_images: list, templates: list): ...
-    def available(self) -> bool: ...          # True if either list is non-empty
-    def base_image_count(self) -> int: ...
-    def template_count(self) -> int: ...
-    def get_base_image(self, name: str) -> Optional[dict]: ...
-    def get_template(self, name: str) -> Optional[dict]: ...
-    def all_base_images(self) -> list: ...
-    def all_templates(self) -> list: ...
-    def template_for_vmid(self, vmid, vm_list: list) -> Optional[dict]:
-        """Look up the template used by a VM (via vm_list vm→template_name mapping)."""
+**1. `proxmox-bootstrap/collect-tier2.py`** (new)
 
-def build_template_registry(manifest: dict) -> TemplateRegistry:
-    """Read manifest["base_images"] and manifest["templates"]."""
-```
+A standalone Python script (stdlib only) that:
+- SSHs into Proxmox using paramiko or subprocess+ssh (subprocess preferred for stdlib compliance)
+- Runs `qm list`, `qm config <vmid>`, `pvesm status`, `pveversion` to enumerate state
+- Populates:
+  - `provenance_records` — one entry per VMID with vmid, name, deployed_at (stat mtime), template_name
+  - `templates` — one entry per template VMID (templates have `template: 1` in qm config)
+  - `base_images` — derived from template source_iso if discoverable via qm config notes or description
+- Writes results to bootstrap-state.json (merges, does not replace existing manual entries)
+- Flag: `--dry-run` prints what would be written without modifying bootstrap-state.json
 
-**2. `doc-gen/engine.py`** — in `run_recovery()`, after provenance block:
+**2. `proxmox-bootstrap/TIER2-COLLECTION.md`** (new)
 
-```python
-_base_images = bootstrap_state.get("base_images") or []
-_templates   = bootstrap_state.get("templates") or []
-if _base_images or _templates:
-    manifest["base_images"] = _base_images
-    manifest["templates"]   = _templates
-    print(f"[doc-gen] Template registry: {len(_templates)} template(s), "
-          f"{len(_base_images)} base image(s)")
-else:
-    print("[doc-gen] Template registry: not found in bootstrap-state")
-```
+Procedure for running the Tier 2 collector, what credentials are needed,
+and how to verify output.
 
-**3. `doc-gen/readiness.py`** — add `_score_template_registry_completeness(manifest)`
+**3. `tests/unit/test_tier2_collector.py`** (new, ~30 tests)
 
-ORANGE gap if `manifest.get("templates")` is empty/missing.
-Rationale: without template registry, VM reconstruction requires manual base-image
-research; ORANGE (same severity as secret registry — blocks automated reconstruction).
+- TestCollectorParsing — unit tests for each parse function with mock qm output
+- TestDryRun — verify --dry-run produces correct JSON to stdout without modifying file
+- TestMergeLogic — existing entries not overwritten when already populated
 
-Add to `score_graph()` after provenance completeness line:
-```python
-registry_gaps += _score_template_registry_completeness(manifest)
-```
+### Design constraints
 
-**4. `doc-gen/renderers/recovery_runbook.py`**
+- stdlib only (no pip dependencies in proxmox-bootstrap/ scripts)
+- SSH via subprocess (avoids paramiko dependency)
+- Must not overwrite existing manually-entered provenance fields
+- ROADMAP.md says this milestone is YELLOW until at least one live collection run succeeds
 
-Add **Appendix F — Template Registry** (same pattern as C/D/E):
-- Lists all templates with their base_image, proxmox_template_id, created_at
-- Lists all base_images with source_iso, checksum, included_packages
+### Key files for context
 
-**5. `tests/unit/test_template_registry.py`** (new, ~35 tests)
+  proxmox-bootstrap/bootstrap-state.json schema:
+    provenance_records[].vmid, name, deployed_at, tofu_workspace, tofu_commit,
+                          template_name, cloudinit_user_data_hash, etc.
+    templates[].name, base_image, proxmox_template_id, created_at, additional_packages
+    base_images[].name, source_iso, checksum, created_at, included_packages
 
-Classes:
-- `TestTemplateRegistryEmpty`         — available/count/get/all return correct defaults
-- `TestTemplateRegistryData`          — get_base_image, get_template, template_for_vmid
-- `TestLoadFromFixture`               — fixture has base_images + templates, verify structure
-- `TestTemplateCompletenessScoring`   — ORANGE gap if templates missing, no gap if present
-- `TestRunbookTemplateAppendix`       — Appendix F present, template names appear
-
-### bootstrap-state fixture shape for reference
-
-```json
-"base_images": [{
-  "name": "ubuntu-2204-base",
-  "source_iso": "ubuntu-22.04.4-live-server-amd64.iso",
-  "source_url": "https://releases.ubuntu.com/...",
-  "checksum": "sha256:45f873...",
-  "created_at": "2026-04-01T10:00:00Z",
-  "included_packages": ["python3", "qemu-guest-agent", "openssh-server", "cloud-init"],
-  "notes": null
-}],
-"templates": [{
-  "name": "ubuntu-2204-base",
-  "base_image": "ubuntu-2204-base",
-  "proxmox_template_id": 9000,
-  "created_at": "2026-04-01T11:00:00Z",
-  "additional_packages": [],
-  "build_notes": "..."
-}]
-```
-
-### Important rules
-
-- ORANGE for missing template registry (same as secret registry) per ROADMAP.md 6.6
-- Follow the exact same pattern as `registries.py` and `provenance.py`
-- TemplateRegistry.available() → True if EITHER base_images OR templates is non-empty
-- After 6.6: update test_registries.py test that injects all registries to also inject
-  base_images and templates in manifest
+  doc-gen/template_registry.py    TemplateRegistry — consumer of these arrays
+  doc-gen/provenance.py           ProvenanceRegistry — consumer of provenance_records
+  tests/fixtures/bootstrap/bootstrap-state.json   canonical fixture with all arrays
 
 ---
 
 ## Key Files
 
-  doc-gen/registries.py         SecretRegistry + DnsRegistry
-  doc-gen/provenance.py         ProvenanceRegistry
-  doc-gen/template_registry.py  TO CREATE — 6.6
-  doc-gen/readiness.py          _score_registry_completeness, _score_provenance_completeness
-                                 registry_gaps list (both registry + provenance gaps)
-  doc-gen/engine.py             Injects secret_registry, dns_registry, provenance_registry
-                                 TO ADD: base_images, templates injection
-  tests/fixtures/bootstrap/bootstrap-state.json   canonical fixture (base_images + templates present)
-  tests/unit/test_registries.py    75 tests (6.3 + 6.4)
-  tests/unit/test_provenance.py    44 tests (6.5)
-  tests/unit/test_template_registry.py   TO CREATE (6.6)
+  doc-gen/registries.py             SecretRegistry + DnsRegistry
+  doc-gen/provenance.py             ProvenanceRegistry
+  doc-gen/template_registry.py      TemplateRegistry (6.6 complete)
+  doc-gen/readiness.py              _score_registry_completeness, _score_provenance_completeness,
+                                     _score_template_registry_completeness
+                                     registry_gaps list (all registry + provenance gaps)
+  doc-gen/engine.py                 Injects: secret_registry, dns_registry, provenance_registry,
+                                     base_images, templates
+  tests/fixtures/bootstrap/bootstrap-state.json   canonical fixture
+  tests/unit/test_registries.py     75 tests (6.3 + 6.4)
+  tests/unit/test_provenance.py     44 tests (6.5)
+  tests/unit/test_template_registry.py   56 tests (6.6)
 
 ## Design Constraints
 
