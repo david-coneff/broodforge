@@ -38,12 +38,12 @@ class TestRoleCatalog(unittest.TestCase):
 
     def test_required_roles_present(self):
         """The three self-documentation required roles must all be defined."""
-        for role_id in ("forgejo", "infra-bootstrap", "assessment-engine"):
+        for role_id in ("forgejo", "operations", "k3s-server"):
             self.assertIn(role_id, self.r.ROLES,
                           msg=f"Required role {role_id!r} must be in ROLES")
 
     def test_required_roles_marked_required(self):
-        for role_id in ("forgejo", "infra-bootstrap", "assessment-engine"):
+        for role_id in ("forgejo", "operations", "k3s-server"):
             self.assertTrue(self.r.ROLES[role_id]["required"],
                             msg=f"{role_id} must have required=True")
 
@@ -116,7 +116,7 @@ class TestVmStubGeneration(unittest.TestCase):
         self.assertEqual(stub["vmid"], 101)
 
     def test_generate_stub_ip_correct(self):
-        stub = self.r.generate_vm_stub("assessment-engine", 103, "192.168.50.23")
+        stub = self.r.generate_vm_stub("k3s-server", 103, "192.168.50.23")
         self.assertEqual(stub["initial_ip"], "192.168.50.23")
 
     def test_generate_stub_hostname_matches_role(self):
@@ -125,12 +125,15 @@ class TestVmStubGeneration(unittest.TestCase):
             self.assertEqual(stub["name"], self.r.ROLES[role_id]["default_hostname"])
 
     def test_generate_stub_extra_packages_from_role(self):
-        stub = self.r.generate_vm_stub("infra-bootstrap", 100, "10.0.0.20")
+        stub = self.r.generate_vm_stub("operations", 100, "10.0.0.20")
         self.assertIn("ansible-core", stub["extra_packages"])
 
     def test_generate_stub_workspace_path_from_role(self):
-        stub = self.r.generate_vm_stub("assessment-engine", 103, "10.0.0.23")
-        self.assertEqual(stub["workspace_path"], "/opt/assessment")
+        # operations has /opt/infra; k3s-server has no workspace (k3s node is managed by k3s)
+        stub_ops = self.r.generate_vm_stub("operations", 101, "10.0.0.20")
+        self.assertEqual(stub_ops["workspace_path"], "/opt/infra")
+        stub_k3s = self.r.generate_vm_stub("k3s-server", 110, "10.0.0.30")
+        self.assertIsNone(stub_k3s["workspace_path"])
 
     def test_generate_stub_cloudinit_paths_set(self):
         stub = self.r.generate_vm_stub("forgejo", 101, "10.0.0.21")
@@ -138,7 +141,7 @@ class TestVmStubGeneration(unittest.TestCase):
         self.assertIsNotNone(stub["cloudinit"]["network_config_path"])
 
     def test_infra_bootstrap_has_vendor_data(self):
-        stub = self.r.generate_vm_stub("infra-bootstrap", 100, "10.0.0.20")
+        stub = self.r.generate_vm_stub("operations", 100, "10.0.0.20")
         self.assertIsNotNone(stub["cloudinit"]["vendor_data_path"])
 
     def test_non_infra_bootstrap_no_vendor_data(self):
@@ -167,13 +170,15 @@ class TestServiceContractGeneration(unittest.TestCase):
             self.assertIn(field, contract)
 
     def test_no_service_ports_returns_none(self):
-        contract = self.r.generate_service_contract_stub("infra-bootstrap", "infra-bootstrap")
+        contract = self.r.generate_service_contract_stub("operations", "operations")
         self.assertIsNone(contract,
                           msg="Roles with no service_ports should return None contract")
 
-    def test_assessment_engine_no_contract(self):
-        contract = self.r.generate_service_contract_stub("assessment-engine", "assessment-engine")
-        self.assertIsNone(contract)
+    def test_k3s_server_has_contract(self):
+        """k3s-server exposes port 6443 — it should have a service contract."""
+        contract = self.r.generate_service_contract_stub("k3s-server", "k3s-server")
+        self.assertIsNotNone(contract,
+                             msg="k3s-server has service_ports (6443) so must produce a contract")
 
 
 class TestVmidForRole(unittest.TestCase):
@@ -214,10 +219,10 @@ class TestRoleSelectionOrdering(unittest.TestCase):
         )
         # forgejo must come before infra-bootstrap and assessment-engine
         forgejo_idx = sorted_by_wave.index("forgejo")
-        ab_idx = sorted_by_wave.index("infra-bootstrap")
-        ae_idx = sorted_by_wave.index("assessment-engine")
-        self.assertLess(forgejo_idx, ab_idx, "forgejo (wave 1) before infra-bootstrap (wave 2)")
-        self.assertLess(forgejo_idx, ae_idx, "forgejo (wave 1) before assessment-engine (wave 3)")
+        ab_idx = sorted_by_wave.index("operations")
+        ae_idx = sorted_by_wave.index("k3s-server")
+        self.assertLess(forgejo_idx, ab_idx, "forgejo (wave 1) before operations (wave 2)")
+        self.assertLess(forgejo_idx, ae_idx, "forgejo (wave 1) before k3s-server (wave 3)")
 
 
 # ---------------------------------------------------------------------------
@@ -239,13 +244,13 @@ class TestConsolidationModes(unittest.TestCase):
         mode = self.r.CONSOLIDATION_MODES["full"]
         self.assertEqual(len(mode["vms"]), 3)
 
-    def test_recommended_mode_two_vms(self):
+    def test_recommended_mode_three_vms(self):
         mode = self.r.CONSOLIDATION_MODES["recommended"]
-        self.assertEqual(len(mode["vms"]), 2)
+        self.assertEqual(len(mode["vms"]), 3)
 
-    def test_minimal_mode_one_vm(self):
+    def test_minimal_mode_two_vms(self):
         mode = self.r.CONSOLIDATION_MODES["minimal"]
-        self.assertEqual(len(mode["vms"]), 1)
+        self.assertEqual(len(mode["vms"]), 2)
 
     def test_all_required_roles_covered_in_every_mode(self):
         for mode_key, mode in self.r.CONSOLIDATION_MODES.items():
@@ -276,39 +281,39 @@ class TestMergeRoles(unittest.TestCase):
         self.assertEqual(merged["extra_packages"], self.r.ROLES["forgejo"]["extra_packages"])
 
     def test_merged_packages_are_union(self):
-        merged = self.r.merge_roles(["infra-bootstrap", "assessment-engine"])
-        ab_pkgs = self.r.ROLES["infra-bootstrap"]["extra_packages"]
-        ae_pkgs = self.r.ROLES["assessment-engine"]["extra_packages"]
+        merged = self.r.merge_roles(["operations", "k3s-server"])
+        ab_pkgs = self.r.ROLES["operations"]["extra_packages"]
+        ae_pkgs = self.r.ROLES["k3s-server"]["extra_packages"]
         for pkg in ab_pkgs + ae_pkgs:
             self.assertIn(pkg, merged["extra_packages"])
 
     def test_merged_packages_no_duplicates(self):
-        merged = self.r.merge_roles(["infra-bootstrap", "assessment-engine"])
+        merged = self.r.merge_roles(["operations", "k3s-server"])
         self.assertEqual(len(merged["extra_packages"]), len(set(merged["extra_packages"])))
 
     def test_merged_wave_is_minimum(self):
-        merged = self.r.merge_roles(["infra-bootstrap", "assessment-engine"])
-        expected = min(self.r.ROLES["infra-bootstrap"]["wave"],
-                       self.r.ROLES["assessment-engine"]["wave"])
+        merged = self.r.merge_roles(["operations", "k3s-server"])
+        expected = min(self.r.ROLES["operations"]["wave"],
+                       self.r.ROLES["k3s-server"]["wave"])
         self.assertEqual(merged["wave"], expected)
 
     def test_merged_vmid_offset_is_minimum(self):
-        merged = self.r.merge_roles(["infra-bootstrap", "assessment-engine"])
-        expected = min(self.r.ROLES["infra-bootstrap"]["vmid_offset"],
-                       self.r.ROLES["assessment-engine"]["vmid_offset"])
+        merged = self.r.merge_roles(["operations", "k3s-server"])
+        expected = min(self.r.ROLES["operations"]["vmid_offset"],
+                       self.r.ROLES["k3s-server"]["vmid_offset"])
         self.assertEqual(merged["vmid_offset"], expected)
 
     def test_internal_startup_after_excluded(self):
         """startup_after entries that are co-located should not appear in merged."""
-        # assessment-engine depends on forgejo; if both are in the same VM, forgejo dep drops
-        merged = self.r.merge_roles(["forgejo", "assessment-engine"])
+        # operations depends on forgejo; if both are in the same VM, forgejo dep drops
+        merged = self.r.merge_roles(["forgejo", "k3s-server"])
         self.assertNotIn("forgejo", merged["startup_after"],
                          "forgejo should not appear in startup_after when co-located")
 
     def test_external_startup_after_retained(self):
         """startup_after entries for external roles must be kept."""
         # assessment-engine starts after forgejo; if assessment-engine is alone:
-        merged = self.r.merge_roles(["assessment-engine"])
+        merged = self.r.merge_roles(["k3s-server"])
         self.assertIn("forgejo", merged["startup_after"])
 
     def test_all_three_merged_has_all_packages(self):
@@ -320,9 +325,9 @@ class TestMergeRoles(unittest.TestCase):
             self.assertIn(pkg, merged["extra_packages"])
 
     def test_workspace_paths_collected(self):
-        merged = self.r.merge_roles(["infra-bootstrap", "assessment-engine"])
+        merged = self.r.merge_roles(["forgejo", "operations"])
+        # operations has /opt/infra; forgejo has no workspace — /opt/infra must appear
         self.assertIn("/opt/infra", merged["workspace_paths"])
-        self.assertIn("/opt/assessment", merged["workspace_paths"])
 
 
 class TestResolveConsolidation(unittest.TestCase):
@@ -333,13 +338,13 @@ class TestResolveConsolidation(unittest.TestCase):
         descriptors = self.r.resolve_consolidation("full")
         self.assertEqual(len(descriptors), 3)
 
-    def test_recommended_returns_two_descriptors(self):
+    def test_recommended_returns_three_descriptors(self):
         descriptors = self.r.resolve_consolidation("recommended")
-        self.assertEqual(len(descriptors), 2)
+        self.assertEqual(len(descriptors), 3)
 
-    def test_minimal_returns_one_descriptor(self):
+    def test_minimal_returns_two_descriptors(self):
         descriptors = self.r.resolve_consolidation("minimal")
-        self.assertEqual(len(descriptors), 1)
+        self.assertEqual(len(descriptors), 2)
 
     def test_each_descriptor_has_required_fields(self):
         for mode in self.r.CONSOLIDATION_MODES:
@@ -359,18 +364,19 @@ class TestResolveConsolidation(unittest.TestCase):
         descriptors = self.r.resolve_consolidation("recommended", ["dns"])
         vm_names = [d["vm_name"] for d in descriptors]
         self.assertIn("dns", vm_names)
-        self.assertEqual(len(descriptors), 3)  # 2 required + 1 optional
+        self.assertEqual(len(descriptors), 4)  # 3 required VMs + 1 optional
 
     def test_unknown_mode_raises(self):
         with self.assertRaises(ValueError):
             self.r.resolve_consolidation("nonsense")
 
-    def test_minimal_vm_has_all_required_roles(self):
+    def test_minimal_toolchain_has_pre_k3s_roles(self):
         descriptors = self.r.resolve_consolidation("minimal")
-        self.assertEqual(len(descriptors), 1)
-        all_roles = descriptors[0]["component_roles"]
-        for rid in self.r.REQUIRED_ROLES:
-            self.assertIn(rid, all_roles)
+        toolchain = next(d for d in descriptors if d["vm_name"] == "toolchain")
+        self.assertIn("forgejo", toolchain["component_roles"])
+        self.assertIn("operations", toolchain["component_roles"])
+        # k3s-server is always its own VM — not in toolchain
+        self.assertNotIn("k3s-server", toolchain["component_roles"])
 
 
 class TestVmStubFromDescriptor(unittest.TestCase):
@@ -388,28 +394,30 @@ class TestVmStubFromDescriptor(unittest.TestCase):
         self.assertEqual(stub["vmid"], 101)
         self.assertIsNone(stub["cloudinit"]["vendor_data_path"])
 
-    def test_recommended_automation_has_both_roles(self):
-        desc = self._desc("recommended", "automation")
+    def test_recommended_operations_is_single_role(self):
+        """In v7.0 recommended, operations VM is a single-role VM (not merged)."""
+        desc = self._desc("recommended", "operations")
         stub = self.r.generate_vm_stub_from_descriptor(desc, 100, "192.168.1.20")
-        self.assertIn("infra-bootstrap", stub["component_roles"])
-        self.assertIn("assessment-engine", stub["component_roles"])
+        self.assertIn("operations", stub["component_roles"])
+        # k3s-server is always its own VM in v7.0 — never merged with operations
+        self.assertNotIn("k3s-server", stub["component_roles"])
 
-    def test_recommended_automation_has_ansible_and_assessment_packages(self):
-        desc = self._desc("recommended", "automation")
+    def test_recommended_operations_has_ansible_packages(self):
+        desc = self._desc("recommended", "operations")
         stub = self.r.generate_vm_stub_from_descriptor(desc, 100, "192.168.1.20")
         self.assertIn("ansible-core", stub["extra_packages"])
         self.assertIn("python3-venv", stub["extra_packages"])
 
-    def test_recommended_automation_has_vendor_data(self):
-        """automation VM includes infra-bootstrap so needs vendor-data."""
-        desc = self._desc("recommended", "automation")
+    def test_recommended_operations_has_vendor_data(self):
+        """operations role includes vendor-data (disables Cloud-Init re-runs)."""
+        desc = self._desc("recommended", "operations")
         stub = self.r.generate_vm_stub_from_descriptor(desc, 100, "192.168.1.20")
         self.assertIsNotNone(stub["cloudinit"]["vendor_data_path"])
 
     def test_minimal_toolchain_has_all_packages(self):
         desc = self._desc("minimal", "toolchain")
         stub = self.r.generate_vm_stub_from_descriptor(desc, 100, "192.168.1.20")
-        ab_pkgs = self.r.ROLES["infra-bootstrap"]["extra_packages"]
+        ab_pkgs = self.r.ROLES["operations"]["extra_packages"]
         for pkg in ab_pkgs:
             self.assertIn(pkg, stub["extra_packages"])
 

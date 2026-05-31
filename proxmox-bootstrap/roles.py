@@ -50,7 +50,7 @@ ROLES: dict[str, dict] = {
                        "configuration, and documentation repositories",
         "required": True,
         "wave": 1,
-        "vmid_offset": 1,          # added to vmid_base; wave-ordered
+        "vmid_offset": 0,          # added to vmid_base; forgejo = vmid_base + 0
         "default_hostname": "forgejo",
         "extra_packages": ["ca-certificates", "gnupg"],
         "workspace_path": None,
@@ -65,45 +65,67 @@ ROLES: dict[str, dict] = {
         ),
     },
 
-    "infra-bootstrap": {
-        "description": "Ansible controller — provisions and configures all VMs; "
-                       "makes the cell reproducible from repository state",
+    "operations": {
+        "description": "Operations VM — Phase A toolchain runner, Ansible controller, "
+                       "emergency shell access when k3s is unavailable",
         "required": True,
         "wave": 2,
-        "vmid_offset": 0,
-        "default_hostname": "infra-bootstrap",
-        "extra_packages": ["python3-venv", "ansible-core", "jq"],
+        "vmid_offset": 1,
+        "default_hostname": "operations",
+        "extra_packages": ["python3-venv", "ansible-core", "jq", "git"],
         "workspace_path": "/opt/infra",
         "service_ports": [],
         "startup_after": ["forgejo"],
         "why_required": (
-            "The Ansible controller applies configuration to all VMs and can "
-            "re-provision everything from Forgejo repos after a failure. "
-            "Without it, reconstructing VMs after loss requires manual work "
-            "and the cell is not self-reproducible."
+            "Must exist outside k3s to enable recovery when k3s is unavailable. "
+            "Ansible playbooks that provision k3s nodes run from here. "
+            "Provides emergency access to the bootstrap toolchain when the "
+            "intelligence layer (k3s workloads) is offline."
         ),
     },
 
-    "assessment-engine": {
-        "description": "Infrastructure Digital Twin Platform — runs assessments, "
-                       "generates documentation, detects drift, pushes docs to Forgejo",
+    "k3s-server": {
+        "description": "k3s control plane node — hosts the Kubernetes API server, "
+                       "scheduler, controller, and all intelligence-layer workloads",
         "required": True,
         "wave": 3,
-        "vmid_offset": 3,
-        "default_hostname": "assessment-engine",
-        "extra_packages": ["python3-venv", "jq"],
-        "workspace_path": "/opt/assessment",
-        "service_ports": [],
-        "startup_after": ["forgejo"],
+        "vmid_offset": 10,
+        "default_hostname": "k3s-server-01",
+        "extra_packages": ["curl", "open-iscsi", "nfs-common"],
+            # open-iscsi + nfs-common: required by Longhorn (Phase 11 storage)
+        "workspace_path": None,
+        "service_ports": [
+            {"protocol": "https", "port": 6443, "health_check": "GET /healthz"},
+        ],
+        "startup_after": ["forgejo", "operations"],
         "why_required": (
-            "This is the documentation system. It runs Tier 1/2 assessments "
-            "on a schedule, generates Bootstrap/Recovery/Operational docs, and "
-            "pushes them back to Forgejo. Without it, the cell is not "
-            "self-documenting — docs must be maintained manually."
+            "k3s provides scheduling, failover, HA, and a rich API surface for "
+            "the documentation and assessment engines. The intelligence layer "
+            "(documentation engine, assessment engine, recovery generator) runs "
+            "as k3s workloads — without k3s, the platform cannot document or "
+            "assess itself."
         ),
     },
 
     # ─── Optional roles ──────────────────────────────────────────────────────
+
+    "k3s-worker": {
+        "description": "k3s worker node — dedicated workload scheduling; "
+                       "required for multi-node HA (Phase 11)",
+        "required": False,
+        "wave": 4,
+        "vmid_offset": 20,
+        "default_hostname": "k3s-worker-01",
+        "extra_packages": ["curl", "open-iscsi", "nfs-common"],
+        "workspace_path": None,
+        "service_ports": [],
+        "startup_after": ["k3s-server"],
+        "note": (
+            "Dedicated worker nodes are added in Phase 9/11 when additional "
+            "RAM is available or a second physical host is added. In Phase 3 "
+            "(single-node), k3s-server-01 also schedules workloads."
+        ),
+    },
 
     "dns": {
         "description": "Internal DNS server — hostname resolution independent "
@@ -197,59 +219,63 @@ OPTIONAL_ROLES = [rid for rid, r in ROLES.items() if not r["required"]]
 # paths, service ports, and startup_after constraints.
 
 CONSOLIDATION_MODES: dict[str, dict] = {
+    #
+    # v7.0 consolidation applies to PRE-K3S VMs only (forgejo + operations).
+    # k3s-server is ALWAYS a separate VM — it hosts the k3s cluster and cannot
+    # be merged with service VMs. k3s-worker (optional) is always separate.
+    #
+    # Total VM count = pre-k3s VMs (per mode) + 1 (k3s-server) + N workers
 
     "full": {
-        "description": "One VM per required role — maximum lifecycle independence",
+        "description": "3 VMs: forgejo + operations + k3s-server (max isolation)",
         "detail": (
-            "Each required role runs on its own VM. Forgejo, the Ansible "
-            "controller, and the assessment engine are independently upgradeable, "
-            "restartable, and recoverable. Best for multi-node clusters or when "
-            "operational isolation matters."
+            "Forgejo, the operations VM, and the k3s-server each run independently. "
+            "Forgejo and operations have separate lifecycles — upgrade Forgejo "
+            "without touching the operations toolchain. Best when RAM allows "
+            "and operational isolation matters."
         ),
-        "recommended_for": "Multi-node clusters, production, maximum isolation",
+        "recommended_for": "16 GB+ RAM, multi-node clusters, maximum isolation",
         "vms": {
-            # vm_name → [role_ids it hosts]
-            "forgejo":           ["forgejo"],
-            "infra-bootstrap":   ["infra-bootstrap"],
-            "assessment-engine": ["assessment-engine"],
+            "forgejo":    ["forgejo"],
+            "operations": ["operations"],
+            "k3s-server-01": ["k3s-server"],
         },
-        "vm_order": ["forgejo", "infra-bootstrap", "assessment-engine"],
+        "vm_order": ["forgejo", "operations", "k3s-server-01"],
     },
 
     "recommended": {
-        "description": "2 VMs: forgejo alone + automation (infra-bootstrap & assessment-engine)",
+        "description": "2 VMs: forgejo + operations + k3s-server (2 pre-k3s, 1 k3s)",
         "detail": (
-            "Forgejo runs independently (stable persistent service; upgrade "
-            "without touching automation). The infra-bootstrap Ansible controller "
-            "and assessment-engine share one VM — both are periodic-runner tools "
-            "with identical package requirements and the same operational pattern "
-            "(idle most of the time, burst on schedule). "
-            "Best for single-node homelabs with 16 GB+ RAM."
+            "Identical to 'full' for v7.0 — forgejo and operations are always "
+            "separate because Forgejo must be available before the operations VM "
+            "can run Ansible against anything. k3s-server is always its own VM. "
+            "This is the default for most homelab setups."
         ),
-        "recommended_for": "Most homelab setups — single node, 16 GB+ RAM",
+        "recommended_for": "Most homelab setups — single node, any RAM",
         "vms": {
             "forgejo":    ["forgejo"],
-            "automation": ["infra-bootstrap", "assessment-engine"],
+            "operations": ["operations"],
+            "k3s-server-01": ["k3s-server"],
         },
-        "vm_order": ["forgejo", "automation"],
+        "vm_order": ["forgejo", "operations", "k3s-server-01"],
     },
 
     "minimal": {
-        "description": "1 VM: all required roles on a single toolchain VM",
+        "description": "2 VMs: toolchain (forgejo + operations) + k3s-server",
         "detail": (
-            "All three roles — Forgejo, Ansible controller, and assessment "
-            "engine — run on one VM. Cloud-Init provisions the VM; Ansible "
-            "configures the services inside it. No bootstrap paradox: the "
-            "controller and the service it manages are the same machine. "
-            "On a single-node Proxmox host the node is the true SPOF regardless "
-            "of VM count, so this saves RAM without meaningful resilience loss. "
-            "Best for development, testing, or RAM-constrained setups (<16 GB)."
+            "Forgejo and the operations VM are merged into one 'toolchain' VM. "
+            "k3s-server remains separate (k3s cannot co-locate with Forgejo — "
+            "Forgejo must exist before k3s bootstraps). "
+            "On a single-node Proxmox host, the node is the true SPOF regardless "
+            "of VM count, so merging pre-k3s VMs saves RAM without resilience loss. "
+            "Best for development or RAM-constrained setups (< 12 GB)."
         ),
-        "recommended_for": "Development, RAM-constrained single node (<16 GB RAM)",
+        "recommended_for": "Development, RAM-constrained single node (< 12 GB RAM)",
         "vms": {
-            "toolchain": ["forgejo", "infra-bootstrap", "assessment-engine"],
+            "toolchain":     ["forgejo", "operations"],
+            "k3s-server-01": ["k3s-server"],
         },
-        "vm_order": ["toolchain"],
+        "vm_order": ["toolchain", "k3s-server-01"],
     },
 }
 
@@ -390,8 +416,8 @@ def generate_vm_stub_from_descriptor(
     primary_role_id = sorted(role_ids, key=lambda r: ROLES[r]["wave"])[0]
     snippet_base = "snippets"
 
-    # For combined VMs: vendor-data only if infra-bootstrap is one of the roles
-    needs_vendor_data = "infra-bootstrap" in role_ids
+    # For combined VMs: vendor-data only if operations (or legacy infra-bootstrap) is one of the roles
+    needs_vendor_data = any(r in role_ids for r in ("operations", "infra-bootstrap"))
 
     # workspace_paths: use the first if only one; multiple need runcmd generation
     workspace_paths = merged.get("workspace_paths", [])
@@ -454,7 +480,7 @@ def generate_vm_stub(
             "network_config_hash": None,
             "vendor_data_path": (
                 f"{snippet_base}/vendor-data/proxmox-hooks.yaml"
-                if role_id == "infra-bootstrap" else None
+                if role_id in ("operations", "infra-bootstrap") else None
             ),
             "vendor_data_hash": None,
         },
@@ -646,11 +672,13 @@ def print_catalog() -> None:
         if role.get("note"):
             print(f"  Note:     {role['note'][:80]}...")
     print()
-    print("  Self-documentation loop:")
-    print("    forgejo ← assessment-engine pushes generated docs")
-    print("    forgejo ← infra-bootstrap reads repos to provision VMs")
-    print("    assessment-engine → runs assessments → generates docs → pushes to forgejo")
-    print("    infra-bootstrap → configures assessment-engine → it runs on a schedule")
+    print("  v7.0 self-documentation loop:")
+    print("    forgejo        ← documentation-engine pushes generated docs (k3s workload)")
+    print("    forgejo        ← flux-cd pulls manifests and reconciles k3s cluster")
+    print("    operations-vm  → runs Ansible to provision k3s nodes → k3s comes up")
+    print("    k3s-server-01  → hosts documentation-engine + assessment-engine workloads")
+    print("    assessment-engine (k3s) → scores platform → feeds documentation-engine")
+    print("    documentation-engine (k3s) → generates docs → pushes to forgejo")
     print()
 
 
