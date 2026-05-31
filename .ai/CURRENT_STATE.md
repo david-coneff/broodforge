@@ -1,17 +1,18 @@
 # Current State
 
-Last updated: 2026-05-30
+Last updated: 2026-05-31
 
-## Active Architecture: v4.0
+## Active Architecture: v5.0
 
-Seven-state model. Six-layer lifecycle. See ARCHITECTURE.md and
-docs/ARCHITECTURE-REVIEW-v4.md for full detail.
+Federated Infrastructure Digital Twin Platform.
+Seventeen-state model. Six-layer lifecycle. Three assessment tiers. Five dependency graphs.
+See ARCHITECTURE.md and docs/ARCHITECTURE-REVIEW-v5.md for full detail.
 
 ## Next Action
 
 **Implement Milestone 6.1 — Bootstrap State Schema.**
-See ROADMAP.md for Phase 6 ordering. After 6.1, priority order is 6.3 (Secret Registry),
-6.4 (DNS Registry), then 6.2 (Cloud-Init Template Library).
+All new schemas must include `cell_id` as a mandatory field (AD-013).
+See ROADMAP.md Phase 6 for full task list. Priority order after 6.1: 6.3, 6.4, 6.2.
 
 ## Completed Milestones
 
@@ -25,6 +26,7 @@ See ROADMAP.md for Phase 6 ordering. After 6.1, priority order is 6.3 (Secret Re
 | 5.5 | Recovery Readiness Scoring | Complete |
 | 5.6 | Historical State Integration — drift detection, snapshot index, reproducibility | Complete |
 | Architecture Review | v4.0 — 7-state model, 6-layer lifecycle, Cloud-Init as first-class | Complete |
+| Architecture Review | v5.0 — 17-state model, federation, digital twin, 5 dependency graphs | Complete |
 
 ## Next Milestones
 

@@ -1,276 +1,179 @@
 # Session Handoff
 
-Date: 2026-05-30
-Status: Ready to resume at Milestone 5.6
+Date: 2026-05-31
+Status: Ready to resume at Milestone 6.1
 
 ---
 
 ## Where We Are
 
-Phase 5 — Documentation Generation Foundation is 5/6 milestones complete.
-The next session should begin at **Milestone 5.6 — Historical State Integration**.
+Architecture was revised to v5.0 in this session. This supersedes v4.0.
+Read `docs/ARCHITECTURE-REVIEW-v5.md` before making any structural decisions.
 
-Architecture was revised to v4.0 in this session. Read `docs/ARCHITECTURE-REVIEW-v4.md`
-before making any structural decisions. The seven-state model and six-layer lifecycle
-replace the previous five-state model.
+**The single most important v5.0 constraint:**
+Every new schema must carry `cell_id` as a mandatory field (AD-013).
+This is the federation-readiness gate. Do not create schemas without it.
+
+Phase 5 is complete (5.1–5.6). Next work is Phase 6 — Bootstrap State.
+The implementation work (Phases 6–12) is unchanged from v4.0 in scope, but all schemas
+must be federation-ready from the start.
 
 ---
 
 ## Project Instructions (from .ai/)
 
-The AI context files are the authoritative project memory:
-
-- `.ai/context.md` — what the project is, current phase, key design decisions
-- `.ai/decisions.md` — AD-001 through AD-012, all architecture decisions with rationale
-
-Read both before starting work.
+- `.ai/context.md` — what the project is, key design decisions
+- `.ai/decisions.md` — AD-001 through AD-021, all architecture decisions with rationale
+- `.ai/CURRENT_STATE.md` — current milestone status
 
 ---
 
-## Key File Locations
+## Key Architecture Documents
 
-### Project root
 ```
-Y:\My Drive\home\software_development\proxmox-assessment-engine\proxmox-assessment-engine\
-```
-
-### Documentation
-```
-ARCHITECTURE.md               v4.0 — seven-state model, six-layer lifecycle
-ROADMAP.md                    v4.0 — all phases and milestones
-CURRENT_STATE.md              Current milestone status and gap table
-docs/ARCHITECTURE-REVIEW-v4.md  Full review rationale (read this)
-docs/MILESTONE-5-DESIGN.md    Original Phase 5 design doc (still accurate for 5.6)
-```
-
-### Schemas (all validated, all passing)
-```
-data-model/observed-state-schema.json   Tier 1/2 manifest (includes backup_inventory)
-data-model/historical-state-schema.json Snapshot index + drift records
-data-model/recovery-state-schema.json   Dependency graph + readiness report
-data-model/declared-state-schema.json   OpenTofu state
-data-model/configured-state-schema.json Ansible inventory
-data-model/validate.py                  Schema validator (stdlib only)
-```
-
-### Assessment package
-```
-assessment/tier1/bootstrap.sh           Entry point
-assessment/tier1/analyze.py             Manifest builder → manifest.json
-assessment/tier1/collectors/            6 modular collectors
-```
-
-### Documentation generator
-```
-doc-gen/engine.py                       CLI: --mode bootstrap | recovery
-doc-gen/analyzers.py                    10 DERIVED field analyzers
-doc-gen/dependencies.py                 Dependency graph + topological sort
-doc-gen/readiness.py                    GREEN/YELLOW/ORANGE/RED/BLOCKED scorer
-doc-gen/readiness_report.py             Standalone Readiness-Report.md + .json
-doc-gen/field-maps/bootstrap-fields.yaml
-doc-gen/renderers/workbook.py           Bootstrap ODS (stdlib zipfile+XML)
-doc-gen/renderers/runbook.py            Bootstrap ODT
-doc-gen/renderers/recovery_workbook.py  Recovery ODS
-doc-gen/renderers/recovery_runbook.py   Recovery ODT
-```
-
-### Tests (90 total, all passing)
-```
-tests/unit/test_schema_validation.py    32 tests — schema validator
-tests/unit/test_analyze.py             32 tests — manifest builder
-tests/unit/test_readiness.py           26 tests — readiness scorer
-```
-
-### Fixtures
-```
-tests/fixtures/tier1/manifest.json      Fresh Proxmox host (no VMs)
-tests/fixtures/tier2/manifest.json      Deployed env (4 VMs + backup inventory)
-tests/fixtures/tier2/recovery-state.json  Dependency graph + readiness report
-tests/fixtures/history-index.json       Snapshot index (2 entries)
-```
-
-### History store (currently empty — 5.6 will populate it)
-```
-history/                                Created but empty
-```
-
-### Generated reports (for reference)
-```
-reports/bootstrap_tier1/Bootstrap-Workbook.ods
-reports/bootstrap_tier1/Bootstrap-Runbook.odt
-reports/recovery_tier2/Recovery-Workbook.ods
-reports/recovery_tier2/Recovery-Runbook.odt
-reports/recovery_tier2/Restore-Sequence.md
-reports/recovery_tier2/Readiness-Report.md
-reports/recovery_tier2/Readiness-Report.json
+ARCHITECTURE.md                  v5.0 — 17-state model, federation, digital twin
+ROADMAP.md                       v5.0 — three tracks, 25 phases
+docs/ARCHITECTURE-REVIEW-v5.md  Full v5.0 review rationale (read before structural decisions)
+docs/ARCHITECTURE-REVIEW-v4.md  Retained for reference
 ```
 
 ---
 
-## Milestone 5.6 — Historical State Integration
+## Key Implementation File Locations
+
+### Schemas (data-model/)
+```
+observed-state-schema.json       Tier 1/2 manifest (exists, needs cell_id)
+historical-state-schema.json     Snapshot index + drift records (exists, needs cell_id)
+recovery-state-schema.json       Dependency graph + readiness (exists, needs cell_id)
+declared-state-schema.json       OpenTofu state (exists, needs cell_id)
+configured-state-schema.json     Ansible inventory (exists, needs cell_id)
+validate.py                      Schema validator (stdlib only)
+
+--- TO BE CREATED (Phase 6+) ---
+bootstrap-state-schema.json      Cloud-Init, images, templates, provenance, secrets, DNS
+service-state-schema.json        Service contracts, DNS, backup assignments
+hardware-state-schema.json       BIOS, firmware, disks, NICs (Phase 13)
+platform-state-schema.json       Proxmox config, certs, packages (Phase 13)
+cluster-state-schema.json        Cluster topology, membership (Phase 14)
+storage-state-schema.json        ZFS, Ceph, datastores (Phase 14)
+external-dependency-state-schema.json  DNS providers, SMTP, certs (Phase 15)
+data-protection-state-schema.json      PBS, backup jobs, RTO/RPO (Phase 15)
+observability-state-schema.json        Monitoring, alerts, dashboards (Phase 16)
+secret-reference-state-schema.json     Standalone secret registry (Phase 18)
+capability-state-schema.json           Cell capabilities (Phase 18)
+federation-state-schema.json           Trust, relationships, cell registry (Phase 19)
+```
+
+### Assessment
+```
+assessment/tier1/bootstrap.sh    Entry point
+assessment/tier1/analyze.py      Manifest builder → manifest.json
+assessment/tier1/collectors/     6 modular collectors
+```
+
+### Documentation Generator
+```
+doc-gen/engine.py                CLI: --mode bootstrap | recovery (+ drift)
+doc-gen/analyzers.py             10 DERIVED field analyzers
+doc-gen/dependencies.py          Dependency graph + topological sort
+doc-gen/drift.py                 Field-level manifest diff
+doc-gen/readiness.py             GREEN/YELLOW/ORANGE/RED/BLOCKED scorer
+doc-gen/readiness_report.py      Standalone Readiness-Report.md + .json
+doc-gen/renderers/               ODS and ODT generators (stdlib only)
+```
+
+### Tests (110 total, all passing)
+```
+tests/unit/test_schema_validation.py   32 tests
+tests/unit/test_analyze.py             32 tests
+tests/unit/test_readiness.py           26 tests
+tests/unit/test_drift.py               17 tests
+tests/unit/test_reproducibility.py     3 tests
+```
+
+### History Store
+```
+history/index.py                 Snapshot index builder CLI
+history/index.json               Snapshot index (2 entries)
+history/snapshots/               Historical manifest snapshots
+```
+
+---
+
+## Milestone 6.1 — Bootstrap State Schema
 
 ### Objective
 
-Make documentation reproducible from any past assessment snapshot.
-Enable drift detection between assessments.
-Wire historical state into doc-gen so generated documents show "as of last assessment" fields.
+Create the bootstrap-state-schema.json and service-state-schema.json.
+Create the proxmox-bootstrap/ repository structure.
+
+### Critical constraint: cell_id mandatory
+
+Every schema created in Phase 6+ must include:
+```json
+{
+  "cell_id": { "type": "string", "description": "Identity of the owning Infrastructure Cell" }
+}
+```
 
 ### Deliverables
 
-1. `history/index.json` — snapshot index builder
-2. `doc-gen/drift.py` — field-level manifest diff and documentation drift detector
-3. `history/snapshots/` — populated with the two existing fixture manifests
-4. `doc-gen/engine.py` — updated to load historical state and populate drift fields
-5. `tests/unit/test_drift.py` — drift detection tests
-6. Reproducibility verification test (regenerate docs from historical snapshot, compare)
-7. `CURRENT_STATE.md` updated
+1. `data-model/bootstrap-state-schema.json` containing:
+   - `cell_id` (mandatory)
+   - Cloud-Init snippet manifests (per VM: user-data, network-config, vendor-data paths + hashes)
+   - Base image registry (ISO name, checksum, source URL, created_at)
+   - VM template registry (template name, base image, packages, created_at)
+   - Deployment provenance records (per VM: tofu commit, ansible commit, cloud-init hashes)
+   - Secret Registry (id, description, keepass_path, owning_cell, required_by, required_for)
+   - DNS Registry (hostname, ip, vmid, role)
+   - Service Contract format (service, vm, provided_interfaces, required_interfaces, startup_after)
+   - Hardware bootstrap requirements (BIOS flags required: VT-x, IOMMU, etc.)
+   - First-boot ordering constraints
 
-### Step 1 — Snapshot index builder
+2. `data-model/service-state-schema.json` containing:
+   - `cell_id` (mandatory)
+   - Running service inventory
+   - Service contracts
+   - DNS registrations
+   - Backup job assignments
+   - Secret references per service
 
-Create `history/snapshots/` directory.
-Copy the two fixture manifests into it as named snapshots.
-Build `history/index.json` from the schema already defined in
-`data-model/historical-state-schema.json`.
+3. `proxmox-bootstrap/` repository structure (directory layout + README)
 
-The index schema (already defined):
-```json
-{
-  "snapshots": [
-    {
-      "id": "bootstrap_2026-05-01_10_00_00",
-      "tier": 1,
-      "collected_at": "2026-05-01T10:00:00Z",
-      "archive_path": "history/snapshots/bootstrap_2026-05-01_10_00_00.tar.gz",
-      "manifest_path": "history/snapshots/bootstrap_2026-05-01_10_00_00/manifest.json",
-      "template_version": "bootstrap-v1.0",
-      "doc_generation_ids": [],
-      "notes": ""
-    }
-  ],
-  "latest_tier1_id": "...",
-  "latest_tier2_id": "..."
-}
-```
+4. Schema validation tests for both schemas
 
-Build `history/index.py` — a small CLI tool that:
-- Scans `history/snapshots/` for manifest.json files
-- Builds and writes `history/index.json`
-- Run: `python3 history/index.py`
-
-### Step 2 — Drift detector
-
-Create `doc-gen/drift.py`. It should:
-
-- Accept two manifest dicts (from_manifest, to_manifest)
-- Walk all paths in the manifest using dot-notation
-- For each path that exists in both: compare values, record changes
-- For each path in from but not to: record removal
-- For each path in to but not from: record addition
-- Assign severity: IP/hostname changes = HIGH, version changes = MEDIUM, counts = LOW
-- Return a drift record matching `historical-state-schema.json` drift record format:
-
-```python
-{
-  "from_snapshot": "bootstrap_2026-05-01_10_00_00",
-  "to_snapshot":   "assessment_2026-05-29_02_05_00",
-  "generated_at":  "...",
-  "diffs": [
-    {
-      "path": "memory.available_gb",
-      "from_value": 61.2,
-      "to_value": 18.3,
-      "severity": "LOW",
-      "documentation_impact": "Available RAM changed — capacity fields are stale"
-    }
-  ],
-  "drift_severity": "LOW",
-  "doc_fields_stale": []
-}
-```
-
-Also add `doc_field_drift()` — given a drift record and a field map,
-identify which generated document fields are now stale.
-
-### Step 3 — Wire into doc-gen
-
-Update `doc-gen/engine.py` recovery mode to:
-- Load the latest historical snapshot from `history/index.json`
-- Run drift detector between historical snapshot and current manifest
-- Add a "Drift Since Last Assessment" section to the generation report
-- Pass drift data to workbook renderer for a new "Drift" sheet
-
-Update `doc-gen/engine.py` bootstrap mode to:
-- Check if a prior bootstrap snapshot exists in history
-- If so, note which fields have changed since last bootstrap
-
-### Step 4 — Reproducibility test
-
-Write `tests/unit/test_reproducibility.py`:
-- Load the tier1 fixture manifest
-- Run the full bootstrap doc-gen pipeline
-- Store the output checksums
-- Run again with the same manifest
-- Assert that ODS and ODT outputs are byte-identical (deterministic generation)
-
-This validates the reproducibility requirement from the design doc.
-
-### Step 5 — Tests
-
-Write `tests/unit/test_drift.py` covering:
-- No changes between identical manifests → empty diffs
-- IP address change → HIGH severity
-- Version change → MEDIUM severity
-- New VM added → detected as addition
-- VM removed → detected as removal
-- Nested path changes (e.g. storage.zfs_pools[0].free_gb)
-- Severity escalation (drift_severity = worst of all diffs)
-- doc_field_drift identifies stale fields correctly
-
----
-
-## After 5.6 — Phase 6 (Bootstrap State)
-
-The highest-value next work after 5.6 is **Milestone 6.3 — Secret Registry** and
-**Milestone 6.4 — DNS Registry**, because these two items directly eliminate the
-`[KEEPASS_PATH]` and `[VM_IP]` placeholders that remain in the current recovery
-documentation.
-
-After those two, do **Milestone 6.2 — Cloud-Init Template Library** to build the
-actual snippet files that will pre-populate the Bootstrap Documentation Stage 02–N.
-
-Full Phase 6 ordering is in `ROADMAP.md`.
+5. `CURRENT_STATE.md` updated
 
 ---
 
 ## Test Commands
 
 Run all tests to confirm clean starting state:
-```bash
-cd <project-root>
-python3 tests/unit/test_schema_validation.py   # 32 tests
-python3 tests/unit/test_analyze.py             # 32 tests
-python3 tests/unit/test_readiness.py           # 26 tests
+```
+py -3 tests/unit/test_schema_validation.py
+py -3 tests/unit/test_analyze.py
+py -3 tests/unit/test_readiness.py
+py -3 tests/unit/test_drift.py
+py -3 tests/unit/test_reproducibility.py
 ```
 
 Run doc-gen to confirm it works:
-```bash
-python3 doc-gen/engine.py --mode bootstrap --manifest tests/fixtures/tier1/manifest.json
-python3 doc-gen/engine.py --mode recovery  --manifest tests/fixtures/tier2/manifest.json
+```
+py -3 doc-gen/engine.py --mode bootstrap --manifest tests/fixtures/tier1/manifest.json
+py -3 doc-gen/engine.py --mode recovery  --manifest tests/fixtures/tier2/manifest.json
 ```
 
-Validate all fixtures against schemas:
-```bash
-python3 data-model/validate.py --all tests/fixtures/
-```
-
-All three should complete without errors before beginning 5.6 work.
+All should complete without errors before beginning 6.1 work.
 
 ---
 
 ## Design Constraints to Preserve
 
-- `analyze.py` and `validate.py` use **Python 3 stdlib only** (no pip installs)
-- ODS and ODT renderers use **zipfile + XML only** (no odfpy)
-- All doc-gen runs **without network access** (all data from manifest)
-- UNRESOLVED fields are **never silently omitted** — always include reason + impact
-- Historical snapshots must be **reproducible** — same manifest → same docs
+- `analyze.py` and `validate.py`: Python 3 stdlib only (no pip)
+- ODS/ODT renderers: zipfile + XML only (no odfpy)
+- doc-gen: runs without network access (all data from manifest)
+- UNRESOLVED fields: never silently omitted
+- Historical snapshots: reproducible (same manifest → same docs)
+- **NEW: `cell_id` mandatory in all schemas (v5.0 AD-013)**
+- **NEW: Secret Registry entries must include `owning_cell` field (v5.0 AD-016)**
