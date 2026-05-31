@@ -474,6 +474,56 @@ def _score_registry_completeness(manifest: dict) -> list:
     return gaps
 
 
+def _score_provenance_completeness(graph, manifest: dict) -> list:
+    """
+    Check deployment provenance completeness for every VM node in the graph.
+
+    Each VM without a provenance record gets a YELLOW gap. Non-VM nodes
+    (host, storage, network) are not checked — they are not provisioned
+    by OpenTofu + Ansible and have no meaningful provenance record.
+    """
+    prov_reg = manifest.get("provenance_registry") or []
+    by_vmid = {}
+    for r in prov_reg:
+        vmid = r.get("vmid")
+        if vmid is not None:
+            try:
+                by_vmid[int(vmid)] = r
+            except (TypeError, ValueError):
+                pass
+
+    gaps: list[Gap] = []
+    for node in graph.nodes:
+        if node.type != "vm":
+            continue
+        vmid = node.metadata.get("vmid")
+        if vmid is None:
+            continue
+        try:
+            if int(vmid) not in by_vmid:
+                gaps.append(Gap(
+                    component_id=node.id,
+                    gap_type="MISSING_PROVENANCE",
+                    severity="YELLOW",
+                    description=(
+                        f"No provenance record for {node.label} (vmid={vmid}) — "
+                        f"deployed state cannot be verified against repository"
+                    ),
+                    remediation=(
+                        "Record tofu workspace, ansible commit, and cloud-init hashes "
+                        "in bootstrap-state.json provenance_records after deployment"
+                    ),
+                    readiness_impact=(
+                        "Cannot confirm reconstruction will reproduce the original deployment; "
+                        "drift between repository and running state is undetectable"
+                    ),
+                ))
+        except (TypeError, ValueError):
+            pass
+
+    return gaps
+
+
 # ---------------------------------------------------------------------------
 # Graph-level scorer
 # ---------------------------------------------------------------------------
@@ -538,10 +588,11 @@ def score_graph(graph, manifest: dict) -> ReadinessReport:
         if cr.score == "RED" and dependent_counts.get(nid, 0) > 0
     ]
 
-    # Registry completeness
+    # Registry and provenance completeness
     registry_gaps = _score_registry_completeness(manifest)
+    registry_gaps += _score_provenance_completeness(graph, manifest)
 
-    # Overall score — worst of component scores and registry gaps
+    # Overall score — worst of component scores and infrastructure gaps
     overall = "GREEN"
     for cr in component_scores.values():
         overall = worst(overall, cr.score)

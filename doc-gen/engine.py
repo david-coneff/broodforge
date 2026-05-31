@@ -463,6 +463,13 @@ def run_recovery(args):
     else:
         print("[doc-gen] DNS registry: not found in bootstrap-state (runbook will use [VM_IP] placeholders)")
 
+    _prov = bootstrap_state.get("provenance_records") or []
+    if _prov:
+        manifest["provenance_registry"] = _prov
+        print(f"[doc-gen] Provenance registry: {len(_prov)} record(s)")
+    else:
+        print("[doc-gen] Provenance registry: not found in bootstrap-state (per-VM provenance unavailable)")
+
     print("[doc-gen] Building dependency graph...")
     sys.path.insert(0, str(REPO_ROOT / "doc-gen"))
     import dependencies as dep_mod

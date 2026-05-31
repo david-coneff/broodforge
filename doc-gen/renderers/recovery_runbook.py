@@ -395,6 +395,42 @@ def build_recovery_runbook(
                 else:
                     rb.field("Backup", "Unknown — Tier 2 assessment required", "UNRESOLVED", "")
 
+            # Deployment provenance (VM nodes only)
+            if node.type == "vm":
+                prov_reg = manifest.get("provenance_registry") or []
+                node_vmid = node.metadata.get("vmid")
+                prov = None
+                if node_vmid is not None:
+                    for r in prov_reg:
+                        try:
+                            if int(r.get("vmid", -1)) == int(node_vmid):
+                                prov = r
+                                break
+                        except (TypeError, ValueError):
+                            pass
+
+                if prov:
+                    tofu_commit   = (prov.get("tofu_commit") or "unknown")
+                    ans_commit    = (prov.get("ansible_commit") or "unknown")
+                    ci_hash       = (prov.get("cloudinit_user_data_hash") or "unknown")
+                    tofu_short    = tofu_commit[:12] + "..." if len(tofu_commit) > 12 else tofu_commit
+                    ans_short     = ans_commit[:12] + "..."  if len(ans_commit) > 12  else ans_commit
+                    ci_short      = ci_hash[:20] + "..."     if len(ci_hash) > 20     else ci_hash
+                    rb.field("Provenance: deployed at",      prov.get("deployed_at", "unknown"), "AUTO", "")
+                    rb.field("Provenance: OpenTofu workspace", prov.get("tofu_workspace", "unknown"), "AUTO", "")
+                    rb.field("Provenance: OpenTofu commit",  tofu_short, "AUTO", "")
+                    rb.field("Provenance: Ansible commit",   ans_short,  "AUTO", "")
+                    rb.field("Provenance: template",         prov.get("template_name", "unknown"), "AUTO", "")
+                    rb.field("Provenance: Cloud-Init hash",  ci_short, "AUTO",
+                             "Compare against current snippets/user-data/ to verify parity")
+                    rb.note(
+                        "Verify reconstruction matches this provenance record before closing the incident."
+                    )
+                else:
+                    rb.field("Deployment provenance", "NOT RECORDED", "UNRESOLVED",
+                             f"No provenance record found for {node.label} — "
+                             f"cannot verify reconstruction matches original deployment")
+
             rb.field("Restore notes", "[HUMAN] Record any component-specific recovery notes", "HUMAN",
                      f"Notes for: {node.label}")
             rb.spacer()
@@ -559,6 +595,49 @@ def build_recovery_runbook(
             "Secret registry not available. "
             "Run setup-secrets.py or populate secret-registry.yaml and "
             "include it in bootstrap-state.json."
+        )
+
+    # ------------------------------------------------------------------
+    # Appendix E — Deployment Provenance
+    # ------------------------------------------------------------------
+    rb.h1("Appendix E — Deployment Provenance")
+    prov_reg_all = manifest.get("provenance_registry") or []
+    if prov_reg_all:
+        rb.body(
+            f"Provenance records capture the exact OpenTofu workspace, Ansible commit, "
+            f"and Cloud-Init hashes used to deploy each VM. "
+            f"Use these to verify that reconstruction reproduces the original deployment."
+        )
+        rb.spacer()
+        for r in prov_reg_all:
+            vmid      = r.get("vmid", "?")
+            name      = r.get("name", "unknown")
+            dep_at    = r.get("deployed_at", "unknown")
+            tofu_ws   = r.get("tofu_workspace", "unknown")
+            tofu_c    = r.get("tofu_commit") or "unknown"
+            ans_c     = r.get("ansible_commit") or "unknown"
+            tmpl      = r.get("template_name", "unknown")
+            ci_ud     = r.get("cloudinit_user_data_hash") or "unknown"
+            ci_nc     = r.get("cloudinit_network_config_hash") or "unknown"
+            dep_by    = r.get("deployed_by", "unknown")
+
+            rb.h2(f"{name}  (vmid={vmid})")
+            rb.field("Deployed at",          dep_at,                "AUTO", "")
+            rb.field("Deployed by",          dep_by,                "AUTO", "")
+            rb.field("OpenTofu workspace",   tofu_ws,               "AUTO", "")
+            rb.field("OpenTofu commit",      tofu_c[:40],           "AUTO", "")
+            rb.field("Ansible commit",       ans_c[:40],            "AUTO", "")
+            rb.field("Template",             tmpl,                  "AUTO", "")
+            rb.field("Cloud-Init user-data hash",    ci_ud[:64],    "AUTO", "")
+            rb.field("Cloud-Init network-config hash", ci_nc[:64],  "AUTO", "")
+            notes = r.get("notes")
+            if notes:
+                rb.body(f"Notes: {notes}")
+    else:
+        rb.body(
+            "Provenance registry not available. "
+            "Record deployment details in bootstrap-state.json provenance_records "
+            "after each VM is provisioned."
         )
 
     return rb.build_odt()

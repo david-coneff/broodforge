@@ -661,8 +661,8 @@ class TestRunbookSecretRetrieval(unittest.TestCase):
 # ===========================================================================
 
 class TestFixtureIntegration(unittest.TestCase):
-    def test_tier2_fixture_with_registries_injected(self):
-        """score_graph on tier2 fixture with registries injected has no registry gaps."""
+    def test_tier2_fixture_with_all_registries_injected(self):
+        """score_graph has no registry gaps when secret, DNS, and provenance are all present."""
         fixture_t2 = json.loads(
             (REPO_ROOT / "tests/fixtures/tier2/manifest.json").read_text()
         )
@@ -670,14 +670,29 @@ class TestFixtureIntegration(unittest.TestCase):
 
         manifest = deepcopy(fixture_t2)
         manifest["secret_registry"] = fixture_bs["secrets"]
-        manifest["dns_registry"] = fixture_bs["dns_registry"]
+        manifest["dns_registry"]    = fixture_bs["dns_registry"]
+        # Inject provenance for every VM in the tier2 fixture so no MISSING_PROVENANCE gaps fire
+        vms = manifest.get("vms", [])
+        manifest["provenance_registry"] = [
+            {
+                "vmid": vm.get("vmid"), "name": vm.get("name", ""),
+                "deployed_at": "2026-01-01T00:00:00Z",
+                "tofu_workspace": "proxmox-vms", "tofu_commit": "abc123",
+                "template_name": "ubuntu-2204-base", "template_checksum": "sha256:abc",
+                "cloudinit_user_data_hash": "sha256:aaa",
+                "cloudinit_network_config_hash": "sha256:bbb",
+                "ansible_playbook": "site.yml", "ansible_commit": "def456",
+                "ansible_inventory_commit": "ghi789", "deployed_by": "test", "notes": None,
+            }
+            for vm in vms if vm.get("vmid") is not None
+        ]
 
         graph = dep_mod.build_graph(manifest)
         report = score_graph(graph, manifest)
 
         registry_gaps = report.registry_gaps
         self.assertEqual(registry_gaps, [],
-                         msg=f"Expected no registry gaps, got: {registry_gaps}")
+                         msg=f"Expected no registry gaps with all registries present, got: {registry_gaps}")
 
     def test_build_registries_from_manifest_keys(self):
         """build_registries() uses manifest keys when present, no file I/O needed."""

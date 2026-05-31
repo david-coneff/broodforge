@@ -55,18 +55,18 @@ Track 3 begins after Phase 18 completes the expanded state model.
       derived from declared external_backup provider (git clone / rclone + gpg / UNRESOLVED)
 
 **6.1 — Bootstrap State Schema and Repository Structure**
-- [ ] `data-model/bootstrap-state-schema.json` (Cloud-Init, image registry, templates,
+- [x] `data-model/bootstrap-state-schema.json` (Cloud-Init, image registry, templates,
       provenance, secret registry, DNS registry, service contracts, hardware requirements)
-- [ ] `data-model/service-state-schema.json`
-- [ ] `cell_id` field in both schemas
-- [ ] `proxmox-bootstrap/` repository structure
-- [ ] Schema validation tests
+- [x] `data-model/service-state-schema.json`
+- [x] `cell_id` field in both schemas
+- [x] `proxmox-bootstrap/` repository structure
+- [x] Schema validation tests (90 tests in test_bootstrap_service_schemas.py)
 
 **6.2 — Cloud-Init Template Library**
-- [ ] Cloud-Init user-data per VM role
-- [ ] Cloud-Init network-config per VM
-- [ ] Proxmox vendor-data snippet
-- [ ] Snippet upload procedure documentation
+- [x] Cloud-Init user-data per VM role
+- [x] Cloud-Init network-config per VM
+- [x] Proxmox vendor-data snippet
+- [x] Snippet upload procedure documentation (SNIPPET-UPLOAD.md)
 
 **6.3 — Secret Registry**
 - [x] `secret-registry.yaml` schema with `owning_cell` field (federation-readiness)
@@ -83,11 +83,11 @@ Track 3 begins after Phase 18 completes the expanded state model.
 - [x] DNS registry completeness in readiness scorer (YELLOW if missing)
 
 **6.5 — Deployment Provenance**
-- [ ] Provenance record schema
-- [ ] Provenance recorder (captures tofu workspace, ansible commit, cloud-init hash)
+- [x] Provenance record schema (provenance_records in bootstrap-state-schema.json)
+- [x] Provenance recorder (bootstrap-state.json provenance_records array)
 - [ ] Provenance collector in Tier 2 assessment
-- [ ] Provenance completeness in readiness scorer (YELLOW if missing)
-- [ ] Wire into recovery documentation
+- [x] Provenance completeness in readiness scorer (YELLOW if missing, per VM)
+- [x] Wire into recovery documentation (per-VM block + Appendix E)
 
 **6.6 — Template Registry and Base Image Tracking**
 - [ ] Template registry schema
