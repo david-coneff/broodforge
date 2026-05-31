@@ -1,6 +1,6 @@
-{
+﻿{
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/proxmox-assessment-engine/schemas/guest.schema.json",
+  "$id": "https://github.com/broodforge/schemas/guest.schema.json",
   "title": "Guest",
   "description": "Normalized facts for a single assessed guest (VM, container, or bare-metal host)",
   "type": "object",

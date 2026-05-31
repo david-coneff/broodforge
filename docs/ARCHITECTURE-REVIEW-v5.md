@@ -1,4 +1,4 @@
-# Architecture Review — v5.0
+﻿# Architecture Review — v5.0
 ## Federated Infrastructure Digital Twin Platform
 
 Date: 2026-05-31
@@ -1205,7 +1205,7 @@ of implicit single-cell scope. Every schema is updated to require it.
     "infrastructure": "https://forgejo.internal/infra/proxmox-infrastructure",
     "bootstrap": "https://forgejo.internal/infra/proxmox-bootstrap",
     "configuration": "https://forgejo.internal/infra/proxmox-ansible",
-    "assessment_engine": "https://forgejo.internal/infra/proxmox-assessment-engine",
+    "assessment_engine": "https://forgejo.internal/infra/broodforge",
     "reconstruction": "https://forgejo.internal/infra/proxmox-reconstruction"
   },
   "assessment_history_cell_id": "assessment-cell",

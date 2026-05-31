@@ -1,4 +1,4 @@
-# Milestone 5 Design Document
+﻿# Milestone 5 Design Document
 ## Assessment Engine → Documentation Generator
 
 Version: 1.0
@@ -857,7 +857,7 @@ Total fields: 87
 The repository restructuring required for Phase 5:
 
 ```
-proxmox-assessment-engine/
+broodforge/
   # Existing (revised)
   assessment/
     tier1/             ← replaces audit.sh + analyze.py at root level

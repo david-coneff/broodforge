@@ -1,6 +1,6 @@
-{
+﻿{
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/proxmox-assessment-engine/schemas/declared_resource.schema.json",
+  "$id": "https://github.com/broodforge/schemas/declared_resource.schema.json",
   "title": "DeclaredResource",
   "description": "A single infrastructure resource as declared in an OpenTofu / Terraform state file",
   "type": "object",

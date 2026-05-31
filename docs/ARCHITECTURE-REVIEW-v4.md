@@ -1,4 +1,4 @@
-# Architecture Review — v4.0
+﻿# Architecture Review — v4.0
 ## Infrastructure Lifecycle, Cloud-Init, and Reproducible Reconstruction
 
 Date: 2026-05-30
@@ -662,7 +662,7 @@ The following metadata categories must be captured to support the full objective
 ```
 # Repositories managed in Forgejo
 
-proxmox-assessment-engine/     (this repository)
+broodforge/     (this repository)
   assessment/                  Tier 1 + Tier 2 collectors
   doc-gen/                     Documentation generation engine
   data-model/                  Schemas

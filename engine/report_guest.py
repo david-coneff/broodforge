@@ -1,4 +1,4 @@
-"""
+﻿"""
 Guest assessment report generator.
 
 Produces a Markdown report answering:
@@ -265,7 +265,7 @@ def _state_sources(state_sources: dict) -> str:
         "|-------|------|-----------|",
         f"| Declared (OpenTofu) | {declared.get('tool') or 'not configured'} | {_yn(declared.get('collected', False))} |",
         f"| Configured (Ansible) | {configured.get('tool') or 'not configured'} | {_yn(configured.get('collected', False))} |",
-        f"| Observed (this engine) | {observed.get('tool') or 'proxmox-assessment-engine'} | {_yn(observed.get('collected', True))} |",
+        f"| Observed (this engine) | {observed.get('tool') or 'broodforge'} | {_yn(observed.get('collected', True))} |",
     ]
 
     inv_path = configured.get("inventory_path")

@@ -1,4 +1,4 @@
-"""
+﻿"""
 Declared vs Configured vs Observed comparison report generator.
 
 Produces a Markdown report answering:
@@ -63,7 +63,7 @@ def _state_layers(assessment: dict) -> str:
         f"| Configured | {configured.get('tool') or '—'} "
         f"| {'yes' if configured.get('collected') else 'no'} "
         f"| {configured.get('inventory_path') or '—'} |",
-        f"| Observed | {observed.get('tool') or 'proxmox-assessment-engine'} "
+        f"| Observed | {observed.get('tool') or 'broodforge'} "
         f"| {'yes' if observed.get('collected', True) else 'no'} | — |",
     ]
     return "\n".join(lines)

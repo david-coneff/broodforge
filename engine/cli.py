@@ -1,4 +1,4 @@
-"""
+﻿"""
 Proxmox Assessment Engine – CLI entry point.
 
 Usage:
@@ -290,7 +290,7 @@ def cmd_guest_collect(args: argparse.Namespace) -> int:
             "collected": bool(guests),
         },
         "observed": {
-            "tool": "proxmox-assessment-engine",
+            "tool": "broodforge",
             "collected": True,
         },
         "declared": {

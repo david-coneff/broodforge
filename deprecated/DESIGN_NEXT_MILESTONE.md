@@ -1,4 +1,4 @@
-# Assessment Engine – Next Milestone Design
+﻿# Assessment Engine – Next Milestone Design
 ## Documentation Generation and Recovery Readiness System
 
 **Status:** Design document – pre-implementation  
@@ -678,7 +678,7 @@ unresolved_item:
 ### 10.1 Public repository (this repo)
 
 ```
-proxmox-assessment-engine/
+broodforge/
   bootstrap/                    NEW – Tier 1 bootstrap package
     bootstrap_assess.sh
     bootstrap_analyze.py
@@ -1098,7 +1098,7 @@ curl -s https://forgejo.homelab.local/api/v1/repos/search \
 - [ ] Forgejo web UI accessible at https://forgejo.homelab.local
 - [ ] Admin login successful (credentials in KeePassXC / Git group)
 - [ ] All repositories present: homelab-infrastructure, homelab-inventory,
-      homelab-configuration, assessment-history, proxmox-assessment-engine
+      homelab-configuration, assessment-history, broodforge
 - [ ] SSH push/pull functional
 
 ### Fallback

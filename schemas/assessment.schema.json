@@ -1,6 +1,6 @@
-{
+﻿{
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/proxmox-assessment-engine/schemas/assessment.schema.json",
+  "$id": "https://github.com/broodforge/schemas/assessment.schema.json",
   "title": "Assessment",
   "description": "Normalized infrastructure assessment snapshot",
   "type": "object",
@@ -330,7 +330,7 @@
           "type": "object",
           "description": "Observed state source (this engine).",
           "properties": {
-            "tool": {"type": ["string", "null"], "description": "e.g. proxmox-assessment-engine"},
+            "tool": {"type": ["string", "null"], "description": "e.g. broodforge"},
             "collected": {"type": "boolean"}
           }
         }

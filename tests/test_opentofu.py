@@ -1,4 +1,4 @@
-"""
+﻿"""
 Tests for Phase 6: OpenTofu state parsing, comparison engine,
 comparison report, schema validation, and CLI commands.
 """
@@ -389,7 +389,7 @@ def _assessment_with_all_layers():
     a["state_sources"] = {
         "declared":   {"tool": "terraform", "state_path": "/infra/terraform.tfstate", "collected": True},
         "configured": {"tool": "ansible",   "inventory_path": "/inv/hosts.yml",       "collected": True},
-        "observed":   {"tool": "proxmox-assessment-engine", "collected": True},
+        "observed":   {"tool": "broodforge", "collected": True},
     }
     return a
 

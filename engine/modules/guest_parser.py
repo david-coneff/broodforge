@@ -1,4 +1,4 @@
-"""
+﻿"""
 Guest parser – maps GuestCollector raw output into the normalized assessment schema.
 
 Raw shape (from collector/guests.py):
@@ -38,7 +38,7 @@ def parse_guests(raw: dict) -> dict:
             "collected": bool(guests),
         },
         "observed": {
-            "tool": "proxmox-assessment-engine",
+            "tool": "broodforge",
             "collected": True,
         },
         "declared": {

@@ -1,4 +1,4 @@
-"""Schema validation utilities."""
+﻿"""Schema validation utilities."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ _schema: dict | None = None
 _resolver: jsonschema.RefResolver | None = None
 
 
-_BASE_ID = "https://github.com/proxmox-assessment-engine/schemas/"
+_BASE_ID = "https://github.com/broodforge/schemas/"
 
 
 def _load_schema() -> tuple[dict, jsonschema.RefResolver]:

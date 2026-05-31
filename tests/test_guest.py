@@ -1,4 +1,4 @@
-"""
+﻿"""
 Tests for guest inventory collection, normalization, parsing, reporting,
 schema validation, and history database integration.
 
@@ -400,7 +400,7 @@ class TestSchemaValidation:
         a["state_sources"] = {
             "declared": {"tool": None, "state_path": None, "collected": False},
             "configured": {"tool": "ansible", "inventory_path": "/inv", "collected": True},
-            "observed": {"tool": "proxmox-assessment-engine", "collected": True},
+            "observed": {"tool": "broodforge", "collected": True},
         }
         errors = validate_assessment(a)
         assert errors == []
@@ -446,7 +446,7 @@ class TestGuestReport:
             "state_sources": {
                 "declared": {"tool": None, "state_path": None, "collected": False},
                 "configured": {"tool": "ansible", "inventory_path": "/etc/ansible/hosts", "collected": True},
-                "observed": {"tool": "proxmox-assessment-engine", "collected": True},
+                "observed": {"tool": "broodforge", "collected": True},
             },
         }
 
