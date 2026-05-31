@@ -69,18 +69,18 @@ Track 3 begins after Phase 18 completes the expanded state model.
 - [ ] Snippet upload procedure documentation
 
 **6.3 — Secret Registry**
-- [ ] `secret-registry.yaml` schema with `owning_cell` field (federation-readiness)
-- [ ] Initial registry entries for all known secrets
-- [ ] Secret registry reader in doc-gen
-- [ ] Wire into recovery documentation (pre-populate secret retrieval steps)
-- [ ] Secret registry completeness in readiness scorer (ORANGE if missing)
+- [x] `secret-registry.yaml` schema with `owning_cell` field (federation-readiness)
+- [x] Initial registry entries for all known secrets
+- [x] Secret registry reader in doc-gen (`doc-gen/registries.py` — `SecretRegistry`)
+- [x] Wire into recovery documentation (pre-populated "Secrets Required for Recovery" section + Appendix D)
+- [x] Secret registry completeness in readiness scorer (ORANGE if missing)
 
 **6.4 — DNS Registry**
-- [ ] `dns-registry.yaml` schema
-- [ ] Initial registry entries for all VMs
-- [ ] DNS registry reader in doc-gen
-- [ ] Wire into recovery runbook (replace `[VM_IP]` placeholders)
-- [ ] DNS registry completeness in readiness scorer (YELLOW if missing)
+- [x] `dns-registry.yaml` schema
+- [x] Initial registry entries for all VMs
+- [x] DNS registry reader in doc-gen (`doc-gen/registries.py` — `DnsRegistry`)
+- [x] Wire into recovery runbook (replace `[VM_IP]` placeholders with actual IPs + Appendix C)
+- [x] DNS registry completeness in readiness scorer (YELLOW if missing)
 
 **6.5 — Deployment Provenance**
 - [ ] Provenance record schema

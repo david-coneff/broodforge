@@ -105,6 +105,7 @@ class ReadinessReport:
     components: list = field(default_factory=list)
     single_points_of_failure: list = field(default_factory=list)
     recovery_blockers: list = field(default_factory=list)
+    registry_gaps: list = field(default_factory=list)
 
     def to_dict(self) -> dict:
         return {
@@ -113,6 +114,17 @@ class ReadinessReport:
             "components": [c.to_dict() for c in self.components],
             "single_points_of_failure": self.single_points_of_failure,
             "recovery_blockers": self.recovery_blockers,
+            "registry_gaps": [
+                {
+                    "component_id": g.component_id,
+                    "gap_type": g.gap_type,
+                    "severity": g.severity,
+                    "description": g.description,
+                    "remediation": g.remediation,
+                    "readiness_impact": g.readiness_impact,
+                }
+                for g in self.registry_gaps
+            ],
         }
 
 
@@ -407,6 +419,62 @@ def score_component(
 
 
 # ---------------------------------------------------------------------------
+# Registry completeness check
+# ---------------------------------------------------------------------------
+
+def _score_registry_completeness(manifest: dict) -> list:
+    """
+    Check registry completeness and return a list of Gap objects.
+
+    Secret registry missing → ORANGE (KeePass paths unavailable, recovery steps incomplete)
+    DNS registry missing    → YELLOW (VM IPs unavailable, [VM_IP] placeholders remain)
+    """
+    gaps: list[Gap] = []
+
+    secret_reg = manifest.get("secret_registry")
+    if not secret_reg:
+        gaps.append(Gap(
+            component_id="infrastructure:registries",
+            gap_type="MISSING_SECRET_REGISTRY",
+            severity="ORANGE",
+            description=(
+                "Secret registry not available — KeePass paths cannot be pre-populated "
+                "in recovery runbook"
+            ),
+            remediation=(
+                "Populate proxmox-bootstrap/secret-registry.yaml and ensure it is "
+                "included in bootstrap-state.json"
+            ),
+            readiness_impact=(
+                "Recovery commands will have [KEEPASS_PATH] placeholders; "
+                "operator must locate secrets manually under time pressure"
+            ),
+        ))
+
+    dns_reg = manifest.get("dns_registry")
+    if not dns_reg:
+        gaps.append(Gap(
+            component_id="infrastructure:registries",
+            gap_type="MISSING_DNS_REGISTRY",
+            severity="YELLOW",
+            description=(
+                "DNS registry not available — VM IP addresses cannot be pre-populated "
+                "in recovery runbook"
+            ),
+            remediation=(
+                "Populate proxmox-bootstrap/dns-registry.yaml and ensure it is "
+                "included in bootstrap-state.json"
+            ),
+            readiness_impact=(
+                "Recovery commands will have [VM_IP] placeholders; "
+                "operator must look up IPs manually"
+            ),
+        ))
+
+    return gaps
+
+
+# ---------------------------------------------------------------------------
 # Graph-level scorer
 # ---------------------------------------------------------------------------
 
@@ -470,10 +538,15 @@ def score_graph(graph, manifest: dict) -> ReadinessReport:
         if cr.score == "RED" and dependent_counts.get(nid, 0) > 0
     ]
 
-    # Overall score
+    # Registry completeness
+    registry_gaps = _score_registry_completeness(manifest)
+
+    # Overall score — worst of component scores and registry gaps
     overall = "GREEN"
     for cr in component_scores.values():
         overall = worst(overall, cr.score)
+    for gap in registry_gaps:
+        overall = worst(overall, gap.severity)
 
     # Overall reason
     from collections import Counter
@@ -483,9 +556,15 @@ def score_graph(graph, manifest: dict) -> ReadinessReport:
     elif sc.get("BLOCKED", 0):
         overall_reason = f"{sc['BLOCKED']} BLOCKED component(s) due to RED dependencies"
     elif sc.get("ORANGE", 0):
-        overall_reason = f"{sc['ORANGE']} component(s) with significant gaps"
-    elif sc.get("YELLOW", 0):
-        overall_reason = f"{sc['YELLOW']} component(s) with minor gaps"
+        reg_orange = [g for g in registry_gaps if g.severity == "ORANGE"]
+        if reg_orange and sc.get("ORANGE", 0) == len(reg_orange):
+            overall_reason = "Secret registry missing — KeePass paths unavailable"
+        else:
+            overall_reason = f"{sc['ORANGE']} component(s) with significant gaps"
+    elif sc.get("YELLOW", 0) or any(g.severity == "YELLOW" for g in registry_gaps):
+        overall_reason = f"{sc.get('YELLOW', 0)} component(s) with minor gaps"
+        if any(g.severity == "YELLOW" for g in registry_gaps):
+            overall_reason += "; DNS registry missing"
     else:
         overall_reason = "All components GREEN"
 
@@ -495,4 +574,5 @@ def score_graph(graph, manifest: dict) -> ReadinessReport:
         components=list(component_scores.values()),
         single_points_of_failure=spof,
         recovery_blockers=blockers,
+        registry_gaps=registry_gaps,
     )

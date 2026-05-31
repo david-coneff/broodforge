@@ -447,6 +447,22 @@ def run_recovery(args):
         print(f"[doc-gen] External backup provider: "
               f"{bootstrap_state['external_backup'].get('provider') or 'none'}")
 
+    # Load secret and DNS registries from bootstrap-state
+    # (secrets field in bootstrap-state.json, dns_registry field)
+    _secrets = bootstrap_state.get("secrets") or bootstrap_state.get("secret_registry") or []
+    if _secrets:
+        manifest["secret_registry"] = _secrets
+        print(f"[doc-gen] Secret registry: {len(_secrets)} entries")
+    else:
+        print("[doc-gen] Secret registry: not found in bootstrap-state (runbook will use placeholders)")
+
+    _dns = bootstrap_state.get("dns_registry") or []
+    if _dns:
+        manifest["dns_registry"] = _dns
+        print(f"[doc-gen] DNS registry: {len(_dns)} entries")
+    else:
+        print("[doc-gen] DNS registry: not found in bootstrap-state (runbook will use [VM_IP] placeholders)")
+
     print("[doc-gen] Building dependency graph...")
     sys.path.insert(0, str(REPO_ROOT / "doc-gen"))
     import dependencies as dep_mod

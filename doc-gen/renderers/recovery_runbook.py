@@ -51,6 +51,20 @@ def _fmt_list(items, template, empty="(none)"):
     return "\n".join(lines)
 
 
+def _resolve_vm_ip(vmid, manifest: dict) -> str:
+    """Return IP for a VM from the DNS registry, or '[VM_IP]' if not found."""
+    if vmid is None:
+        return "[VM_IP]"
+    dns_reg = manifest.get("dns_registry") or []
+    for entry in dns_reg:
+        try:
+            if int(entry.get("vmid", -1)) == int(vmid):
+                return entry.get("ip", "[VM_IP]")
+        except (TypeError, ValueError):
+            pass
+    return "[VM_IP]"
+
+
 def _restore_cmd(node, manifest: dict) -> list[str]:
     """Generate restore commands for a given node based on its type and metadata."""
     cmds = []
@@ -264,6 +278,38 @@ def build_recovery_runbook(
     rb.checkbox("KeePass database accessible on recovery device")
     rb.spacer()
 
+    # ── Secrets required for recovery ───────────────────────────────────
+    secret_reg = manifest.get("secret_registry") or []
+    rb.h2("Secrets Required for Recovery")
+    if secret_reg:
+        rb.body(
+            "The following secrets are required during recovery. "
+            "Retrieve them from KeePass before beginning restore operations. "
+            f"({len(secret_reg)} entries from secret registry)"
+        )
+        rb.spacer()
+        for s in secret_reg:
+            sid   = s.get("id", "unknown")
+            desc  = s.get("description", "")
+            kpath = s.get("keepass_path") or "[KEEPASS_PATH not recorded]"
+            stype = s.get("secret_type", "")
+            req   = ", ".join(s.get("required_by") or [])
+            rb.field(
+                f"{sid}  ({stype})",
+                kpath,
+                "AUTO" if s.get("keepass_path") else "UNRESOLVED",
+                f"{desc}  |  Required by: {req}" if req else desc,
+            )
+            rb.checkbox(f"Retrieved: {sid}")
+    else:
+        rb.field(
+            "Secret registry", "NOT AVAILABLE", "UNRESOLVED",
+            "secret-registry.yaml was not found in bootstrap-state. "
+            "Retrieve secrets manually — check KeePass under 'Infrastructure/'."
+        )
+        rb.checkbox("[HUMAN] All required secrets retrieved from KeePass")
+    rb.spacer()
+
     rb.h2("Backup Media")
     rb.field("Backup source", "[HUMAN] Confirm backup location", "HUMAN",
              "PBS server address, NFS share, or physical media location")
@@ -369,12 +415,17 @@ def build_recovery_runbook(
                 rb.checkbox(f"Pool {pool} ONLINE")
             elif node.type == "vm":
                 vmid = node.metadata.get("vmid", "?")
+                vm_ip = _resolve_vm_ip(vmid, manifest)
+                vm_name = node.metadata.get("name", "vm")
                 rb.code(f"qm status {vmid}")
                 rb.body("Expected: status running")
-                rb.code(f"ssh ubuntu@[VM_IP]  # replace with {node.metadata.get('name','vm')} IP")
+                rb.code(f"ssh ubuntu@{vm_ip}")
+                if vm_ip == "[VM_IP]":
+                    rb.note(f"Replace [VM_IP] with the IP address of {vm_name} — "
+                            f"check /etc/pve/qemu-server/{vmid}.conf or DNS registry")
                 rb.body("Expected: login succeeds")
                 rb.checkbox(f"VM {vmid} running")
-                rb.checkbox(f"SSH to {node.metadata.get('name','vm')} confirmed")
+                rb.checkbox(f"SSH to {vm_name} confirmed")
             elif node.type == "container":
                 ctid = node.metadata.get("ctid", "?")
                 rb.code(f"pct status {ctid}")
@@ -438,11 +489,14 @@ def build_recovery_runbook(
 
     rb.h1("Appendix B — Readiness Gaps")
     all_gaps = [g for cr in readiness.components for g in cr.gaps]
-    if all_gaps:
-        for gap in all_gaps:
+    registry_gaps = getattr(readiness, "registry_gaps", [])
+    all_gaps_combined = all_gaps + list(registry_gaps)
+    if all_gaps_combined:
+        for gap in all_gaps_combined:
             node = node_map.get(gap.component_id)
-            rb.h2(f"{node.label if node else gap.component_id} — {gap.gap_type}")
-            rb.field("Severity",   SCORE_SYMBOLS.get(gap.severity, gap.severity), gap.severity, "")
+            label = node.label if node else gap.component_id
+            rb.h2(f"{label} — {gap.gap_type}")
+            rb.field("Severity", SCORE_SYMBOLS.get(gap.severity, gap.severity), gap.severity, "")
             rb.body(f"Issue: {gap.description}")
             if gap.remediation:
                 rb.body(f"Fix: {gap.remediation}")
@@ -450,5 +504,61 @@ def build_recovery_runbook(
                 rb.body(f"Impact: {gap.readiness_impact}")
     else:
         rb.body("No gaps detected.")
+
+    # ------------------------------------------------------------------
+    # Appendix C — DNS Registry
+    # ------------------------------------------------------------------
+    rb.h1("Appendix C — DNS Registry")
+    dns_reg = manifest.get("dns_registry") or []
+    if dns_reg:
+        rb.body(f"All managed hostnames and IP addresses for cell: {hostname}")
+        rb.spacer()
+        for entry in dns_reg:
+            hn    = entry.get("hostname", "unknown")
+            ip    = entry.get("ip", "unknown")
+            vmid  = entry.get("vmid")
+            role  = entry.get("role", "")
+            vmid_str = f"  VM {vmid}" if vmid is not None else "  (host)"
+            rb.body(f"  {hn:<35} {ip:<18} {vmid_str:<10} {role}")
+    else:
+        rb.body(
+            "DNS registry not available. "
+            "VM IPs were not pre-populated — recovery commands use [VM_IP] placeholders."
+        )
+
+    rb.spacer()
+
+    # ------------------------------------------------------------------
+    # Appendix D — Secret Registry
+    # ------------------------------------------------------------------
+    rb.h1("Appendix D — Secret Registry")
+    secret_reg_all = manifest.get("secret_registry") or []
+    if secret_reg_all:
+        rb.body(
+            f"All managed secrets for cell. "
+            f"KeePass paths reference the operator's KeePass database."
+        )
+        rb.spacer()
+        for s in secret_reg_all:
+            sid   = s.get("id", "unknown")
+            kpath = s.get("keepass_path") or "[KEEPASS_PATH not recorded]"
+            stype = s.get("secret_type", "")
+            req   = ", ".join(s.get("required_by") or [])
+            ops   = ", ".join(s.get("required_for") or [])
+            rb.h2(f"{sid}  ({stype})")
+            rb.field("KeePass path", kpath, "AUTO" if s.get("keepass_path") else "UNRESOLVED", "")
+            if req:
+                rb.body(f"Required by:  {req}")
+            if ops:
+                rb.body(f"Required for: {ops}")
+            rotation = s.get("rotation_schedule")
+            if rotation:
+                rb.body(f"Rotation: {rotation}")
+    else:
+        rb.body(
+            "Secret registry not available. "
+            "Run setup-secrets.py or populate secret-registry.yaml and "
+            "include it in bootstrap-state.json."
+        )
 
     return rb.build_odt()
