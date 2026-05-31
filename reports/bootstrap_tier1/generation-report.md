@@ -1,6 +1,6 @@
 # Documentation Generation Report
 
-Generated:        2026-05-31T03:00:14Z
+Generated:        2026-05-31T10:54:03Z
 Mode:             bootstrap
 Assessment tier:  1
 Assessment date:  2026-05-30T14:23:00Z
@@ -23,6 +23,9 @@ Total fields: 36
 - human.vm_username: Enter OS username (recommended: ubuntu)
 - human.vm_password_location: Enter KeePass path for VM password
 - human.iso_location: Enter ISO path in Proxmox, e.g. local:iso/ubuntu-22.04-live-server-amd64.iso
+
+## Drift Since Last Assessment
+No field changes detected.
 
 ## Derived Recommendations
 

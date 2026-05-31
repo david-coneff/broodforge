@@ -1,79 +1,95 @@
 # Current State
 
-Version: 0.8
+Last updated: 2026-05-30
 
-## Completed
+## Active Architecture: v4.0
 
-### Phase 1 – Foundation ✓
-- Assessment schema, CLI, collector framework, parser framework, schema validation.
+Seven-state model. Six-layer lifecycle. See ARCHITECTURE.md and
+docs/ARCHITECTURE-REVIEW-v4.md for full detail.
 
-### Phase 2 – Node Parsers ✓
-- Hardware, storage, network, Proxmox parsers.
+## Next Action
 
-### Phase 3 – SQLite History ✓
-- HistoryDB (`assessments`, `changes`, `guest_summaries`), diff engine.
-- CLI: `pae store`, `pae history`, `pae diff`.
+**Implement Milestone 6.1 — Bootstrap State Schema.**
+See ROADMAP.md for Phase 6 ordering. After 6.1, priority order is 6.3 (Secret Registry),
+6.4 (DNS Registry), then 6.2 (Cloud-Init Template Library).
 
-### Phase 3b – Guest Inventory ✓
-- `guest.schema.json`, guest inventory collection via Ansible, guest parser, guest report.
-- CLI: `pae guest-collect`, `pae guest-report`.
+## Completed Milestones
 
-### Phase 4 – Report Generation ✓
-- Full node report, combined node+guest report.
-- CLI: `pae report`, `pae full-report`.
+| Phase | Description | Status |
+|---|---|---|
+| Legacy pae CLI (Phases 1–6) | Assessment engine, SQLite history, OpenTofu ingestion, report generation | Complete — see CURRENT_STATE_LEGACY.md |
+| 5.1 | Data Model Formalization (5 JSON schemas + validator) | Complete |
+| 5.2 | Tier 1 Bootstrap Assessment Rebuild | Complete |
+| 5.3 | Bootstrap Documentation Generator | Complete |
+| 5.4 | Recovery Documentation Generator | Complete |
+| 5.5 | Recovery Readiness Scoring | Complete |
+| 5.6 | Historical State Integration — drift detection, snapshot index, reproducibility | Complete |
+| Architecture Review | v4.0 — 7-state model, 6-layer lifecycle, Cloud-Init as first-class | Complete |
 
-### Phase 5 – History Repository Integration ✓
-- `engine/repo.py` — push to GitHub / Forgejo via Contents API.
-- CLI: `pae push`.
+## Next Milestones
 
-### Phase 6 – OpenTofu Declared State Ingestion ✓
+| Milestone | Description |
+|---|---|
+| **6.1** | **Bootstrap State Schema — START HERE** |
+| 6.2 | Cloud-Init Template Library |
+| 6.3 | Secret Registry |
+| 6.4 | DNS Registry |
+| 6.5 | Deployment Provenance |
 
-- **`schemas/declared_resource.schema.json`** — per-resource schema: resource_type, resource_name, provider, module, instance_index, taint, status, attributes (name, target_node, vmid, cores, memory, disk_size, network_interfaces, tags, description).
-- **`assessment.schema.json`** extended with `declared_resources[]` and enriched `state_sources.declared` (terraform_version, serial, resource_count).
-- **`engine/opentofu.py`** — parses `terraform.tfstate` (format v3/v4):
-  - `parse_state_file(path)` → `StateParseResult` with resources, meta, errors.
-  - Normalises provider strings, extracts VM/LXC attributes, parses semicolon-separated tags, handles tainted/deposed instances.
-  - Detects opentofu vs terraform from version string.
-  - `ingest_state(assessment, path)` — merges declared_resources + state_sources.declared into assessment. Raises `RuntimeError` on unreadable/unparseable state files.
-- **`engine/compare.py`** — `compare(assessment) → ComparisonResult`:
-  - Maps declared resources → configured inventory → observed guests by normalised short hostname.
-  - Produces `matches` (≥2 layers), `declared_only`, `observed_only`, `configured_only`.
-  - FQDN-aware: `web01.lab.example.com` matches declared `web01`.
-  - `ComparisonResult.summary()` returns counts.
-- **`engine/report_compare.py`** — `generate_comparison_report(assessment)`:
-  - Sections: State Layer Sources, Summary, Matched Resources, Declared but Not Observed, Observed but Not Declared, Configured but Not Observed or Declared, All Declared Resources.
-  - No recommendations generated.
-- **CLI** — `pae opentofu-ingest --state FILE [--input FILE] [--output FILE]` and `pae compare --input FILE [--output FILE]`.
-- **58 tests** covering: state parsing, attribute normalisation, provider parsing, taint detection, error handling, tool detection, `ingest_state`, schema validation with declared resources, comparison engine (including FQDN matching), comparison report, CLI commands.
+## Architecture Gaps (v4.0 items not yet implemented)
 
-## Roadmap Status
+| Gap | Phase | Impact on Reconstruction |
+|---|---|---|
+| Bootstrap State schema | 6.1 | Cannot track Cloud-Init, templates, provenance |
+| Cloud-Init templates | 6.2 | First-boot provisioning not replayable |
+| Secret Registry | 6.3 | Recovery commands have `[KEEPASS_PATH]` placeholders |
+| DNS Registry | 6.4 | Recovery commands have `[VM_IP]` placeholders |
+| Deployment Provenance | 6.5 | Cannot verify reconstruction matches original |
+| Template Registry | 6.6 | Base images not tracked, template rebuild not automated |
+| Service Contracts | 7.1 | Dependencies use heuristics, not declared contracts |
+| Service State schema | 7.2 | Service layer not modeled in recovery documentation |
+| Network topology as code | 8.x | Wave 0 network reconstruction requires manual steps |
+| Reconstruction Playbooks | 9.x | No executable reconstruction scripts |
+| Operational Documentation | 10.x | No drift/capacity/health documentation class |
+| Capacity Model | 11.x | Recovery readiness does not validate resource headroom |
 
-| Phase | Status |
-|-------|--------|
-| 1 Foundation | ✓ |
-| 2 Node Parsers | ✓ |
-| 3 SQLite History | ✓ |
-| 3b Guest Inventory | ✓ |
-| 4 Report Generation | ✓ |
-| 5 History Repository | ✓ |
-| 6 OpenTofu Declared State | ✓ |
+## New Codebase Layout (doc-gen architecture)
 
-## Test Summary
+```
+assessment/tier1/       Tier 1 bootstrap assessment package
+data-model/             7 JSON schemas + stdlib validator (90 tests passing)
+doc-gen/                Documentation generation engine
+  engine.py             CLI: --mode bootstrap | recovery (+ drift integration)
+  analyzers.py          10 DERIVED field analyzers
+  dependencies.py       Dependency graph + topological sort
+  drift.py              Field-level manifest diff and drift detector
+  readiness.py          GREEN/YELLOW/ORANGE/RED/BLOCKED scorer
+  readiness_report.py   Standalone Readiness-Report.md + .json
+  renderers/            ODS and ODT generators (stdlib only)
+history/                Snapshot store
+  index.py              Snapshot index builder CLI
+  index.json            Snapshot index (auto-generated)
+  snapshots/            Historical manifest snapshots (2 entries)
+docs/                   Architecture docs and session handoff
+reports/                Generated documentation output
+tests/unit/             110 tests (schema, analyze, readiness, drift, reproducibility)
+tests/fixtures/         Sample manifests for tier1 and tier2
+```
 
-| Module | Tests |
-|--------|-------|
-| CLI framework | 7 |
-| Collector framework | 7 |
-| Parser framework | 6 |
-| Node/storage/network/PVE parsers | 29 |
-| SQLite history + diff | 33 |
-| Guest inventory + report | 65 |
-| Node + combined reports | 43 |
-| Repo push | 38 |
-| OpenTofu / compare / compare report | 58 |
-| **Total** | **286** |
+## Legacy Codebase Layout (pae CLI — do not delete)
 
-## Remaining (Future)
+```
+engine/         Original assessment engine and CLI
+collector/      Original collector framework
+schemas/        Original JSON schemas (assessment.schema.json etc.)
+tests/          Original 286 tests for legacy codebase
+pyproject.toml  Package definition for pae CLI
+```
 
-- Multi-node cluster assessment
-- Dynamic inventory improvements (cloud providers, custom scripts)
+## Key Design Constraints
+
+- analyze.py and validate.py: Python 3 stdlib only (no pip)
+- ODS/ODT renderers: zipfile + XML only (no odfpy)
+- doc-gen: runs without network access (all data from manifest)
+- UNRESOLVED fields: never silently omitted
+- Historical snapshots: reproducible (same manifest → same docs)

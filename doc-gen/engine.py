@@ -26,6 +26,40 @@ sys.path.insert(0, str(REPO_ROOT / "doc-gen"))
 sys.path.insert(0, str(REPO_ROOT / "doc-gen" / "renderers"))
 sys.path.insert(0, str(REPO_ROOT / "data-model"))
 
+from drift import compute_drift
+
+
+def _load_history_snapshot(tier: int) -> tuple[dict | None, str | None]:
+    """
+    Load the latest historical manifest for the given tier from history/index.json.
+    Returns (manifest_dict, snapshot_id) or (None, None) if unavailable.
+    """
+    index_path = REPO_ROOT / "history" / "index.json"
+    if not index_path.exists():
+        return None, None
+    try:
+        index = json.loads(index_path.read_text())
+    except Exception:
+        return None, None
+
+    key = "latest_tier1_id" if tier == 1 else "latest_tier2_id"
+    snap_id = index.get(key)
+    if not snap_id:
+        return None, None
+
+    snap_entry = next((s for s in index.get("snapshots", []) if s["id"] == snap_id), None)
+    if not snap_entry:
+        return None, None
+
+    manifest_path = REPO_ROOT / snap_entry["manifest_path"]
+    if not manifest_path.exists():
+        return None, None
+
+    try:
+        return json.loads(manifest_path.read_text()), snap_id
+    except Exception:
+        return None, None
+
 
 def _load_manifest(args) -> tuple[dict, str]:
     """Load manifest from archive or direct file. Returns (manifest, assessment_id)."""
@@ -271,6 +305,24 @@ def _write_generation_report(out_dir: Path, manifest: dict,
         for hf in human_fields:
             lines += [f"- {hf['id']}: {hf.get('prompt', '')}"]
 
+    drift = meta.get("drift")
+    if drift and drift["diffs"]:
+        lines += [
+            "",
+            f"## Drift Since Last Assessment (severity: {drift['drift_severity']})",
+            f"Compared: {drift['from_snapshot']} → {drift['to_snapshot']}",
+            "",
+        ]
+        for d in drift["diffs"][:20]:  # cap at 20 for readability
+            lines.append(
+                f"- [{d['severity']}] {d['path']}: "
+                f"{d['from_value']!r} → {d['to_value']!r}"
+            )
+        if len(drift["diffs"]) > 20:
+            lines.append(f"  ... and {len(drift['diffs']) - 20} more field(s)")
+    elif drift:
+        lines += ["", "## Drift Since Last Assessment", "No field changes detected."]
+
     lines += [
         "",
         "## Derived Recommendations",
@@ -286,7 +338,7 @@ def _write_generation_report(out_dir: Path, manifest: dict,
         for w in entry.get("warnings", []):
             lines.append(f"  ⚠ {w}")
 
-    (out_dir / "generation-report.md").write_text("\n".join(lines))
+    (out_dir / "generation-report.md").write_text("\n".join(lines), encoding="utf-8")
 
 
 def run_bootstrap(args):
@@ -296,8 +348,20 @@ def run_bootstrap(args):
     out_dir = REPO_ROOT / "reports" / f"bootstrap_{assessment_id}"
     out_dir.mkdir(parents=True, exist_ok=True)
 
+    # Drift detection — compare against previous tier 1 snapshot if available
+    drift_record = None
+    prior_manifest, prior_snap_id = _load_history_snapshot(tier=1)
+    if prior_manifest is not None and prior_snap_id != assessment_id:
+        print(f"[doc-gen] Computing drift against snapshot: {prior_snap_id}")
+        drift_record = compute_drift(prior_manifest, manifest, prior_snap_id, assessment_id)
+        print(f"[doc-gen]   Drift: {len(drift_record['diffs'])} field(s) changed  "
+              f"severity={drift_record['drift_severity']}")
+    else:
+        print("[doc-gen] No prior bootstrap snapshot — drift detection skipped")
+
     print("[doc-gen] Resolving fields...")
     resolved, meta = _resolve_fields(manifest)
+    meta["drift"] = drift_record
 
     counts = meta["field_counts"]
     total  = sum(counts.values())
@@ -376,12 +440,24 @@ def run_recovery(args):
         if n:
             print(f"[doc-gen]   {sc}: {n}")
 
+    # Drift detection — compare against previous tier 2 snapshot if available
+    drift_record = None
+    prior_manifest, prior_snap_id = _load_history_snapshot(tier=2)
+    if prior_manifest is not None and prior_snap_id != assessment_id:
+        print(f"[doc-gen] Computing drift against snapshot: {prior_snap_id}")
+        drift_record = compute_drift(prior_manifest, manifest, prior_snap_id, assessment_id)
+        print(f"[doc-gen]   Drift: {len(drift_record['diffs'])} field(s) changed  "
+              f"severity={drift_record['drift_severity']}")
+    else:
+        print("[doc-gen] No prior tier 2 snapshot — drift detection skipped")
+
     collected_at = manifest.get("collected_at", "unknown")
     generation_meta = {
         "generated_at":    datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "collected_at":    collected_at,
         "tier":            tier,
         "template_version": "recovery-v1.0",
+        "drift":           drift_record,
     }
 
     print("[doc-gen] Rendering recovery workbook...")
@@ -401,19 +477,19 @@ def run_recovery(args):
     print("[doc-gen] Writing restore sequence...")
     seq_text = dep_mod.restore_sequence_text(graph, manifest)
     seq_path = out_dir / "Restore-Sequence.md"
-    seq_path.write_text(seq_text)
+    seq_path.write_text(seq_text, encoding="utf-8")
     print(f"[doc-gen]   → {seq_path}")
 
     print("[doc-gen] Writing readiness report...")
     import readiness_report as rr_mod
     rpt_json = rr_mod.build_readiness_report_json(manifest, graph, readiness, generation_meta)
     rpt_json_path = out_dir / "Readiness-Report.json"
-    rpt_json_path.write_text(json.dumps(rpt_json, indent=2))
+    rpt_json_path.write_text(json.dumps(rpt_json, indent=2), encoding="utf-8")
     print(f"[doc-gen]   → {rpt_json_path}  ({rpt_json_path.stat().st_size:,} bytes)")
 
     rpt_md = rr_mod.build_readiness_report_md(manifest, graph, readiness, generation_meta)
     rpt_md_path = out_dir / "Readiness-Report.md"
-    rpt_md_path.write_text(rpt_md)
+    rpt_md_path.write_text(rpt_md, encoding="utf-8")
     print(f"[doc-gen]   → {rpt_md_path}")
 
     print("[doc-gen] Writing generation report...")
@@ -488,7 +564,25 @@ def _write_recovery_report(out_dir, manifest, graph, readiness, meta):
                 f"  [{g.severity}] {node.label if node else g.component_id}: {g.description}"
             )
 
-    (out_dir / "generation-report.md").write_text("\n".join(lines))
+    drift = meta.get("drift")
+    if drift and drift["diffs"]:
+        lines += [
+            "",
+            f"## Drift Since Last Assessment (severity: {drift['drift_severity']})",
+            f"Compared: {drift['from_snapshot']} → {drift['to_snapshot']}",
+            "",
+        ]
+        for d in drift["diffs"][:20]:
+            lines.append(
+                f"  [{d['severity']}] {d['path']}: "
+                f"{d['from_value']!r} → {d['to_value']!r}"
+            )
+        if len(drift["diffs"]) > 20:
+            lines.append(f"  ... and {len(drift['diffs']) - 20} more field(s)")
+    elif drift:
+        lines += ["", "## Drift Since Last Assessment", "  No field changes detected."]
+
+    (out_dir / "generation-report.md").write_text("\n".join(lines), encoding="utf-8")
 
 def main():
     parser = argparse.ArgumentParser(

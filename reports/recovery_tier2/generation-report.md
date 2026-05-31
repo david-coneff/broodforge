@@ -1,6 +1,6 @@
 # Recovery Documentation Generation Report
 
-Generated:        2026-05-31T03:22:45Z
+Generated:        2026-05-31T10:54:03Z
 Mode:             recovery
 Assessment tier:  2
 Assessment date:  2026-05-29T02:05:00Z
@@ -51,3 +51,6 @@ Host:             pve01
   [YELLOW] forgejo (VM 101): Backup is 9 days old (threshold: 7 days for vm)
   [YELLOW] forgejo (VM 101): Restore procedure never tested for vm:forgejo
   [YELLOW] assessment-engine (VM 103): Restore procedure never tested for vm:assessment-engine
+
+## Drift Since Last Assessment
+  No field changes detected.
