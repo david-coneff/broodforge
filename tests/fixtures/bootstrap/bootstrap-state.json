@@ -3,6 +3,13 @@
   "cell_id": "proxmox-cell-a",
   "declared_at": "2026-05-31T00:00:00Z",
   "notes": "Primary homelab cell \u00e2\u20ac\u201d single Proxmox node with four managed VMs",
+  "external_backup": {
+    "provider": null,
+    "github": null,
+    "encrypted_archive": null,
+    "what_is_backed_up": null
+  },
+
   "host_identity": {
     "hostname": "pve01",
     "fqdn": "pve01.internal",

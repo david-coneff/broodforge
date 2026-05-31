@@ -13,6 +13,7 @@
     "storage_config",
     "keepass_config",
     "network_topology",
+    "external_backup",
     "vms",
     "base_images",
     "templates",
@@ -39,6 +40,11 @@
     },
     "notes": {
       "type": ["string", "null"]
+    },
+
+    "external_backup": {
+      "$ref": "#/definitions/external_backup",
+      "description": "External backup configuration — where configuration state and docs are mirrored outside the cell. Set null provider to skip external backup."
     },
 
     "host_identity": {
@@ -492,6 +498,106 @@
         "critical": {
           "type": "boolean",
           "description": "If true, this service cannot start without this dependency"
+        }
+      }
+    },
+
+    "external_backup": {
+      "type": "object",
+      "description": "External backup configuration. Covers configuration state and self-description data (bootstrap-state, snippets, assessment history, generated docs). VM disk backups are handled separately by PBS.",
+      "required": ["provider"],
+      "properties": {
+        "provider": {
+          "type": ["string", "null"],
+          "enum": ["github", "encrypted-archive", null],
+          "description": "Backup provider. github: mirror repos to private GitHub. encrypted-archive: produce timestamped encrypted tar.gz archives. null: no external backup configured."
+        },
+        "github": {
+          "type": ["object", "null"],
+          "description": "GitHub-specific configuration (see backup_github_config definition). Required when provider is 'github'."
+        },
+        "encrypted_archive": {
+          "type": ["object", "null"],
+          "description": "Encrypted archive configuration (see backup_archive_config definition). Required when provider is 'encrypted-archive'."
+        },
+        "what_is_backed_up": {
+          "type": ["string", "null"],
+          "description": "Human-readable description of what is included in external backup. Auto-populated by setup-external-backup.py."
+        }
+      }
+    },
+
+    "backup_github_config": {
+      "type": "object",
+      "description": "Configuration for GitHub-based external backup.",
+      "required": ["repos", "deploy_key_reference"],
+      "properties": {
+        "repos": {
+          "type": "object",
+          "description": "Map of repo purpose to GitHub repo URL.",
+          "properties": {
+            "infrastructure": {
+              "type": ["string", "null"],
+              "description": "GitHub repo URL for OpenTofu / infrastructure-as-code"
+            },
+            "bootstrap": {
+              "type": ["string", "null"],
+              "description": "GitHub repo URL for bootstrap-state, snippets, registries"
+            },
+            "configuration": {
+              "type": ["string", "null"],
+              "description": "GitHub repo URL for Ansible inventory and playbooks"
+            },
+            "docs": {
+              "type": ["string", "null"],
+              "description": "GitHub repo URL for generated documentation"
+            },
+            "assessment_history": {
+              "type": ["string", "null"],
+              "description": "GitHub repo URL for assessment snapshots and history"
+            }
+          }
+        },
+        "deploy_key_reference": {
+          "type": "string",
+          "description": "Secret Registry ID for the SSH private key used to push to GitHub"
+        },
+        "github_username": {
+          "type": ["string", "null"],
+          "description": "GitHub username or organisation owning the repos"
+        }
+      }
+    },
+
+    "backup_archive_config": {
+      "type": "object",
+      "description": "Configuration for encrypted tar.gz archive backup.",
+      "required": ["destination", "passphrase_reference"],
+      "properties": {
+        "destination": {
+          "type": "string",
+          "description": "Where archives are stored. rclone remote path (e.g. gdrive:/backups/cell-id), local path, or scp target."
+        },
+        "destination_type": {
+          "type": "string",
+          "enum": ["rclone", "local", "scp"],
+          "description": "How to transfer archives to the destination."
+        },
+        "passphrase_reference": {
+          "type": "string",
+          "description": "Secret Registry ID for the GPG symmetric encryption passphrase."
+        },
+        "schedule": {
+          "type": ["string", "null"],
+          "description": "Cron expression or human-readable schedule for automated backups, e.g. '0 2 * * *' (daily at 02:00)."
+        },
+        "retention_count": {
+          "type": ["integer", "null"],
+          "description": "Number of archives to retain. Older archives are removed automatically. null = keep all."
+        },
+        "filename_prefix": {
+          "type": ["string", "null"],
+          "description": "Optional prefix prepended to archive filenames before cell_id. Normally omitted."
         }
       }
     },
