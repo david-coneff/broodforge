@@ -1,6 +1,6 @@
 # Current State
 
-Last updated: 2026-05-31
+Last updated: 2026-05-31 (session 2)
 
 ## Active Architecture: v5.0
 
@@ -10,9 +10,11 @@ See ARCHITECTURE.md and docs/ARCHITECTURE-REVIEW-v5.md for full detail.
 
 ## Next Action
 
-**Implement Milestone 6.1 — Bootstrap State Schema.**
-All new schemas must include `cell_id` as a mandatory field (AD-013).
-See ROADMAP.md Phase 6 for full task list. Priority order after 6.1: 6.3, 6.4, 6.2.
+**Implement Milestone 6.3 — Secret Registry reader in doc-gen.**
+Reads `proxmox-bootstrap/secret-registry.yaml`, pre-populates KeePass paths in
+recovery runbook (replaces `[KEEPASS_PATH]` placeholders with actual paths).
+After 6.3: 6.4 DNS Registry reader, then 6.5, 6.6, 6.7, 6.8.
+See docs/SESSION-HANDOFF.md for full context and file locations.
 
 ## Completed Milestones
 
@@ -27,6 +29,9 @@ See ROADMAP.md Phase 6 for full task list. Priority order after 6.1: 6.3, 6.4, 6
 | 5.6 | Historical State Integration — drift detection, snapshot index, reproducibility | Complete |
 | Architecture Review | v4.0 — 7-state model, 6-layer lifecycle, Cloud-Init as first-class | Complete |
 | Architecture Review | v5.0 — 17-state model, federation, digital twin, 5 dependency graphs | Complete |
+| 6.0 | External backup (GitHub/encrypted-archive), recovery runbook Step 0, init wizard prompt | Complete |
+| 6.1 | Bootstrap State and Service State schemas (cell_id, network_topology, external_backup, containers) | Complete |
+| 6.2 | Cloud-Init Template Library — generated snippets, generate-network-configs.py, generate-user-data.py | Complete |
 
 ## Next Milestones
 

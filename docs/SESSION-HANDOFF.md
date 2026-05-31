@@ -7,164 +7,194 @@ Status: Ready to resume at Milestone 6.1
 
 ## Where We Are
 
-Architecture was revised to v5.0 in this session. This supersedes v4.0.
-Read `docs/ARCHITECTURE-REVIEW-v5.md` before making any structural decisions.
+Architecture was revised to v5.0 (Federated Infrastructure Digital Twin Platform).
+Read `docs/ARCHITECTURE-REVIEW-v5.md` before any structural decisions.
+Read `ROADMAP.md` for the full three-track phase plan.
 
 **The single most important v5.0 constraint:**
 Every new schema must carry `cell_id` as a mandatory field (AD-013).
-This is the federation-readiness gate. Do not create schemas without it.
-
-Phase 5 is complete (5.1–5.6). Next work is Phase 6 — Bootstrap State.
-The implementation work (Phases 6–12) is unchanged from v4.0 in scope, but all schemas
-must be federation-ready from the start.
 
 ---
 
-## Project Instructions (from .ai/)
+## What Was Completed This Session
 
-- `.ai/context.md` — what the project is, key design decisions
-- `.ai/decisions.md` — AD-001 through AD-021, all architecture decisions with rationale
-- `.ai/CURRENT_STATE.md` — current milestone status
+### Architecture
+- v5.0 Architecture Review (`docs/ARCHITECTURE-REVIEW-v5.md`) — full redesign:
+  seventeen-state model, federation, digital twin, five dependency graph types,
+  three assessment tiers, infrastructure cells, consolidation modes
+- `ARCHITECTURE.md` and `ROADMAP.md` fully rewritten for v5.0
 
----
+### Bootstrap Toolchain (proxmox-bootstrap/)
 
-## Key Architecture Documents
-
-```
-ARCHITECTURE.md                  v5.0 — 17-state model, federation, digital twin
-ROADMAP.md                       v5.0 — three tracks, 25 phases
-docs/ARCHITECTURE-REVIEW-v5.md  Full v5.0 review rationale (read before structural decisions)
-docs/ARCHITECTURE-REVIEW-v4.md  Retained for reference
-```
-
----
-
-## Key Implementation File Locations
+| File | Purpose |
+|---|---|
+| `suggest-names.py` | Naming convention engine — derives all names from (hostname, kp_root, cidr, vms) |
+| `setup-secrets.py` | Secret generation wizard with KeePassXC CLI integration |
+| `setup-external-backup.py` | External backup wizard — GitHub or encrypted archive |
+| `init-bootstrap-state.py` | Guided init wizard — discovers, prompts, generates full bootstrap-state.json |
+| `generate-network-configs.py` | Generates network-config snippets from bootstrap-state |
+| `generate-user-data.py` | Generates user-data snippets from bootstrap-state |
+| `roles.py` | Infrastructure role catalog with consolidation modes (full/recommended/minimal) |
+| `backup.py` | Archive naming, GPG encryption, transfer, listing, pruning |
 
 ### Schemas (data-model/)
-```
-observed-state-schema.json       Tier 1/2 manifest (exists, needs cell_id)
-historical-state-schema.json     Snapshot index + drift records (exists, needs cell_id)
-recovery-state-schema.json       Dependency graph + readiness (exists, needs cell_id)
-declared-state-schema.json       OpenTofu state (exists, needs cell_id)
-configured-state-schema.json     Ansible inventory (exists, needs cell_id)
-validate.py                      Schema validator (stdlib only)
 
---- TO BE CREATED (Phase 6+) ---
-bootstrap-state-schema.json      Cloud-Init, images, templates, provenance, secrets, DNS
-service-state-schema.json        Service contracts, DNS, backup assignments
-hardware-state-schema.json       BIOS, firmware, disks, NICs (Phase 13)
-platform-state-schema.json       Proxmox config, certs, packages (Phase 13)
-cluster-state-schema.json        Cluster topology, membership (Phase 14)
-storage-state-schema.json        ZFS, Ceph, datastores (Phase 14)
-external-dependency-state-schema.json  DNS providers, SMTP, certs (Phase 15)
-data-protection-state-schema.json      PBS, backup jobs, RTO/RPO (Phase 15)
-observability-state-schema.json        Monitoring, alerts, dashboards (Phase 16)
-secret-reference-state-schema.json     Standalone secret registry (Phase 18)
-capability-state-schema.json           Cell capabilities (Phase 18)
-federation-state-schema.json           Trust, relationships, cell registry (Phase 19)
-```
+New schemas added this session (all have `cell_id`):
+- `bootstrap-state-schema.json` — fully extended with host_identity, vm_defaults,
+  storage_config, keepass_config, network_topology, external_backup, container declarations
+- `service-state-schema.json` — observed services, DNS registrations, backup assignments
+- `container-state-schema.json` — Tier 2 assessment output for containerized workloads
 
-### Assessment
-```
-assessment/tier1/bootstrap.sh    Entry point
-assessment/tier1/analyze.py      Manifest builder → manifest.json
-assessment/tier1/collectors/     6 modular collectors
-```
+### Key Design Decisions Made This Session
+- `cell_id` mandatory everywhere (AD-013)
+- Consolidation modes: full (3 VMs) / recommended (2 VMs) / minimal (1 VM)
+- External backup: GitHub or encrypted archive (both wired into recovery runbook Step 0)
+- Container compatibility: infrastructure-layer check only — application-layer is per-service runbooks
+- Archive naming: `{cell_id}_{YYYY-MM-DD_HH_MM_SS}_{6-char-hash}.tar.gz.gpg`
+- Volume backup naming: `{cell_id}_{vm}_{container}_{volume}_{ts}_{hash}.tar.gz.gpg`
+- KeePass path convention: `{root}/{hostname}/{secret}` for host, `{root}/vms/{vmid}-{name}/password` for VMs
 
-### Documentation Generator
-```
-doc-gen/engine.py                CLI: --mode bootstrap | recovery (+ drift)
-doc-gen/analyzers.py             10 DERIVED field analyzers
-doc-gen/dependencies.py          Dependency graph + topological sort
-doc-gen/drift.py                 Field-level manifest diff
-doc-gen/readiness.py             GREEN/YELLOW/ORANGE/RED/BLOCKED scorer
-doc-gen/readiness_report.py      Standalone Readiness-Report.md + .json
-doc-gen/renderers/               ODS and ODT generators (stdlib only)
-```
-
-### Tests (110 total, all passing)
-```
-tests/unit/test_schema_validation.py   32 tests
-tests/unit/test_analyze.py             32 tests
-tests/unit/test_readiness.py           26 tests
-tests/unit/test_drift.py               17 tests
-tests/unit/test_reproducibility.py     3 tests
-```
-
-### History Store
-```
-history/index.py                 Snapshot index builder CLI
-history/index.json               Snapshot index (2 entries)
-history/snapshots/               Historical manifest snapshots
-```
+### Tests
+500 tests total, all passing.
 
 ---
 
-## Milestone 6.1 — Bootstrap State Schema
+## Next Action: Milestone 6.1
 
-### Objective
-
-Create the bootstrap-state-schema.json and service-state-schema.json.
-Create the proxmox-bootstrap/ repository structure.
-
-### Critical constraint: cell_id mandatory
-
-Every schema created in Phase 6+ must include:
-```json
-{
-  "cell_id": { "type": "string", "description": "Identity of the owning Infrastructure Cell" }
-}
-```
+**Bootstrap State Schema and Repository Structure**
 
 ### Deliverables
 
-1. `data-model/bootstrap-state-schema.json` containing:
-   - `cell_id` (mandatory)
-   - Cloud-Init snippet manifests (per VM: user-data, network-config, vendor-data paths + hashes)
-   - Base image registry (ISO name, checksum, source URL, created_at)
-   - VM template registry (template name, base image, packages, created_at)
-   - Deployment provenance records (per VM: tofu commit, ansible commit, cloud-init hashes)
-   - Secret Registry (id, description, keepass_path, owning_cell, required_by, required_for)
-   - DNS Registry (hostname, ip, vmid, role)
-   - Service Contract format (service, vm, provided_interfaces, required_interfaces, startup_after)
-   - Hardware bootstrap requirements (BIOS flags required: VT-x, IOMMU, etc.)
-   - First-boot ordering constraints
+1. Validate `data-model/bootstrap-state-schema.json` is complete for 6.1 (it is —
+   schema was built this session)
 
-2. `data-model/service-state-schema.json` containing:
-   - `cell_id` (mandatory)
-   - Running service inventory
-   - Service contracts
-   - DNS registrations
-   - Backup job assignments
-   - Secret references per service
+2. `proxmox-bootstrap/bootstrap-state.json` — a real populated example (not just test
+   fixture). The `tests/fixtures/bootstrap/bootstrap-state.json` fixture is the reference.
 
-3. `proxmox-bootstrap/` repository structure (directory layout + README)
+3. `data-model/service-state-schema.json` already created.
 
-4. Schema validation tests for both schemas
+4. Schema validation tests — 90 tests in `test_bootstrap_service_schemas.py` already passing.
 
-5. `CURRENT_STATE.md` updated
+5. **Next concrete task:** Milestones 6.2–6.8 continue as per ROADMAP.md.
+
+The roadmap milestone order after 6.1:
+- **6.2** Cloud-Init Template Library ✅ (done this session)
+- **6.3** Secret Registry reader in doc-gen (reads secret-registry.yaml, pre-populates recovery steps)
+- **6.4** DNS Registry reader in doc-gen (reads dns-registry.yaml, replaces [VM_IP] placeholders)
+- **6.5** Deployment Provenance
+- **6.6** Template Registry
+- **6.7** Tier 2 Bootstrap State Collector
+- **6.8** Bootstrap Documentation Update
+
+---
+
+## Key File Locations
+
+### Project root
+```
+Y:\My Drive\home\software_development\proxmox-assessment-engine\proxmox-assessment-engine\
+```
+
+### Architecture and planning
+```
+ARCHITECTURE.md                       v5.0 — 17-state model, federation, digital twin
+ROADMAP.md                            v5.0 — three tracks, 25 phases
+docs/ARCHITECTURE-REVIEW-v5.md        Full v5.0 review rationale
+docs/CONTAINER-COMPATIBILITY-PLAN.md  Phase 21 container compatibility design
+.ai/decisions.md                      AD-001 through AD-021
+.ai/CURRENT_STATE.md                  Current milestone status
+```
+
+### Bootstrap toolchain
+```
+proxmox-bootstrap/
+  init-bootstrap-state.py     Run first on a new cell
+  setup-secrets.py            Run second — generates + stores secrets
+  setup-external-backup.py    Run third — configures GitHub or archive backup
+  generate-network-configs.py Run after any IP/topology change
+  generate-user-data.py       Run after any VM/timezone/username change
+  suggest-names.py            Naming convention engine (importable)
+  roles.py                    Role catalog + consolidation modes
+  backup.py                   Archive utilities
+  SNIPPET-UPLOAD.md           How to upload snippets to Proxmox
+  snippets/user-data/         Generated Cloud-Init user-data (4 VMs)
+  snippets/network-config/    Generated Cloud-Init network-config (4 VMs)
+  snippets/vendor-data/       Proxmox vendor-data (infra-bootstrap)
+  ssh/public-keys/            SSH public keys (populated by setup-secrets.py)
+```
+
+### Schemas
+```
+data-model/
+  bootstrap-state-schema.json     Bootstrap declaration (Cloud-Init, registries, containers)
+  service-state-schema.json       Observed service state
+  container-state-schema.json     Observed container state (Tier 2)
+  observed-state-schema.json      Tier 1/2 manifest
+  historical-state-schema.json    Snapshot index + drift records
+  recovery-state-schema.json      Dependency graph + readiness
+  declared-state-schema.json      OpenTofu state
+  configured-state-schema.json    Ansible inventory
+  validate.py                     Schema validator (stdlib only)
+```
+
+### Tests (500 total, all passing)
+```
+tests/unit/
+  test_schema_validation.py       32 — observed/historical/recovery/declared/configured schemas
+  test_analyze.py                 32 — manifest builder
+  test_readiness.py               26 — readiness scorer
+  test_drift.py                   17 — drift detection
+  test_reproducibility.py          3 — deterministic doc generation
+  test_bootstrap_service_schemas.py 90 — bootstrap + service schemas
+  test_cloudinit_templates.py     62 — Cloud-Init snippet generation + consistency
+  test_suggest_names.py           50 — naming convention + KeePass discovery
+  test_roles.py                   80 — role catalog + consolidation modes
+  test_backup.py                  50 — archive naming, encryption, listing
+  test_container_schema.py        58 — container state + volume backup naming
+```
+
+### Doc-gen
+```
+doc-gen/engine.py               CLI — --mode bootstrap|recovery; loads external_backup
+doc-gen/renderers/recovery_runbook.py   Recovery runbook with Step 0 (external backup retrieval)
+doc-gen/drift.py                Field-level drift detection
+doc-gen/readiness.py            Readiness scorer
+doc-gen/dependencies.py         Dependency graph builder
+```
 
 ---
 
 ## Test Commands
 
-Run all tests to confirm clean starting state:
 ```
+# Run all tests
 py -3 tests/unit/test_schema_validation.py
-py -3 tests/unit/test_analyze.py
-py -3 tests/unit/test_readiness.py
-py -3 tests/unit/test_drift.py
-py -3 tests/unit/test_reproducibility.py
-```
+py -3 tests/unit/test_bootstrap_service_schemas.py
+py -3 tests/unit/test_cloudinit_templates.py
+py -3 tests/unit/test_suggest_names.py
+py -3 tests/unit/test_roles.py
+py -3 tests/unit/test_backup.py
+py -3 tests/unit/test_container_schema.py
 
-Run doc-gen to confirm it works:
-```
-py -3 doc-gen/engine.py --mode bootstrap --manifest tests/fixtures/tier1/manifest.json
-py -3 doc-gen/engine.py --mode recovery  --manifest tests/fixtures/tier2/manifest.json
-```
+# Run doc-gen (verify it works end-to-end)
+PYTHONIOENCODING=utf-8 py -3 doc-gen/engine.py --mode bootstrap --manifest tests/fixtures/tier1/manifest.json
+PYTHONIOENCODING=utf-8 py -3 doc-gen/engine.py --mode recovery  --manifest tests/fixtures/tier2/manifest.json
 
-All should complete without errors before beginning 6.1 work.
+# Preview naming convention
+py -3 proxmox-bootstrap/suggest-names.py --hostname pve01 --kp-root Infrastructure --cidr 192.168.50.0/24
+
+# Preview role catalog
+py -3 proxmox-bootstrap/roles.py
+
+# Show backup archive filename format
+py -3 -c "
+import sys; sys.path.insert(0,'proxmox-bootstrap')
+import importlib.util
+spec = importlib.util.spec_from_file_location('b','proxmox-bootstrap/backup.py')
+b = importlib.util.module_from_spec(spec); spec.loader.exec_module(b)
+print(b.archive_filename('proxmox-cell-a'))
+"
+```
 
 ---
 
@@ -175,5 +205,7 @@ All should complete without errors before beginning 6.1 work.
 - doc-gen: runs without network access (all data from manifest)
 - UNRESOLVED fields: never silently omitted
 - Historical snapshots: reproducible (same manifest → same docs)
-- **NEW: `cell_id` mandatory in all schemas (v5.0 AD-013)**
-- **NEW: Secret Registry entries must include `owning_cell` field (v5.0 AD-016)**
+- **`cell_id` mandatory in all schemas (v5.0 AD-013)**
+- **Secret Registry entries must include `owning_cell` field**
+- **Network-config snippets are GENERATED — edit bootstrap-state, re-run generator**
+- **User-data snippets are GENERATED — edit bootstrap-state, re-run generator**
