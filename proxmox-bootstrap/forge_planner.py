@@ -60,6 +60,8 @@ class ForgePlannerSession:
       step1: guided_setup session run (if non-autonomous)
       step2: identity configured (hostname, domain, cell_id)
       step3: network profile configured (lan / wan)
+      step4: timezone set (optional — defaults to UTC)
+      step5: backup destinations configured (optional)
 
     After all steps, build_forge_manifest() produces forge-manifest.json.
     """
@@ -79,6 +81,13 @@ class ForgePlannerSession:
     # Network profile (set by step3)
     network_profile:  str = PROFILE_LAN
     wan_config:       dict = field(default_factory=dict)
+
+    # Timezone (set by step4; stored in host_identity.timezone)
+    timezone:         Optional[str] = None
+
+    # Backup configuration (set by step5; minimal for forge — full config in 6.B)
+    backup_destinations: list = field(default_factory=list)
+    keepass_embed_in_packages: bool = False
 
     # Serialized manual overrides (populated after guided session)
     setup_overrides:  dict = field(default_factory=dict)
@@ -292,6 +301,66 @@ def record_manual_field(
 
 
 # ---------------------------------------------------------------------------
+# Step 4 — Set timezone (Phase 1.F.9)
+# ---------------------------------------------------------------------------
+
+def step4_set_timezone(
+    session:  ForgePlannerSession,
+    timezone: Optional[str] = None,
+) -> ForgePlannerSession:
+    """
+    Set the operator's timezone preference for the forged hatchery.
+
+    timezone: IANA timezone string (e.g. "America/Denver", "Europe/London").
+    If None, the timezone will default to UTC at runtime.
+
+    Stored in host_identity.timezone in the forge manifest. All documentation
+    engine timestamps display both UTC and local time.
+    """
+    if timezone:
+        # Minimal validation: must contain "/" for IANA format, or be "UTC"
+        if timezone != "UTC" and "/" not in timezone:
+            session.warnings.append(
+                f"Timezone {timezone!r} does not look like an IANA timezone "
+                "(expected format: Continent/City, e.g. America/Denver). "
+                "Using it anyway — verify it is valid."
+            )
+        session.timezone = timezone
+    return session
+
+
+# ---------------------------------------------------------------------------
+# Step 5 — Configure backup destinations (Phase 1.F.10)
+# ---------------------------------------------------------------------------
+
+def step5_set_backup_config(
+    session:                   ForgePlannerSession,
+    destinations:              Optional[list] = None,
+    keepass_embed_in_packages: bool = False,
+) -> ForgePlannerSession:
+    """
+    Set backup destination configuration for the hatchery.
+
+    At forge time, the operator configures at least one backup destination for:
+      (a) Secrets / KeePass database
+      (b) Configuration state
+
+    Application data volumes are opt-in and configured per-service after forging.
+
+    destinations: list of destination dicts:
+      [{type, rclone_remote, rclone_path}]   — cloud/remote destinations
+      [{type, local_path}]                    — local filesystem / USB mount
+
+    keepass_embed_in_packages: whether to embed the KeePass database in
+      subsequent spawn/phoenix packages (convenient but adds security consideration).
+    """
+    if destinations is not None:
+        session.backup_destinations = list(destinations)
+    session.keepass_embed_in_packages = keepass_embed_in_packages
+    return session
+
+
+# ---------------------------------------------------------------------------
 # Build forge manifest
 # ---------------------------------------------------------------------------
 
@@ -337,17 +406,22 @@ def build_forge_manifest(
     # Network profile
     profile = session.network_profile
 
+    # host_identity block (include timezone if set)
+    host_identity: dict = {
+        "hostname": hostname,
+        "domain":   domain,
+        "fqdn":     fqdn,
+        "cell_id":  cell_id,
+    }
+    if session.timezone:
+        host_identity["timezone"] = session.timezone
+
     manifest: dict = {
         "schema_version": "1.0",
         "cell_id":        cell_id,
         "generated_at":   now,
         "setup_mode":     session.setup_mode,
-        "host_identity": {
-            "hostname": hostname,
-            "domain":   domain,
-            "fqdn":     fqdn,
-            "cell_id":  cell_id,
-        },
+        "host_identity":  host_identity,
         "network_topology": {
             "profile":          profile,
             "management_cidr":  mgmt_cidr,
@@ -358,6 +432,18 @@ def build_forge_manifest(
     # WAN config
     if profile == PROFILE_WAN and session.wan_config:
         manifest["network_topology"]["wan_config"] = dict(session.wan_config)
+
+    # KeePass configuration (from step5)
+    manifest["keepass_config"] = {
+        "embed_in_packages":  session.keepass_embed_in_packages,
+        "database_path_hint": None,
+    }
+
+    # Backup destinations (from step5 — minimal at forge time)
+    if session.backup_destinations:
+        manifest["backup_config_ref"] = {
+            "destinations": list(session.backup_destinations),
+        }
 
     # Embed setup overrides so downstream tools know which fields were manual
     if session.setup_overrides:

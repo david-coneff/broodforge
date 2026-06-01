@@ -496,5 +496,111 @@ class TestAutoSuggestField(unittest.TestCase):
         self.assertIsNone(val)
 
 
+class TestStep4SetTimezone(unittest.TestCase):
+    """Tests for step4_set_timezone (Phase 1.F.9)."""
+
+    def setUp(self):
+        from forge_planner import step4_set_timezone
+        self.step4 = step4_set_timezone
+
+    def test_timezone_stored_in_session(self):
+        sess = ForgePlannerSession()
+        self.step4(sess, "America/Denver")
+        self.assertEqual(sess.timezone, "America/Denver")
+
+    def test_no_timezone_leaves_none(self):
+        sess = ForgePlannerSession()
+        self.step4(sess, None)
+        self.assertIsNone(sess.timezone)
+
+    def test_utc_timezone_accepted(self):
+        sess = ForgePlannerSession()
+        self.step4(sess, "UTC")
+        self.assertEqual(sess.timezone, "UTC")
+
+    def test_invalid_format_adds_warning(self):
+        sess = ForgePlannerSession()
+        self.step4(sess, "Mountain")  # not IANA format
+        self.assertEqual(sess.timezone, "Mountain")
+        self.assertTrue(len(sess.warnings) > 0)
+
+    def test_valid_format_no_warning(self):
+        sess = ForgePlannerSession()
+        self.step4(sess, "Europe/London")
+        self.assertFalse(any("Timezone" in w for w in sess.warnings))
+
+    def test_timezone_in_manifest(self):
+        sess = ForgePlannerSession()
+        step2_set_identity(sess, hostname="pve01", domain="home.example.com", cell_id="c")
+        self.step4(sess, "America/Denver")
+        m = build_forge_manifest(sess)
+        self.assertEqual(m["host_identity"]["timezone"], "America/Denver")
+
+    def test_no_timezone_not_in_manifest(self):
+        sess = ForgePlannerSession()
+        step2_set_identity(sess, hostname="pve01", domain="home.example.com", cell_id="c")
+        m = build_forge_manifest(sess)
+        self.assertNotIn("timezone", m["host_identity"])
+
+
+class TestStep5SetBackupConfig(unittest.TestCase):
+    """Tests for step5_set_backup_config (Phase 1.F.10)."""
+
+    def setUp(self):
+        from forge_planner import step5_set_backup_config
+        self.step5 = step5_set_backup_config
+
+    def test_destinations_stored(self):
+        sess = ForgePlannerSession()
+        dests = [{"type": "b2", "rclone_remote": "b2:bucket"}]
+        self.step5(sess, destinations=dests)
+        self.assertEqual(sess.backup_destinations, dests)
+
+    def test_no_destinations_leaves_empty(self):
+        sess = ForgePlannerSession()
+        self.step5(sess)
+        self.assertEqual(sess.backup_destinations, [])
+
+    def test_embed_in_packages_false_default(self):
+        sess = ForgePlannerSession()
+        self.step5(sess)
+        self.assertFalse(sess.keepass_embed_in_packages)
+
+    def test_embed_in_packages_true(self):
+        sess = ForgePlannerSession()
+        self.step5(sess, keepass_embed_in_packages=True)
+        self.assertTrue(sess.keepass_embed_in_packages)
+
+    def test_destinations_in_manifest(self):
+        sess = ForgePlannerSession()
+        step2_set_identity(sess, hostname="pve01", domain="home.example.com", cell_id="c")
+        dests = [{"type": "local", "local_path": "/mnt/backup"}]
+        self.step5(sess, destinations=dests)
+        m = build_forge_manifest(sess)
+        self.assertIn("backup_config_ref", m)
+        self.assertEqual(m["backup_config_ref"]["destinations"], dests)
+
+    def test_no_destinations_no_backup_config_ref(self):
+        sess = ForgePlannerSession()
+        step2_set_identity(sess, hostname="pve01", domain="home.example.com", cell_id="c")
+        self.step5(sess, destinations=[])
+        m = build_forge_manifest(sess)
+        self.assertNotIn("backup_config_ref", m)
+
+    def test_keepass_config_in_manifest(self):
+        sess = ForgePlannerSession()
+        step2_set_identity(sess, hostname="pve01", domain="home.example.com", cell_id="c")
+        self.step5(sess, keepass_embed_in_packages=True)
+        m = build_forge_manifest(sess)
+        self.assertIn("keepass_config", m)
+        self.assertTrue(m["keepass_config"]["embed_in_packages"])
+
+    def test_keepass_config_always_present(self):
+        sess = ForgePlannerSession()
+        step2_set_identity(sess, hostname="pve01", domain="home.example.com", cell_id="c")
+        m = build_forge_manifest(sess)
+        self.assertIn("keepass_config", m)
+
+
 if __name__ == "__main__":
     unittest.main()
