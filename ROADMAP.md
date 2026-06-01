@@ -725,9 +725,20 @@ These are the playbooks that form the execution layer of the stargate process �
 per-wave, per-VM scripts that reconstitute a failed node's identity on new hardware.
 See Phase 12.E for the hatchery process playbooks (broodling spawn scripts).
 
-- [ ] 9.1: Phoenix playbook format and schema (identity-preservation fields: VMIDs, IPs, hostnames, certs)
-- [ ] 9.2: Playbook generator (from state model) — organized under `reconstruction/<cell_id>/`
-- [ ] 9.3: Wave 0 (host restore) playbook — hardware scan first; ZFS/bridge adapted to new hardware
+- [x] 9.1: Phoenix playbook format and schema — `data-model/phoenix-playbook-schema.json`:
+      schema_version, cell_id, target_node (hostname, role, k3s_role), identity
+      (lan_ip, tailnet_ip, vmids, bridge_names, zfs_pool_name), hardware_profile,
+      restoration_scope (full|partial|deferred), deferred_services, waves (playbook_wave
+      → playbook_step with id, action, commands, validation, method, on_failure, secret_refs),
+      estimated_total_minutes, validation_checklist
+- [x] 9.2: Playbook generator — `proxmox-bootstrap/phoenix_playbook.py`:
+      PhoenixPlaybookGenerator class + build_phoenix_playbook() factory;
+      reads manifest (host_identity, vms, dns_registry, network_topology_declared,
+      storage_config, provenance_registry); now_fn injectable for tests;
+      _zfs_topology_from_disk_count() adapts topology to replacement hardware
+- [x] 9.3: Wave 0 (network reconstruction) + Wave 1 (ZFS pool) + Wave 2 (host config) +
+      Wave 3 (VM PBS restore, identity-preserving — same VMIDs, IPs, provenance info) +
+      Wave 4 (k3s membership + Flux reconciliation) generated with pre-populated commands
 - [ ] 9.4: Wave 0.5 (template rebuild) playbook — Ubuntu and Talos variants
       Ubuntu path: cloud-init ISO + Ansible k3s-server role
       Talos path:  talosctl gen config + talosctl apply-config (no Ansible, no cloud-init)
@@ -736,7 +747,9 @@ See Phase 12.E for the hatchery process playbooks (broodling spawn scripts).
       k3s-server playbook emits correct steps for os_variant (ubuntu or talos)
 - [ ] 9.6: Orchestrated `run-all.sh` generator
 - [ ] 9.7: Playbook validator (syntax check + dependency check)
-- [ ] 9.8: Playbook existence in readiness scorer
+- [x] 9.8: Playbook existence in readiness scorer — _score_phoenix_playbook_existence():
+      YELLOW if neither phoenix_playbook nor phoenix_playbook_generated_at is present
+      in the manifest; wired into score_graph() alongside other registry gap scorers
 
 **9.T — Talos Alternative Support** *(optional; activate by setting os_variant: talos)*
 

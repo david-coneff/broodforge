@@ -509,6 +509,8 @@ class TestRegistryCompletenessScoring(unittest.TestCase):
                 "all_failed_policy": ["alert"],
                 "backup_history": [],
             },
+            # Phoenix playbook present — suppresses MISSING_PHOENIX_PLAYBOOK gap.
+            "phoenix_playbook_generated_at": _now,
         }
         # Minimal empty graph (no VM nodes, so no per-VM contract gap)
         from dependencies import DependencyGraph
@@ -753,6 +755,8 @@ class TestFixtureIntegration(unittest.TestCase):
             "all_failed_policy": ["alert"],
             "backup_history": [],
         }
+        # Phoenix playbook present — suppresses MISSING_PHOENIX_PLAYBOOK gap.
+        manifest["phoenix_playbook_generated_at"] = _now
 
         graph = dep_mod.build_graph(manifest)
         report = score_graph(graph, manifest)

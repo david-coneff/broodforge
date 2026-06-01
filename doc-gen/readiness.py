@@ -565,6 +565,43 @@ def _score_service_contract_completeness(graph, manifest: dict) -> list:
     return gaps
 
 
+def _score_phoenix_playbook_existence(manifest: dict) -> list:
+    """
+    Check whether a phoenix playbook has been generated for this cell.
+
+    Looks for 'phoenix_playbook' in the manifest (injected by engine.py from
+    the reconstruction/ directory) or for a 'phoenix_playbook_generated_at'
+    timestamp field in bootstrap-state.json.
+
+    YELLOW: no playbook generated — recovery depends on manual steps.
+    """
+    gaps: list[Gap] = []
+    has_playbook = bool(
+        manifest.get("phoenix_playbook") or
+        manifest.get("phoenix_playbook_generated_at")
+    )
+    if not has_playbook:
+        gaps.append(Gap(
+            component_id="infrastructure:phoenix-playbook",
+            gap_type="MISSING_PHOENIX_PLAYBOOK",
+            severity="YELLOW",
+            description=(
+                "No phoenix playbook has been generated for this cell — "
+                "node reconstruction requires improvised manual steps"
+            ),
+            remediation=(
+                "Generate a phoenix playbook: "
+                "python3 proxmox-bootstrap/phoenix_playbook.py "
+                "--state proxmox-bootstrap/bootstrap-state.json --output reconstruction/"
+            ),
+            readiness_impact=(
+                "Stargate process (failed node resurrection) has no pre-validated "
+                "wave-ordered reconstruction plan; RTO will be significantly higher"
+            ),
+        ))
+    return gaps
+
+
 def _score_network_topology_completeness(manifest: dict) -> list:
     """
     Check network topology declaration completeness and drift.
@@ -1019,7 +1056,7 @@ def score_graph(graph, manifest: dict) -> ReadinessReport:
         if cr.score == "RED" and dependent_counts.get(nid, 0) > 0
     ]
 
-    # Registry, provenance, service contract, external dependency, backup, and network completeness
+    # Registry, provenance, service contract, external dependency, backup, network, phoenix
     registry_gaps = _score_registry_completeness(manifest)
     registry_gaps += _score_provenance_completeness(graph, manifest)
     registry_gaps += _score_template_registry_completeness(manifest)
@@ -1027,6 +1064,7 @@ def score_graph(graph, manifest: dict) -> ReadinessReport:
     registry_gaps += _score_external_dependency_state(manifest)
     registry_gaps += _score_backup_config_completeness(manifest)
     registry_gaps += _score_network_topology_completeness(manifest)
+    registry_gaps += _score_phoenix_playbook_existence(manifest)
 
     # Overall score — worst of component scores and infrastructure gaps
     overall = "GREEN"

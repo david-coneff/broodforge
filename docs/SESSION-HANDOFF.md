@@ -1,7 +1,9 @@
 # Session Handoff
 
 Date: 2026-05-31 UTC (updated after Milestone 7.4 — Recovery Documentation Update Service Layer)
-Status: Milestones 7.1–7.4, 6.B, Phase 8 complete. Ready to resume at Phase 9 — Phoenix Playbooks
+Status: Milestones 7.1–7.4, 6.B, Phase 8, Phase 9 (partial: 9.1-9.3, 9.8) complete.
+Ready to resume at Phase 9 continued: Wave 0.5 (template rebuild), per-VM RECREATE steps,
+run-all.sh generator (9.6), playbook validator (9.7).
 
 ---
 
@@ -482,7 +484,66 @@ Updateable after forging via `engine.py --set-timezone "Continent/City"` without
 
 ---
 
-## Next Action: Phase 8 — Network Topology as Code
+## Completed: Phase 8 — Network Topology as Code
+
+  data-model/network-topology-schema.json   Bridges, VLANs, firewall policy schema
+  data-model/bootstrap-state-schema.json    network_topology_declared, host_identity.domain,
+                                            network_topology ssl/ddns/headscale optional fields
+  proxmox-bootstrap/network_topology_collector.py
+      parse_interfaces_file()   — parse /etc/network/interfaces (bridges only)
+      collect_observed_bridges() — SSH to host, injectable runner
+      compare_topology()         — diff declared vs observed (IP, vlan_aware, ports)
+      merge_observed_topology()  — persist drift results to bootstrap-state.json
+  doc-gen/readiness.py           _score_network_topology_completeness():
+                                 YELLOW: not declared; ORANGE: drift; RED: all bridges missing
+  doc-gen/renderers/recovery_runbook.py  Wave 0 — Network Reconstruction section
+  doc-gen/engine.py              network_topology_declared injected in both paths
+  tests/unit/test_network_topology.py  58 tests
+
+## Completed: Phase 9 (partial) — Phoenix Playbooks
+
+  data-model/phoenix-playbook-schema.json
+      Top-level: schema_version, cell_id, target_node (hostname, fqdn, proxmox_version,
+      role, k3s_role), identity (lan_ip, tailnet_ip, proxmox_node_id, k3s_node_name,
+      vmids, bridge_names, zfs_pool_name), hardware_profile, restoration_scope, waves.
+      Per-wave: wave number, name, estimated_minutes, prerequisites, steps.
+      Per-step: id, action, commands, validation, method (RESTORE|RECREATE|VERIFY|CONFIGURE),
+      on_failure, secret_refs.
+
+  proxmox-bootstrap/phoenix_playbook.py
+      PhoenixPlaybookGenerator — builds waves from manifest:
+        Wave 0: Network reconstruction (from network_topology_declared bridges)
+        Wave 1: ZFS pool import or recreate (_zfs_topology_from_disk_count() adapts)
+        Wave 2: Proxmox host hostname + /etc/hosts + service verification
+        Wave 3: VM PBS restore (identity-preserving VMIDs + IPs from dns_registry +
+                provenance info from provenance_registry + secret_refs from vm config)
+        Wave 4: k3s node membership + Flux CD reconciliation verification
+      _zfs_topology_from_disk_count(n) → stripe/mirror/raidz1/raidz2/raidz3
+      build_phoenix_playbook() factory — accepts now_fn for test injection
+      Validation checklist auto-generated from VM list and host config
+
+  doc-gen/readiness.py  _score_phoenix_playbook_existence():
+      YELLOW if neither phoenix_playbook nor phoenix_playbook_generated_at in manifest.
+      Wired into score_graph() alongside other scorers.
+
+  tests/unit/test_phoenix_playbook.py  58 tests
+
+**Tests: 1470 total (1466 passed, 4 skipped)**
+Test runner: `C:\Users\dave\AppData\Local\Programs\Python\Python311\python.exe -m pytest tests/unit/ -q`
+
+## Remaining Phase 9 work for next session (9.4–9.7)
+
+  9.4: Wave 0.5 (template rebuild playbook):
+       Ubuntu path: cloud-init ISO + Ansible k3s-server role
+       Talos path: talosctl gen config + apply (controlled by k3s-cluster.yaml os_variant)
+  9.5: Per-VM reconstruction playbook — RECREATE steps for stateless VMs
+       (VMs where provenance_registry shows tofu_workspace + ansible_commit)
+  9.6: Orchestrated run-all.sh generator — calls waves in order, uses checkpoint
+       library, generates failure package on any step failure
+  9.7: Playbook validator — syntax check + dependency check (all VMIDs unique,
+       all bridges referenced in wave 3+ exist in wave 0, etc.)
+
+## Next Action: Phase 9 continued — Wave 0.5, per-VM RECREATE, run-all.sh, validator
 
 ### What It Is
 

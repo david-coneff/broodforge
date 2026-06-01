@@ -51,14 +51,15 @@ See ROADMAP.md Milestone 7.4 for the full spec.
 | 7.4 | Recovery Documentation Update (Service Layer) — per-VM service contract block, health check commands, restart commands, required interfaces, Appendix A edge legend + ★ marker (44 tests) | Complete |
 | 6.B | Backup Infrastructure — restic+rclone engine, BackupNaming, SpaceProbe, ResticRunner, RcloneRunner, BackupEngine, RestoreEngine, run-backup.py, restore-from-backup.py, setup-backup.py, readiness scoring, Appendix H, schema additions (82 tests) | Complete |
 | 8 | Network Topology as Code — network-topology-schema.json, network_topology_declared in bootstrap-state-schema.json, network_topology_collector.py (parser + SSH collector + compare + merge), _score_network_topology_completeness(), Wave 0 in recovery runbook, engine injection (58 tests) | Complete |
+| 9 (partial) | Phoenix Playbooks — phoenix-playbook-schema.json, PhoenixPlaybookGenerator (waves 0-4: network, storage, host, VMs, k3s), build_phoenix_playbook() factory, _score_phoenix_playbook_existence() readiness scorer, now_fn injection (58 tests). Waves 0.5, per-VM RECREATE, run-all.sh, validator in next session. | Complete |
 
-**Tests: 1412 total (1408 passed, 4 skipped)**
+**Tests: 1470 total (1466 passed, 4 skipped)**
 
 ## Next Milestones
 
 | Milestone | Description |
 |---|---|
-| **Phase 9** | **Phoenix Playbooks (Stargate Process) — START HERE** |
+| **Phase 9 (continued)** | **Phoenix Playbooks — Wave 0.5, per-VM RECREATE, run-all.sh, validator — START HERE** |
 | Phase 1.F | Forge Package Assembly (capstone of forging process) |
 | Phase 9 | Phoenix Playbooks (Stargate Process) |
 
