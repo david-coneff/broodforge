@@ -1168,7 +1168,7 @@ never needs to ask the operator what is already taken.
       - Ansible inventory additions (this host appended to existing groups)
       - k3s join token embedded in Ansible role vars (from spawn manifest)
 
-- [ ] 12.E.6: **Spawn scripts** — generated shell scripts using the same
+- [x] 12.E.6: **Spawn scripts** — generated shell scripts using the same
       checkpoint/failure-package/ODS-update library as recovery scripts.
       All scripts read from spawn-plan.json; bridge names, pool names, and IPs
       are consistent across phases because phase-00 creates what later phases reference.

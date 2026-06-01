@@ -1,0 +1,457 @@
+#!/usr/bin/env python3
+"""
+spawn_scripts.py — Spawn phase script generator (Phase 12.E.6).
+
+Generates the bash scripts embedded in every spawn package.
+Pattern mirrors phoenix_scripts.py but for the seven spawn phases.
+
+Provides:
+  generate_spawn_sh(plan)           — orchestrating entry point
+  generate_phase_00_preflight(plan) — hardware pre-flight (read-only)
+  generate_phase_00_host(plan)      — host configuration (bridge/ZFS/hostname)
+  generate_phase_01_proxmox(plan)   — pvecm join
+  generate_phase_02_vms(plan)       — tofu apply
+  generate_phase_03_cloudinit(plan) — cloud-init snippets + VM start
+  generate_phase_04_k3s(plan)       — ansible k3s role
+  generate_phase_05_ha(plan)        — conditional HA promotion
+  generate_phase_06_verify(plan)    — post-spawn health check
+  write_all_scripts(plan, output_dir) — write everything to disk
+
+All generators return strings. write_all_scripts() writes to disk.
+Stdlib only.
+"""
+
+from pathlib import Path
+from typing import Optional
+
+_SHEBANG  = "#!/usr/bin/env bash"
+_STRICT   = "set -euo pipefail"
+_CHECKPOINT_LIB = """\
+CHECKPOINT_DIR="${SCRIPT_DIR}/.checkpoints"
+mkdir -p "$CHECKPOINT_DIR"
+checkpoint_start()  { echo "[spawn] START: $1"; }
+checkpoint_done()   { touch "$CHECKPOINT_DIR/$1.done"; echo "[spawn] DONE: $1"; }
+checkpoint_skip()   { echo "[spawn] SKIP (done): $1"; }
+checkpoint_failed() { echo "[spawn] FAILED: $1 — see $SPAWN_LOG"; exit 1; }
+is_done()           { [ -f "$CHECKPOINT_DIR/$1.done" ]; }
+"""
+
+def _plan_header(plan: dict, script_name: str) -> str:
+    return (
+        f"{_SHEBANG}\n"
+        f"# {script_name}\n"
+        f"# Spawn package: {plan.get('package_id', '?')}\n"
+        f"# Broodling:     {plan.get('hostname', '?')}\n"
+        f"# Generated:     {plan.get('generated_at', '?')}\n"
+        f"# DO NOT EDIT — regenerate from spawn-plan.json\n"
+        f"{_STRICT}\n\n"
+        f'SCRIPT_DIR="$(cd "$(dirname "${{BASH_SOURCE[0]}}")" && pwd)"\n'
+        f'SPAWN_LOG="$SCRIPT_DIR/spawn-$(date +%Y%m%d_%H%M%S).log"\n'
+        f'source "$SCRIPT_DIR/lib/checkpoint.sh" 2>/dev/null || {{\n{_CHECKPOINT_LIB}}}\n\n'
+    )
+
+
+# ---------------------------------------------------------------------------
+# spawn.sh — orchestrating entry point
+# ---------------------------------------------------------------------------
+
+def generate_spawn_sh(plan: dict, include_wan_phase: bool = False) -> str:
+    hostname   = plan.get("hostname", "unknown")
+    vms        = plan.get("vms") or []
+    k3s_role   = plan.get("k3s_role", "worker")
+    exec_mode  = plan.get("disposition", {}).get("execution_mode", "autonomous")
+    has_ha     = k3s_role == "server" and len(vms) > 0
+
+    lines = [
+        _plan_header(plan, "spawn.sh — orchestrated entry point"),
+        f'exec > >(tee -a "$SPAWN_LOG") 2>&1',
+        f'echo "================================================================="',
+        f'echo " Broodforge Spawn — {hostname}"',
+        f'echo " Mode: {exec_mode}   k3s role: {k3s_role}"',
+        f'echo " Package: {plan.get("package_id", "?")}"',
+        f'echo "================================================================="',
+        f'echo ""',
+        f'',
+    ]
+
+    # KeePass gate (12.E.7a) — placeholder, implemented in generate_spawn_sh_with_gate
+    lines += [
+        f'# ── KeePass unlock gate ──────────────────────────────────────────────',
+        f'if [ -f "$SCRIPT_DIR/lib/keepass-gate.sh" ]; then',
+        f'  source "$SCRIPT_DIR/lib/keepass-gate.sh"',
+        f'  keepass_unlock_gate',
+        f'fi',
+        f'',
+    ]
+
+    phases = []
+    if include_wan_phase:
+        phases.append(("00a", "tailscale-join", "Tailscale join (WAN mode)"))
+    phases += [
+        ("00-preflight", "phase-00-preflight", "Hardware pre-flight (read-only)"),
+        ("00-host",      "phase-00-host",      "Host configuration"),
+        ("01",           "phase-01-proxmox",   "Proxmox cluster join"),
+        ("02",           "phase-02-vms",       "VM provisioning"),
+        ("03",           "phase-03-cloudinit", "Cloud-Init + VM start"),
+        ("04",           "phase-04-k3s",       "k3s join"),
+    ]
+    if has_ha:
+        phases.append(("05", "phase-05-ha", "HA promotion (3rd server node)"))
+    phases.append(("06", "phase-06-verify", "Post-spawn verification"))
+
+    for phase_id, script, desc in phases:
+        lines += [
+            f'# ── Phase {phase_id}: {desc}',
+            f'echo "[spawn] Phase {phase_id}: {desc}"',
+            f'bash "$SCRIPT_DIR/{script}.sh" \\',
+            f'  || {{ echo "[spawn] FAILED: {desc}"; exit 1; }}',
+            f'echo ""',
+            f'',
+        ]
+
+    lines += [
+        f'echo "================================================================="',
+        f'echo " Spawn complete: {hostname}"',
+        f'echo " Report success to hatchery to trigger bootstrap-state update."',
+        f'echo "================================================================="',
+        f'echo ""',
+        f'echo " Post-spawn validation:"',
+        f'echo "   qm list                     # all VMs running"',
+        f'echo "   kubectl get nodes            # all nodes Ready"',
+        f'echo "   flux get kustomizations      # Flux reconciled"',
+    ]
+    return "\n".join(lines) + "\n"
+
+
+# ---------------------------------------------------------------------------
+# phase-00-preflight.sh — hardware pre-flight (read-only)
+# ---------------------------------------------------------------------------
+
+def generate_phase_00_preflight(plan: dict) -> str:
+    storage  = plan.get("storage") or {}
+    network  = plan.get("network") or {}
+    pool     = storage.get("pool_name", "rpool")
+    bridge   = network.get("bridge", "vmbr0")
+    disk_ids = storage.get("disk_ids") or []
+    vms      = plan.get("vms") or []
+    host_ram_needed = sum(v.get("memory_mb", 4096) for v in vms) / 1024 * 1.1
+
+    disks_check = "\n".join(
+        f'  if [ ! -b "{d}" ]; then FAILS+=("Disk {d} not found"); fi'
+        for d in disk_ids
+    ) or '  echo "  No disk IDs in plan — skipping disk check"'
+
+    return (
+        _plan_header(plan, "phase-00-preflight.sh — hardware pre-flight (read-only)") +
+        f'echo "[preflight] Checking hardware against embedded profile..."\n'
+        f'FAILS=()\n\n'
+        f'# ── Disk presence ────────────────────────────────────────────────\n'
+        + disks_check + "\n\n"
+        f'# ── No conflicting ZFS pool ──────────────────────────────────────\n'
+        f'if zpool list {pool} &>/dev/null; then\n'
+        f'  FAILS+=("ZFS pool \\"{pool}\\" already exists — conflict with spawn plan")\n'
+        f'fi\n\n'
+        f'# ── No conflicting bridge ─────────────────────────────────────────\n'
+        f'if ip link show {bridge} &>/dev/null; then\n'
+        f'  echo "  Bridge {bridge} already exists — will verify config"\n'
+        f'fi\n\n'
+        f'# ── Sufficient RAM ───────────────────────────────────────────────\n'
+        f'AVAIL_RAM_GB=$(awk \'/MemAvailable/{{printf "%.1f", $2/1048576}}\' /proc/meminfo)\n'
+        f'NEEDED={host_ram_needed:.1f}\n'
+        f'if (( $(echo "$AVAIL_RAM_GB < $NEEDED" | bc -l) )); then\n'
+        f'  FAILS+=("Insufficient RAM: ${{AVAIL_RAM_GB}}GB available, {host_ram_needed:.1f}GB needed")\n'
+        f'fi\n\n'
+        f'# ── Re-run conflict validator ────────────────────────────────────\n'
+        f'if command -v python3 &>/dev/null && [ -f "$SCRIPT_DIR/validate-spawn.py" ]; then\n'
+        f'  python3 "$SCRIPT_DIR/validate-spawn.py" \\\n'
+        f'    --manifest "$SCRIPT_DIR/spawn-manifest.json" \\\n'
+        f'    --plan     "$SCRIPT_DIR/spawn-plan.json" \\\n'
+        f'    || FAILS+=("Conflict validator: collisions detected")\n'
+        f'fi\n\n'
+        f'# ── Result ───────────────────────────────────────────────────────\n'
+        f'if [ ${{#FAILS[@]}} -gt 0 ]; then\n'
+        f'  echo "[preflight] FAILED — ${{#FAILS[@]}} issue(s):"\n'
+        f'  for f in "${{FAILS[@]}}"; do echo "  ✗ $f"; done\n'
+        f'  echo "[preflight] No changes made to this host. Fix issues and regenerate package."\n'
+        f'  exit 1\n'
+        f'fi\n'
+        f'echo "[preflight] All checks PASSED"\n'
+    )
+
+
+# ---------------------------------------------------------------------------
+# phase-00-host.sh — host configuration
+# ---------------------------------------------------------------------------
+
+def generate_phase_00_host(plan: dict) -> str:
+    hostname = plan.get("hostname", "unknown")
+    lan_ip   = plan.get("lan_ip", "")
+    storage  = plan.get("storage") or {}
+    network  = plan.get("network") or {}
+    pool     = storage.get("pool_name", "rpool")
+    topology = storage.get("topology", "mirror")
+    disk_ids = storage.get("disk_ids") or []
+    bridge   = network.get("bridge", "vmbr0")
+    domain   = plan.get("domain", "internal")
+    disks_str = " ".join(disk_ids)
+    ds_name  = storage.get("datastore_name", f"local-{pool}")
+
+    return (
+        _plan_header(plan, "phase-00-host.sh — host configuration") +
+        f'# ── Hostname ────────────────────────────────────────────────────\n'
+        f'is_done "hostname" && checkpoint_skip "hostname" || {{\n'
+        f'  checkpoint_start "hostname"\n'
+        f'  hostnamectl set-hostname {hostname}\n'
+        f'  # Fix /etc/hosts (pvecm add fails if hostname resolves to 127.0.0.1)\n'
+        f'  sed -i "/127.0.1.1/d" /etc/hosts\n'
+        f'  echo "{lan_ip}  {hostname}.{domain} {hostname}" >> /etc/hosts\n'
+        f'  checkpoint_done "hostname"\n'
+        f'}}\n\n'
+        f'# ── Network bridge ──────────────────────────────────────────────\n'
+        f'is_done "bridge" && checkpoint_skip "bridge" || {{\n'
+        f'  checkpoint_start "bridge"\n'
+        f'  # Write bridge config from spawn plan to /etc/network/interfaces\n'
+        f'  cat "$SCRIPT_DIR/network/interfaces.d/{bridge}" >> /etc/network/interfaces.d/{bridge}\n'
+        f'  ifreload -a\n'
+        f'  checkpoint_done "bridge"\n'
+        f'}}\n\n'
+        f'# ── ZFS pool ────────────────────────────────────────────────────\n'
+        f'is_done "zpool" && checkpoint_skip "zpool" || {{\n'
+        f'  checkpoint_start "zpool"\n'
+        f'  zpool create {pool} {topology} {disks_str}\n'
+        f'  checkpoint_done "zpool"\n'
+        f'}}\n\n'
+        f'# ── Register datastore with Proxmox ─────────────────────────────\n'
+        f'is_done "pvesm" && checkpoint_skip "pvesm" || {{\n'
+        f'  checkpoint_start "pvesm"\n'
+        f'  pvesm add zfspool {ds_name} --pool {pool} --sparse 1\n'
+        f'  checkpoint_done "pvesm"\n'
+        f'}}\n\n'
+        f'# ── apt repos ───────────────────────────────────────────────────\n'
+        f'is_done "apt-repos" && checkpoint_skip "apt-repos" || {{\n'
+        f'  checkpoint_start "apt-repos"\n'
+        f'  # Disable enterprise repos, enable no-subscription\n'
+        f'  sed -i "s/^deb/# deb/" /etc/apt/sources.list.d/pve-enterprise.list 2>/dev/null || true\n'
+        f'  echo "deb http://download.proxmox.com/debian/pve bookworm pve-no-subscription" \\\n'
+        f'    > /etc/apt/sources.list.d/pve-no-subscription.list\n'
+        f'  apt-get update -qq\n'
+        f'  checkpoint_done "apt-repos"\n'
+        f'}}\n\n'
+        f'echo "[host] Host configuration complete"\n'
+    )
+
+
+# ---------------------------------------------------------------------------
+# phase-01-proxmox.sh — pvecm join
+# ---------------------------------------------------------------------------
+
+def generate_phase_01_proxmox(plan: dict) -> str:
+    hatchery = (plan.get("hatchery") or {}).get("proxmox_cluster_address", "hatchery")
+    fingerprint = (plan.get("hatchery") or {}).get("proxmox_cluster_fingerprint") or ""
+    fp_arg = f'--fingerprint "{fingerprint}"' if fingerprint else ""
+
+    return (
+        _plan_header(plan, "phase-01-proxmox.sh — Proxmox cluster join") +
+        f'is_done "pvecm" && checkpoint_skip "pvecm" || {{\n'
+        f'  checkpoint_start "pvecm"\n'
+        f'  # Check if already a cluster member\n'
+        f'  if pvecm status 2>/dev/null | grep -q "Quorum"; then\n'
+        f'    echo "[pvecm] Already a cluster member — skipping join"\n'
+        f'  else\n'
+        f'    pvecm add {hatchery} {fp_arg}\n'
+        f'  fi\n'
+        f'  checkpoint_done "pvecm"\n'
+        f'}}\n\n'
+        f'# Verify membership\n'
+        f'pvecm status\n'
+        f'echo "[pvecm] This host is now visible in Proxmox datacenter"\n'
+    )
+
+
+# ---------------------------------------------------------------------------
+# phase-02-vms.sh — tofu apply
+# ---------------------------------------------------------------------------
+
+def generate_phase_02_vms(plan: dict) -> str:
+    hostname = plan.get("hostname", "unknown")
+    return (
+        _plan_header(plan, "phase-02-vms.sh — VM provisioning via OpenTofu") +
+        f'is_done "tofu-apply" && checkpoint_skip "tofu-apply" || {{\n'
+        f'  checkpoint_start "tofu-apply"\n'
+        f'  cd "$SCRIPT_DIR/opentofu"\n'
+        f'  tofu init -input=false\n'
+        f'  tofu apply -input=false -auto-approve \\\n'
+        f'    -var-file="spawn-{hostname}.auto.tfvars"\n'
+        f'  checkpoint_done "tofu-apply"\n'
+        f'}}\n\n'
+        f'# Verify VMs created\n'
+        f'qm list\n'
+        f'echo "[vms] VM provisioning complete"\n'
+    )
+
+
+# ---------------------------------------------------------------------------
+# phase-03-cloudinit.sh — snippets + VM start + SSH readiness
+# ---------------------------------------------------------------------------
+
+def generate_phase_03_cloudinit(plan: dict) -> str:
+    snippets_store = (plan.get("storage") or {}).get("snippets", "local:snippets")
+    vms = plan.get("vms") or []
+    vm_waits = "\n".join(
+        f'wait_ssh "{v.get("ip","")}" "{v.get("name","vm")}"'
+        for v in vms if v.get("ip")
+    )
+
+    return (
+        _plan_header(plan, "phase-03-cloudinit.sh — Cloud-Init snippets + VM start") +
+        f'wait_ssh() {{\n'
+        f'  local ip="$1" name="$2" retries=30\n'
+        f'  echo "[cloud-init] Waiting for SSH on $name ($ip)..."\n'
+        f'  for i in $(seq 1 $retries); do\n'
+        f'    ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no ubuntu@"$ip" exit 0 2>/dev/null \\\n'
+        f'      && {{ echo "[cloud-init] $name SSH ready"; return 0; }}\n'
+        f'    sleep 10\n'
+        f'  done\n'
+        f'  echo "[cloud-init] Timeout waiting for $name" && exit 1\n'
+        f'}}\n\n'
+        f'is_done "snippets" && checkpoint_skip "snippets" || {{\n'
+        f'  checkpoint_start "snippets"\n'
+        f'  # Upload Cloud-Init snippets to Proxmox snippet store\n'
+        f'  for f in "$SCRIPT_DIR"/cloud-init/snippets/user-data/*.yaml; do\n'
+        f'    pvesm upload {snippets_store} "$f" --content snippets\n'
+        f'  done\n'
+        f'  for f in "$SCRIPT_DIR"/cloud-init/snippets/network-config/*.yaml; do\n'
+        f'    pvesm upload {snippets_store} "$f" --content snippets\n'
+        f'  done\n'
+        f'  checkpoint_done "snippets"\n'
+        f'}}\n\n'
+        f'is_done "vm-start" && checkpoint_skip "vm-start" || {{\n'
+        f'  checkpoint_start "vm-start"\n'
+        + "\n".join(
+            '  qm start {} && echo "[cloud-init] Started {}"'.format(
+                v.get("vmid", "?"), v.get("name", "?"))
+            for v in vms
+        ) + "\n"
+        f'  checkpoint_done "vm-start"\n'
+        f'}}\n\n'
+        f'# Wait for SSH readiness on each VM\n'
+        + vm_waits + "\n"
+        f'\necho "[cloud-init] All VMs booted and SSH-ready"\n'
+    )
+
+
+# ---------------------------------------------------------------------------
+# phase-04-k3s.sh — ansible k3s join
+# ---------------------------------------------------------------------------
+
+def generate_phase_04_k3s(plan: dict) -> str:
+    k3s_role = plan.get("k3s_role", "worker")
+    return (
+        _plan_header(plan, f"phase-04-k3s.sh — k3s {k3s_role} join via Ansible") +
+        f'is_done "k3s-join" && checkpoint_skip "k3s-join" || {{\n'
+        f'  checkpoint_start "k3s-join"\n'
+        f'  cd "$SCRIPT_DIR/ansible"\n'
+        f'  ansible-playbook site.yml \\\n'
+        f'    -i "spawn-{plan.get("hostname","?")}.ini" \\\n'
+        f'    --tags k3s-{k3s_role}\n'
+        f'  checkpoint_done "k3s-join"\n'
+        f'}}\n\n'
+        f'echo "[k3s] Node joined as {k3s_role}"\n'
+    )
+
+
+# ---------------------------------------------------------------------------
+# phase-05-ha.sh — conditional HA promotion (3rd server node only)
+# ---------------------------------------------------------------------------
+
+def generate_phase_05_ha(plan: dict) -> str:
+    server_url = (plan.get("k3s") or {}).get("server_url", "")
+    return (
+        _plan_header(plan, "phase-05-ha.sh — SQLite → etcd HA promotion (3rd server)") +
+        f'# This phase only runs when this is the 3rd k3s server node.\n'
+        f'# If omitted from the spawn package, HA promotion is not applicable.\n\n'
+        f'is_done "ha-promote" && checkpoint_skip "ha-promote" || {{\n'
+        f'  checkpoint_start "ha-promote"\n'
+        f'  echo "[ha] Promoting k3s cluster from SQLite to embedded etcd"\n'
+        f'  # This procedure quiesces the existing cluster, promotes etcd,\n'
+        f'  # and distributes the control plane across all 3 server nodes.\n'
+        f'  # Run against the hatchery k3s server:\n'
+        f'  ssh ubuntu@{server_url.replace("https://","").split(":")[0]} \\\n'
+        f'    "sudo k3s etcd-snapshot save && sudo systemctl restart k3s"\n'
+        f'  checkpoint_done "ha-promote"\n'
+        f'}}\n\n'
+        f'echo "[ha] HA promotion complete — 3-server etcd quorum established"\n'
+    )
+
+
+# ---------------------------------------------------------------------------
+# phase-06-verify.sh — post-spawn health check
+# ---------------------------------------------------------------------------
+
+def generate_phase_06_verify(plan: dict) -> str:
+    hostname = plan.get("hostname", "unknown")
+    vms      = plan.get("vms") or []
+    gateway  = (plan.get("network") or {}).get("gateway", "")
+
+    vm_checks = "\n".join(
+        'qm status {} | grep -q running || FAILS+=("VM {} not running")'.format(
+            v.get("vmid", "?"), v.get("name", "?"))
+        for v in vms
+    )
+
+    return (
+        _plan_header(plan, "phase-06-verify.sh — post-spawn health check") +
+        f'FAILS=()\n\n'
+        f'# ── VMs running ─────────────────────────────────────────────────\n'
+        + vm_checks + "\n\n"
+        f'# ── k3s node visible ────────────────────────────────────────────\n'
+        f'if command -v kubectl &>/dev/null; then\n'
+        f'  kubectl get node {hostname} &>/dev/null \\\n'
+        f'    || FAILS+=("k3s node {hostname} not found in cluster")\n'
+        f'fi\n\n'
+        f'# ── Network reachable ───────────────────────────────────────────\n'
+        + (f'ping -c 3 {gateway} &>/dev/null || FAILS+=("Gateway {gateway} unreachable")\n\n' if gateway else "")
+        + f'# ── Result ───────────────────────────────────────────────────────\n'
+        f'if [ ${{#FAILS[@]}} -gt 0 ]; then\n'
+        f'  echo "[verify] FAILED — ${{#FAILS[@]}} issue(s):"\n'
+        f'  for f in "${{FAILS[@]}}"; do echo "  ✗ $f"; done\n'
+        f'  exit 1\n'
+        f'fi\n'
+        f'echo "[verify] All checks PASSED"\n'
+        f'echo "[verify] Report success to hatchery: update_state_after_spawn.py"\n'
+    )
+
+
+# ---------------------------------------------------------------------------
+# Write all scripts
+# ---------------------------------------------------------------------------
+
+def write_all_scripts(
+    plan: dict,
+    output_dir: Path,
+    include_ha: bool = False,
+    include_wan_phase: bool = False,
+) -> dict[str, Path]:
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    written: dict[str, Path] = {}
+
+    scripts = {
+        "spawn.sh":                generate_spawn_sh(plan, include_wan_phase=include_wan_phase),
+        "phase-00-preflight.sh":   generate_phase_00_preflight(plan),
+        "phase-00-host.sh":        generate_phase_00_host(plan),
+        "phase-01-proxmox.sh":     generate_phase_01_proxmox(plan),
+        "phase-02-vms.sh":         generate_phase_02_vms(plan),
+        "phase-03-cloudinit.sh":   generate_phase_03_cloudinit(plan),
+        "phase-04-k3s.sh":         generate_phase_04_k3s(plan),
+        "phase-06-verify.sh":      generate_phase_06_verify(plan),
+    }
+    if include_ha:
+        scripts["phase-05-ha.sh"] = generate_phase_05_ha(plan)
+
+    for name, content in scripts.items():
+        path = output_dir / name
+        path.write_text(content, encoding="utf-8")
+        written[name] = path
+
+    return written
