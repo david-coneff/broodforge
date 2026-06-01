@@ -1,0 +1,172 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Forge Manifest",
+  "description": "Cell identity and configuration snapshot embedded in a forge package. Produced by forge-planner.py and consumed by forge.sh during hatchery forging.",
+  "type": "object",
+  "required": ["schema_version", "cell_id", "generated_at", "setup_mode", "host_identity", "network_topology"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "cell_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Unique identifier for the hatchery cell."
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 UTC timestamp when this manifest was generated."
+    },
+    "setup_mode": {
+      "type": "string",
+      "enum": ["autonomous", "ip-selective", "group-manual", "full-manual"],
+      "description": "Configuration mode used during forge planning."
+    },
+    "host_identity": {
+      "type": "object",
+      "required": ["hostname", "domain", "fqdn", "cell_id"],
+      "additionalProperties": false,
+      "properties": {
+        "hostname": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[a-z][a-z0-9-]*$",
+          "description": "Short hostname of the hatchery (e.g. pve01)."
+        },
+        "domain": {
+          "type": "string",
+          "minLength": 1,
+          "description": "DNS domain for the hatchery (e.g. home.example.com)."
+        },
+        "fqdn": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Fully qualified domain name (hostname.domain)."
+        },
+        "cell_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Cell identifier (matches top-level cell_id)."
+        },
+        "timezone": {
+          "type": "string",
+          "description": "IANA timezone name (e.g. America/Denver). Set at forge time."
+        }
+      }
+    },
+    "network_topology": {
+      "type": "object",
+      "required": ["profile", "management_cidr", "gateway"],
+      "additionalProperties": true,
+      "properties": {
+        "profile": {
+          "type": "string",
+          "enum": ["lan", "wan"],
+          "description": "Network profile: lan (local only) or wan (Headscale-capable)."
+        },
+        "management_cidr": {
+          "type": "string",
+          "description": "Management network CIDR (e.g. 192.168.1.0/24)."
+        },
+        "gateway": {
+          "type": "string",
+          "description": "Default gateway IP address."
+        },
+        "wan_config": {
+          "type": "object",
+          "description": "WAN-specific configuration (only present when profile=wan).",
+          "additionalProperties": true,
+          "properties": {
+            "domain": {"type": "string"},
+            "dns_provider": {"type": "string"},
+            "ddns_provider": {"type": ["string", "null"]},
+            "headscale_url": {"type": "string"},
+            "tls_provider": {"type": "string"}
+          }
+        }
+      }
+    },
+    "hardware_requirements": {
+      "type": "object",
+      "description": "Minimum hardware requirements declared for this forge configuration.",
+      "additionalProperties": true,
+      "properties": {
+        "min_ram_gib":    {"type": "integer", "minimum": 1},
+        "min_disk_count": {"type": "integer", "minimum": 1},
+        "min_disk_size_gib": {"type": "integer", "minimum": 1},
+        "min_nic_count":  {"type": "integer", "minimum": 1}
+      }
+    },
+    "minimum_vm_stack": {
+      "type": "array",
+      "description": "List of service names in the minimum viable forge stack.",
+      "items": {"type": "string"}
+    },
+    "backup_config_ref": {
+      "type": "object",
+      "description": "Reference to backup configuration for secrets retrieval at forge time.",
+      "additionalProperties": true,
+      "properties": {
+        "secrets_transport_credential": {
+          "type": "string",
+          "description": "KeePass-transport credential embedded in forge package for pre-KeePass backup access."
+        }
+      }
+    },
+    "keepass_config": {
+      "type": "object",
+      "description": "KeePass initialisation preferences set at forge time.",
+      "additionalProperties": false,
+      "properties": {
+        "embed_in_packages": {
+          "type": "boolean",
+          "description": "Whether to embed the KeePass database in spawn/phoenix packages."
+        },
+        "database_path_hint": {
+          "type": ["string", "null"],
+          "description": "Expected filesystem path for the database if not embedded."
+        }
+      }
+    },
+    "setup_overrides": {
+      "type": "object",
+      "description": "Manual field overrides recorded during guided setup (non-autonomous modes only). Maps field_path to {value, source}.",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "value": {},
+          "source": {"type": "string", "enum": ["manual", "auto"]}
+        }
+      }
+    },
+    "setup_warnings": {
+      "type": "array",
+      "description": "Conflict warnings detected during guided setup.",
+      "items": {"type": "string"}
+    },
+    "validation_result": {
+      "type": "object",
+      "description": "Hardware validation result from phase-02.",
+      "additionalProperties": true,
+      "properties": {
+        "valid": {"type": "boolean"},
+        "red_count": {"type": "integer", "minimum": 0},
+        "yellow_count": {"type": "integer", "minimum": 0},
+        "findings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "severity": {"type": "string", "enum": ["RED", "YELLOW"]},
+              "field":    {"type": "string"},
+              "message":  {"type": "string"}
+            }
+          }
+        }
+      }
+    }
+  }
+}
