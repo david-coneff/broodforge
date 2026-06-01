@@ -985,7 +985,7 @@ never needs to ask the operator what is already taken.
       This is the authoritative "what the hatchery has reserved" data dump embedded
       in every spawn package.
 
-- [ ] 12.E.2: **Conflict validator** (`proxmox-bootstrap/validate-spawn.py`) —
+- [x] 12.E.2: **Conflict validator** (`proxmox-bootstrap/validate-spawn.py`) —
       run before the spawn package is generated and again on the broodling before
       any deployment action:
       - No VMID collisions (proposed new VMIDs vs all VMIDs in spawn-manifest.json)
