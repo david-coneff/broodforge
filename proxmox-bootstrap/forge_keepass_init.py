@@ -26,6 +26,12 @@ Stdlib only.
 from dataclasses import dataclass, field
 from typing import Optional
 
+try:
+    from keepass_mfa import MfaConfig, provision_totp, render_mfa_provision_commands
+    _HAS_MFA = True
+except ImportError:
+    _HAS_MFA = False
+
 
 # ---------------------------------------------------------------------------
 # KeePass entry spec
@@ -78,6 +84,12 @@ KEEPASS_INITIAL_ENTRIES: list[KeePassEntry] = [
     KeePassEntry("Backup/secrets/current",
                  "Pointer to latest restic repo password for secrets layer", required=False),
 
+    # MFA — second factor for KeePass unlock gate
+    KeePassEntry("MFA/method",
+                 "KeePass unlock gate MFA method: none | totp | yubikey", required=False),
+    KeePassEntry("MFA/totp-secret",
+                 "TOTP base32 secret (auto-provisioned at forge time)", required=False),
+
     # External services — populated if configured at forge time
     KeePassEntry("External/cloudflare/api-token",
                  "Cloudflare API token for DNS-01 cert automation", required=False),
@@ -116,6 +128,9 @@ class KeePassInitConfig:
 
     # Whether to include WAN-specific entries (Cloudflare, DuckDNS, Headscale)
     include_wan_entries:    bool = False
+
+    # MFA configuration (TOTP or YubiKey — provisioned during forge)
+    mfa_method:             str = "none"     # "none" | "totp" | "yubikey"
 
 
 # ---------------------------------------------------------------------------
@@ -235,6 +250,17 @@ def render_init_commands(config: KeePassInitConfig) -> list[str]:
         cmds.append(f"echo '[keepass] Database will be embedded in spawn/phoenix packages.'")
     else:
         cmds.append(f"echo '[keepass] Database NOT embedded — path-based access only.'")
+
+    # MFA provisioning (if configured)
+    if config.mfa_method != "none" and _HAS_MFA:
+        if config.mfa_method == "totp":
+            # Cell ID derived from db path (best effort)
+            cell_id = "broodforge"
+            mfa_cfg = provision_totp(cell_id)
+        else:
+            mfa_cfg = MfaConfig(method=config.mfa_method)
+        cmds += render_mfa_provision_commands(mfa_cfg, db)
+
     return cmds
 
 
@@ -250,6 +276,7 @@ def config_to_dict(config: KeePassInitConfig) -> dict:
         "embed_in_packages":    config.embed_in_packages,
         "db_path":              config.db_path,
         "include_wan_entries":  config.include_wan_entries,
+        "mfa_method":           config.mfa_method,
         "entry_count":          len(all_entries),
         "required_entry_count": sum(1 for e in all_entries if e.required),
         "entry_paths":          [e.path for e in all_entries],
