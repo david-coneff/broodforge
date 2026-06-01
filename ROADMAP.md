@@ -343,6 +343,88 @@ artifact an operator downloads and runs on bare Proxmox to forge the first hatch
       running forge-pack.sh on the repo, copying forge package to target host,
       executing forge.sh, verifying hatchery is operational
 
+### Phase 1.G — Guided Setup Framework *(cross-cutting: forge, spawn, phoenix)*
+
+*A shared configuration guidance engine used by all three deployment packages.
+At every manual prompt the auto-suggestion is displayed and revised as the operator
+makes choices. Conflicts are detected and surfaced before commitment.*
+
+**Four configuration modes:**
+
+| Mode | Operator interaction | When to use |
+|---|---|---|
+| **Autonomous** (default) | None — all settings calculated automatically | Standard deployment |
+| **IP-Selective** | Choose IP addressing only; everything else is automatic | Operator has a specific IP plan |
+| **Group-Manual** | Group selector → configure chosen groups manually, rest is automatic | Operator wants control over specific areas |
+| **Full Manual** | Walk through all settings with auto-suggestions | Complete control |
+
+**Setting groups (available in Group-Manual and Full Manual modes):**
+
+| Group | Settings covered |
+|---|---|
+| Network | Management CIDR, gateway, bridge names, VLAN IDs, DNS, Headscale URL |
+| Storage | ZFS pool topology, pool name, datastore names, disk assignment |
+| VM Sizing | VMID block, per-VM RAM/CPU/disk, placement constraints |
+| Identity | Hostname, domain, FQDN, cell_id, naming convention |
+| Security | KeePass location, password format, SSH key references |
+| k3s | Pod/service CIDR, CNI plugin, initial role (server/worker) |
+| Backup | Restic destinations, retention policy, DDNS provider |
+
+**Suggestion revision:** when the operator overrides a setting, all downstream
+auto-suggestions are revised to remain logically consistent. Example: choosing
+`192.168.50.0/24` as the management CIDR causes all subsequent VM IP suggestions
+to come from that range; choosing a custom pool name causes all datastore references
+to use that name.
+
+**Conflict detection:** before accepting each override, the engine checks:
+- VMID collisions with existing or other declared VMs
+- IP address collisions with DNS registry or other declared VMs
+- Subnet overlaps with k3s pod/service CIDR or other networks
+- RAM allocation exceeding host total RAM
+- ZFS pool or bridge names that already exist on the host
+Warnings are shown with specific conflict details. The operator may still proceed.
+
+- [x] 1.G.1: `proxmox-bootstrap/guided_setup.py` — core engine:
+      `SETTING_GROUPS` — dict defining the seven groups and their constituent field paths
+      `GuidedSetupSession` — session class that tracks:
+        mode (autonomous|ip-selective|group-manual|full-manual)
+        selected_groups (set of group names for group-manual mode)
+        choices (field_path → {value, source: 'auto'|'manual'})
+        warnings (accumulated conflict messages)
+      `suggest(field_path, session)` — returns auto-suggestion revised from current choices;
+        subnet changes cascade to IP suggestions; hostname changes cascade to FQDN; etc.
+      `set_value(field_path, value, session)` → list[str] conflict warnings;
+        records choice; triggers suggestion revision for dependent fields
+      `check_conflicts(field_path, value, session)` → list[str] warning messages
+
+- [x] 1.G.2: Group selector interface:
+      `select_groups(session)` — displays group table with current auto-suggestions for
+        a representative field in each group; operator toggles groups on/off;
+        returns the set of groups to configure manually
+      `prompt_field(field_path, label, session, choices=None)` → value;
+        shows auto-suggestion, optional discrete choices, accepts free-text or selection;
+        calls set_value() and surfaces any conflicts before returning
+
+- [x] 1.G.3: IP-Selective mode specialization:
+      Runs autonomously except for the Network group;
+      `run_ip_selective(session)` — prompts only for CIDR, gateway, and VM IP assignments;
+        all other settings auto-calculated; subsequent IP suggestions revised from choices
+
+- [ ] 1.G.4: Wire into forge (Phase 1.F):
+      forge-planner.py phase-01 (plan) asks which configuration mode to use;
+      autonomous: existing behaviour; ip-selective / group-manual / full-manual:
+        launches guided_setup session before proceeding with automated planning
+
+- [ ] 1.G.5: Wire into spawn (Phase 12.E):
+      spawn-planner.py Step 0 (network mode) extended to include guided setup mode;
+      pre-populates spawn-plan.json with operator choices; marks fields as 'manual'
+      so the assessment engine knows they were intentional
+
+- [ ] 1.G.6: Wire into phoenix (Phase 9):
+      phoenix package generation offers guided setup for restoration scope and
+      any identity fields the operator wants to override;
+      particularly useful for partial restoration scope selection
+
 ---
 
 ## Track 1 — Cell-Scoped Foundation

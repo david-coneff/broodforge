@@ -59,13 +59,16 @@ See ROADMAP.md Milestone 7.4 for the full spec.
 
 | 12 | Full Single-Cell Reconstruction Test — DrillRecord, start_drill, generate_drill_report, save/get drill, _score_reconstruction_drill(), schema additions, docs/RECONSTRUCTION-DRILL.md, schedule-reconstruction-drill.sh (36 tests) | Complete |
 
-**Tests: 1613 total (1609 passed, 4 skipped)**
+| 1.G | Guided Setup Framework — SETTING_GROUPS, GuidedSetupSession (4 modes), suggest() with revision cascades, check_conflicts() (CIDR overlap, gateway subnet, VMID collision, hostname format, RAM headroom), set_value(), group_selector_rows(), run_ip_selective_suggestions(), session_to_overrides() (60 tests) | Complete |
+
+**Tests: 1673 total (1669 passed, 4 skipped)**
 
 ## Next Milestones
 
 | Milestone | Description |
 |---|---|
 | **Phase 12.E** | **Node Spawn Bootstrap (Hatchery Process) — START HERE** |
+| Phase 1.G.4-6 | Wire guided setup into forge, spawn, phoenix |
 | Phase 1.F | Forge Package Assembly (capstone of forging process) |
 
 ## Architecture Gaps (v4.0 items not yet implemented)

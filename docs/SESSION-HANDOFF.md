@@ -1,7 +1,8 @@
 # Session Handoff
 
 Date: 2026-05-31 UTC (updated after Milestone 7.4 — Recovery Documentation Update Service Layer)
-Status: Phases 10, 11, 12 complete. Ready to resume at Phase 12.E — Node Spawn Bootstrap.
+Status: Phases 10, 11, 12, 1.G (core engine) complete.
+Next: Phase 12.E (Node Spawn Bootstrap) or Phase 1.G.4-6 (wire guided setup into packages).
 
 ---
 
@@ -591,6 +592,44 @@ Test runner: `C:\Users\dave\AppData\Local\Programs\Python\Python311\python.exe -
 
 **Tests: 1613 total (1609 passed, 4 skipped)**
 test_registries.py "no gaps" tests updated with reconstruction_drills and capacity_model
+
+## Completed: Phase 1.G — Guided Setup Framework (this session)
+
+### Design decisions (documented in ARCHITECTURE.md AD-049 + ROADMAP + README)
+
+Four configuration modes for all three deployment packages:
+- **Autonomous** (default): everything auto-calculated from discovery
+- **IP-Selective**: autonomous except operator chooses IP addressing
+- **Group-Manual**: group-selector UI; operator picks which groups to configure
+  manually (Network, Storage, VM Sizing, Identity, Security, k3s, Backup)
+- **Full Manual**: walk through all settings; suggestions shown and revised at each step
+
+Suggestion revision: changing one setting cascades to revise dependent suggestions.
+  subnet → gateway, IP suggestions
+  hostname → FQDN, cell_id
+  pool name → datastore name
+  hostname+domain → Headscale URL
+
+Conflict detection surfaces but does not block:
+  CIDR overlaps (management vs k3s pod/service), gateway outside subnet,
+  VMID collisions with existing VMs, VMID in reserved ranges,
+  hostname format violations, RAM per VM > 90% of host RAM
+
+### Implementation (1.G.1–1.G.3 complete, 1.G.4–1.G.6 next)
+
+  proxmox-bootstrap/guided_setup.py:
+    SETTING_GROUPS: 7 groups, each with label, description, fields, representative_field
+    GuidedSetupSession: mode, manifest, selected_groups, choices, warnings
+    suggest(field_path, session): returns revised auto-suggestion
+    check_conflicts(field_path, value, session): returns warning list
+    set_value(field_path, value, session, source): records choice, returns conflicts
+    run_ip_selective_suggestions(session): pre-populates non-IP fields auto
+    group_selector_rows(session): display rows for group-selector UI
+    session_to_overrides(session): serializes only manual choices for package embedding
+  tests/unit/test_guided_setup.py: 60 tests
+
+Remaining 1.G work (1.G.4–1.G.6): wire into forge-planner.py, spawn-planner.py,
+  phoenix package generation.
 
 ## Next Action: Phase 12.E — Node Spawn Bootstrap (Hatchery Process)
 

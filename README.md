@@ -22,6 +22,65 @@ identity intact.
 
 ---
 
+## Configuration Modes — Automation vs. Manual Control
+
+Every deployment package (forge, spawn, phoenix) supports four configuration modes.
+The mode can be selected at package-creation time on the hatchery, or at execution
+time on the target node.
+
+```
+How should this package be configured?
+
+  1. Autonomous (default) — broodforge calculates all settings from discovery data
+  2. IP-Selective         — autonomous except you choose IP addressing
+  3. Group-Manual         — pick which setting groups to configure manually
+  4. Full Manual          — walk through all settings with auto-suggestions
+
+> _
+```
+
+**Autonomous** (default) is the fastest path — broodforge picks everything from
+hardware discovery and declared metadata. Use this for standard deployments where
+you trust the automatic choices.
+
+**IP-Selective** is for operators who have a specific IP plan (a fixed CIDR range,
+reserved addresses, a naming convention for machine IPs). Everything else —
+ZFS topology, VM sizing, k3s config — is automatic. Only network addressing
+requires input.
+
+**Group-Manual** offers a group selector. You choose which settings *categories*
+to configure manually; the rest are automatic. Groups: Network, Storage, VM Sizing,
+Identity, Security, k3s, Backup.
+
+```
+Which setting groups do you want to configure manually?
+(press SPACE to toggle, ENTER to confirm)
+
+  [ ] Network    CIDR: 192.168.1.0/24 suggested  gateway: 192.168.1.1
+  [✓] Storage    ZFS mirror (2 disks detected)    pool: rpool suggested
+  [ ] VM Sizing  3 VMs × 4GB RAM (28GB available)
+  [ ] Identity   hostname: pve01  domain: home.example.com
+  [ ] Security   KeePass at /opt/broodforge/cluster.kdbx
+  [ ] k3s        pod_cidr: 10.42.0.0/16  single-node initially
+  [ ] Backup     Cloudflare + local /mnt/backup
+
+> _
+```
+
+**Full Manual** walks through every setting. At each step the auto-suggestion is
+shown prominently. You may accept it (press Enter) or enter your own value.
+
+**Suggestion revision:** when you override a setting, all downstream suggestions
+are revised to remain logically consistent. Choose `192.168.50.0/24` as your CIDR
+and all subsequent VM IP suggestions come from that range. Choose a custom hostname
+and the FQDN suggestion updates to match.
+
+**Conflict detection:** if your choice conflicts with a prior selection (duplicate
+VMID, overlapping subnet, RAM exceeding host capacity), a warning is shown with
+the specific conflict. You may still proceed — broodforge will not block you.
+
+---
+
 ## The Problem
 
 Running a homelab with real services (Git, photos, documents, monitoring) creates
