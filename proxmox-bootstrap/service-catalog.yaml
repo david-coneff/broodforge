@@ -1,0 +1,147 @@
+# service-catalog.yaml — Available services for broodling deployment
+# Used by the spawn planner (Phase 12.E.3) for service selection and
+# hardware fit assessment.
+#
+# Fields per service:
+#   name:         unique identifier (snake_case)
+#   display_name: human-readable name
+#   group:        Infrastructure | Platform | Intelligence | Monitoring | Applications
+#   ram_gb:       minimum required RAM for this service's VMs
+#   disk_gb:      minimum required storage per VM (in addition to OS disk)
+#   description:  short description for display in service selection menu
+#   dependencies: list of other service names that must be co-deployed
+#   password_format: default (passphrase) | alphanumeric (some services reject symbols)
+#   baseline:     true = always deployed, cannot be deselected
+#   vm_count:     number of VMs this service requires
+
+services:
+
+  # ------------------------------------------------------------------
+  # Infrastructure group — core node participation (baseline always on)
+  # ------------------------------------------------------------------
+
+  - name:         k3s-worker
+    display_name: k3s Worker Node
+    group:        Infrastructure
+    ram_gb:       4
+    disk_gb:      20
+    description:  Joins the k3s cluster as a worker node. Receives workloads from Flux CD.
+    dependencies: []
+    baseline:     true
+    vm_count:     1
+
+  - name:         k3s-server
+    display_name: k3s Control Plane Node
+    group:        Infrastructure
+    ram_gb:       8
+    disk_gb:      20
+    description:  Joins or extends the k3s control plane. Enables HA when 3 server nodes exist.
+    dependencies: []
+    baseline:     false
+    vm_count:     1
+
+  - name:         pbs-datastore
+    display_name: Proxmox Backup Server Datastore
+    group:        Infrastructure
+    ram_gb:       4
+    disk_gb:      500
+    description:  Adds a PBS backup datastore. Cluster VMs back up to this node.
+    dependencies: []
+    baseline:     false
+    vm_count:     1
+
+  # ------------------------------------------------------------------
+  # Platform group — foundational services
+  # ------------------------------------------------------------------
+
+  - name:         longhorn
+    display_name: Longhorn Distributed Storage
+    group:        Platform
+    ram_gb:       4
+    disk_gb:      100
+    description:  Adds a Longhorn storage replica. Required by stateful workloads.
+    dependencies: [k3s-worker]
+    baseline:     false
+    vm_count:     1
+
+  - name:         forgejo
+    display_name: Forgejo Git Server
+    group:        Platform
+    ram_gb:       4
+    disk_gb:      50
+    description:  Self-hosted Git forge. Replicated onto this node if hatchery already runs it.
+    dependencies: [k3s-worker, longhorn]
+    baseline:     false
+    vm_count:     1
+
+  - name:         cert-manager
+    display_name: cert-manager TLS Automation
+    group:        Platform
+    ram_gb:       2
+    disk_gb:      5
+    description:  Automates TLS certificate issuance and renewal via cert-manager.
+    dependencies: [k3s-worker]
+    baseline:     false
+    vm_count:     1
+
+  # ------------------------------------------------------------------
+  # Intelligence group — assessment and documentation engine
+  # ------------------------------------------------------------------
+
+  - name:         assessment-engine
+    display_name: Assessment Engine
+    group:        Intelligence
+    ram_gb:       2
+    disk_gb:      10
+    description:  Runs broodforge assessment and documentation generation on this node.
+    dependencies: [k3s-worker]
+    baseline:     false
+    vm_count:     1
+
+  # ------------------------------------------------------------------
+  # Monitoring group — observability stack
+  # ------------------------------------------------------------------
+
+  - name:         prometheus-agent
+    display_name: Prometheus Agent
+    group:        Monitoring
+    ram_gb:       2
+    disk_gb:      20
+    description:  Runs a Prometheus scrape agent that forwards metrics to central Prometheus.
+    dependencies: [k3s-worker]
+    baseline:     false
+    vm_count:     1
+
+  - name:         monitoring
+    display_name: Full Monitoring Stack
+    group:        Monitoring
+    ram_gb:       8
+    disk_gb:      50
+    description:  Prometheus + Grafana + Alertmanager. Full observability stack.
+    dependencies: [k3s-worker, longhorn]
+    baseline:     false
+    vm_count:     2
+
+  # ------------------------------------------------------------------
+  # Applications group — end-user workloads
+  # ------------------------------------------------------------------
+
+  - name:         nextcloud
+    display_name: Nextcloud
+    group:        Applications
+    ram_gb:       4
+    disk_gb:      100
+    description:  Nextcloud file sync and collaboration platform.
+    dependencies: [k3s-worker, longhorn]
+    baseline:     false
+    vm_count:     1
+
+  - name:         immich
+    display_name: Immich Photo Library
+    group:        Applications
+    ram_gb:       4
+    disk_gb:      200
+    description:  Self-hosted photo and video backup with ML-based organization.
+    dependencies: [k3s-worker, longhorn]
+    baseline:     false
+    vm_count:     1
