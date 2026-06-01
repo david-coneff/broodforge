@@ -1,0 +1,95 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Cell Identity",
+  "description": "Identity record for a single broodforge cell. Stored in twin/federation/cells/{cell_id}.json. Used as the primary federation registry entry for this cell.",
+  "type": "object",
+  "required": ["schema_version", "cell_id", "registered_at", "host_identity"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "cell_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Globally unique cell identifier (e.g. proxmox-cell-a, home-pve01-cell)."
+    },
+    "registered_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "UTC timestamp when this cell was first registered."
+    },
+    "last_updated_at": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "UTC timestamp of the most recent twin state update."
+    },
+    "host_identity": {
+      "type": "object",
+      "required": ["hostname", "fqdn"],
+      "additionalProperties": false,
+      "properties": {
+        "hostname":  {"type": "string"},
+        "domain":    {"type": ["string", "null"]},
+        "fqdn":      {"type": "string"},
+        "lan_ip":    {"type": ["string", "null"]},
+        "wan_ip":    {"type": ["string", "null"]},
+        "tailnet_ip": {"type": ["string", "null"]},
+        "timezone":  {"type": ["string", "null"]}
+      }
+    },
+    "network_profile": {
+      "type": ["string", "null"],
+      "enum": ["lan", "wan", null]
+    },
+    "headscale_url": {
+      "type": ["string", "null"],
+      "description": "Headscale server URL for this cell (WAN profile only)."
+    },
+    "forgejo_url": {
+      "type": ["string", "null"],
+      "description": "Forgejo instance URL for this cell's GitOps repository."
+    },
+    "assessment_engine_url": {
+      "type": ["string", "null"],
+      "description": "Assessment Engine API URL for this cell."
+    },
+    "node_count": {
+      "type": ["integer", "null"],
+      "description": "Total Proxmox node count in this cell."
+    },
+    "k3s_server_count": {
+      "type": ["integer", "null"]
+    },
+    "k3s_worker_count": {
+      "type": ["integer", "null"]
+    },
+    "capabilities": {
+      "type": "array",
+      "description": "Declared capabilities of this cell (used for federation capability matching).",
+      "items": {"type": "string"}
+    },
+    "federation_trust": {
+      "type": "object",
+      "description": "Which cells this cell trusts and for what purpose.",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "trust_type": {"type": "string"},
+          "established_at": {"type": "string", "format": "date-time"},
+          "expires_at": {"type": ["string", "null"], "format": "date-time"}
+        }
+      }
+    },
+    "twin_state_paths": {
+      "type": "object",
+      "description": "Filesystem paths where each state category is stored in the digital twin.",
+      "additionalProperties": {"type": "string"}
+    },
+    "forge_manifest_sha256": {
+      "type": ["string", "null"],
+      "description": "SHA-256 hash of the forge manifest used to create this cell."
+    }
+  }
+}

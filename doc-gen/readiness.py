@@ -1805,6 +1805,87 @@ def _score_observability_completeness(manifest: dict) -> list:
     return gaps
 
 
+def _score_twin_consistency(manifest: dict) -> list:
+    """
+    Check digital twin consistency (Phase 17.5).
+
+    ERROR findings in the twin consistency report → ORANGE gap.
+    STALE categories → YELLOW gap.
+    Missing cell identity → YELLOW gap.
+    """
+    gaps: list[Gap] = []
+    tc = manifest.get("twin_consistency")
+
+    if not tc:
+        # No twin consistency data — twin may not be configured yet
+        # Only emit a gap if twin_root is declared
+        if manifest.get("twin_root"):
+            gaps.append(Gap(
+                component_id="infrastructure:twin-consistency",
+                gap_type="MISSING_TWIN_CONSISTENCY",
+                severity="YELLOW",
+                description="Digital twin consistency has not been checked for this cell",
+                remediation=(
+                    "Run proxmox-bootstrap/twin_consistency_checker.py to check twin state"
+                ),
+                readiness_impact=(
+                    "Stale or missing twin state may produce inaccurate assessment outputs"
+                ),
+            ))
+        return gaps
+
+    errors   = tc.get("errors") or []
+    warnings = tc.get("warnings") or []
+    stale    = [w for w in warnings if "STALE" in (w.get("check_type") or "")]
+    conflicts = [e for e in errors if "CONFLICT" in (e.get("check_type") or "")]
+
+    if conflicts:
+        report_summary = "; ".join(
+            f"{c.get('category')}: {c.get('check_type')}" for c in conflicts[:3]
+        )
+        gaps.append(Gap(
+            component_id="infrastructure:twin-conflict",
+            gap_type="TWIN_CELL_ID_CONFLICT",
+            severity="ORANGE",
+            description=f"Twin state has cell_id conflicts: {report_summary}",
+            remediation=(
+                "Re-run affected collectors with the correct cell_id and regenerate twin state"
+            ),
+            readiness_impact=(
+                "Cell ID conflicts in the twin produce incorrect assessment outputs "
+                "that may hide real failures"
+            ),
+        ))
+
+    if errors and not conflicts:
+        report_summary = "; ".join(
+            f"{e.get('category')}: {e.get('message', '')[:50]}" for e in errors[:3]
+        )
+        gaps.append(Gap(
+            component_id="infrastructure:twin-errors",
+            gap_type="TWIN_CONSISTENCY_ERRORS",
+            severity="ORANGE",
+            description=f"Twin consistency errors detected: {report_summary}",
+            remediation="Check twin_consistency_checker output and fix or re-collect affected state",
+            readiness_impact="Twin errors may result in inaccurate or incomplete assessment",
+        ))
+
+    if stale:
+        stale_cats = [s.get("category") for s in stale if s.get("category")]
+        gaps.append(Gap(
+            component_id="infrastructure:twin-staleness",
+            gap_type="TWIN_STATE_STALE",
+            severity="YELLOW",
+            description=f"Stale twin state categories: {', '.join(stale_cats)}",
+            remediation="Re-run the collectors for stale categories to refresh the twin",
+            readiness_impact=(
+                "Stale state produces assessment outputs that may not reflect current reality"
+            ),
+        ))
+
+    return gaps
+
+
 def score_graph(graph, manifest: dict) -> ReadinessReport:
     """Score all nodes; propagate BLOCKED; identify SPOFs and blockers."""
     backup_inv = BackupInventory(manifest.get("backup_inventory"))
@@ -1884,6 +1965,8 @@ def score_graph(graph, manifest: dict) -> ReadinessReport:
     registry_gaps += _score_storage_state_completeness(manifest)
     registry_gaps += _score_data_protection_completeness(manifest)
     registry_gaps += _score_observability_completeness(manifest)
+    # Phase 17 — Digital Twin consistency
+    registry_gaps += _score_twin_consistency(manifest)
 
     # Overall score — worst of component scores and infrastructure gaps
     overall = "GREEN"
