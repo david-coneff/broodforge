@@ -1296,6 +1296,168 @@ def _score_provenance_completeness(graph, manifest: dict) -> list:
 # Graph-level scorer
 # ---------------------------------------------------------------------------
 
+def _score_hardware_state_completeness(manifest: dict) -> list:
+    """
+    Check hardware state completeness (Phase 13.2/13.7).
+
+    YELLOW: no hardware_state in manifest — hardware inventory not collected.
+    ORANGE: hardware_state present but last collected > 30 days ago.
+    ORANGE: hardware_health.overall_status == CRITICAL.
+    YELLOW: hardware_health.overall_status == DEGRADED.
+    YELLOW: any disk SMART health == FAILED or WARNING.
+    """
+    from datetime import datetime, timezone, timedelta
+
+    gaps: list[Gap] = []
+    hw = manifest.get("hardware_state")
+
+    if not hw:
+        gaps.append(Gap(
+            component_id="infrastructure:hardware-state",
+            gap_type="MISSING_HARDWARE_STATE",
+            severity="YELLOW",
+            description=(
+                "No hardware state collected — disk health, NIC status, and "
+                "hardware inventory are unknown"
+            ),
+            remediation=(
+                "Run proxmox-bootstrap/hardware_state_collector.py --state "
+                "proxmox-bootstrap/bootstrap-state.json to collect hardware state"
+            ),
+            readiness_impact=(
+                "Cannot assess disk SMART health, NIC status, or hardware inventory "
+                "for reconstruction planning"
+            ),
+        ))
+        return gaps
+
+    # Staleness check
+    collected_at = hw.get("collected_at")
+    if collected_at:
+        try:
+            ts = datetime.fromisoformat(collected_at.replace("Z", "+00:00"))
+            age = datetime.now(timezone.utc) - ts
+            if age > timedelta(days=30):
+                gaps.append(Gap(
+                    component_id="infrastructure:hardware-state",
+                    gap_type="STALE_HARDWARE_STATE",
+                    severity="ORANGE",
+                    description=(
+                        f"Hardware state last collected {age.days} days ago "
+                        "(stale — disk health may have changed)"
+                    ),
+                    remediation="Re-run hardware_state_collector.py to refresh",
+                    readiness_impact="Disk health and NIC status may not reflect current state",
+                ))
+        except (ValueError, AttributeError):
+            pass
+
+    # Hardware health check
+    health = hw.get("hardware_health") or {}
+    overall = health.get("overall_status") or "UNKNOWN"
+    if overall == "CRITICAL":
+        gaps.append(Gap(
+            component_id="infrastructure:hardware-health",
+            gap_type="HARDWARE_CRITICAL",
+            severity="ORANGE",
+            description="Hardware health CRITICAL — disk or hardware failures detected",
+            remediation="Check SMART status and replace failed disks immediately",
+            readiness_impact="Node reliability is compromised; recovery may fail",
+        ))
+    elif overall == "DEGRADED":
+        gaps.append(Gap(
+            component_id="infrastructure:hardware-health",
+            gap_type="HARDWARE_DEGRADED",
+            severity="YELLOW",
+            description="Hardware health DEGRADED — warnings detected (SMART, temperature)",
+            remediation="Review hardware_state.hardware_health for specific warnings",
+            readiness_impact="Hardware issues may worsen without attention",
+        ))
+
+    return gaps
+
+
+def _score_platform_state_completeness(manifest: dict) -> list:
+    """
+    Check platform state completeness (Phase 13.4/13.7).
+
+    YELLOW: no platform_state in manifest.
+    ORANGE: platform_state present but Proxmox version not collected.
+    YELLOW: any key service in failed state.
+    YELLOW: TLS certs expiring within 30 days.
+    YELLOW: security updates pending.
+    """
+    from datetime import datetime, timezone, timedelta
+
+    gaps: list[Gap] = []
+    ps = manifest.get("platform_state")
+
+    if not ps:
+        gaps.append(Gap(
+            component_id="infrastructure:platform-state",
+            gap_type="MISSING_PLATFORM_STATE",
+            severity="YELLOW",
+            description=(
+                "No platform state collected — Proxmox version, package versions, "
+                "and service health are unknown"
+            ),
+            remediation=(
+                "Run proxmox-bootstrap/platform_state_collector.py --state "
+                "proxmox-bootstrap/bootstrap-state.json to collect platform state"
+            ),
+            readiness_impact=(
+                "Cannot assess Proxmox version, package currency, or service health"
+            ),
+        ))
+        return gaps
+
+    # Platform health check
+    ph = ps.get("platform_health") or {}
+    overall = ph.get("overall_status") or "UNKNOWN"
+
+    # Failed services
+    failed = ph.get("services_failed") or []
+    if failed:
+        gaps.append(Gap(
+            component_id="infrastructure:platform-services",
+            gap_type="SERVICES_FAILED",
+            severity="YELLOW",
+            description=f"Systemd services in failed state: {', '.join(failed)}",
+            remediation=(
+                f"Check failed services: "
+                + "; ".join(f"systemctl status {s}" for s in failed[:3])
+            ),
+            readiness_impact="Failed platform services may impact assessment or recovery",
+        ))
+
+    # Cert expiry
+    expiring = ph.get("certs_expiring_soon") or []
+    if expiring:
+        gaps.append(Gap(
+            component_id="infrastructure:platform-certs",
+            gap_type="CERT_EXPIRY_SOON",
+            severity="YELLOW",
+            description=(
+                f"TLS certificates expiring within 30 days: {', '.join(expiring)}"
+            ),
+            remediation="Renew certificates before expiry to prevent service disruption",
+            readiness_impact="Expired certificates will break Proxmox UI and Headscale connectivity",
+        ))
+
+    # Security updates
+    if ph.get("security_updates_pending"):
+        gaps.append(Gap(
+            component_id="infrastructure:platform-updates",
+            gap_type="SECURITY_UPDATES_PENDING",
+            severity="YELLOW",
+            description="Security updates are available for this Proxmox node",
+            remediation="Run: apt-get upgrade -y",
+            readiness_impact="Unpatched security vulnerabilities may affect node reliability",
+        ))
+
+    return gaps
+
+
 def score_graph(graph, manifest: dict) -> ReadinessReport:
     """Score all nodes; propagate BLOCKED; identify SPOFs and blockers."""
     backup_inv = BackupInventory(manifest.get("backup_inventory"))
@@ -1368,6 +1530,9 @@ def score_graph(graph, manifest: dict) -> ReadinessReport:
     registry_gaps += _score_disposition_compliance(manifest)
     registry_gaps += _score_reconstruction_drill(manifest)
     registry_gaps += _score_phoenix_playbook_existence(manifest)
+    # Track 2 — Hardware and Platform state
+    registry_gaps += _score_hardware_state_completeness(manifest)
+    registry_gaps += _score_platform_state_completeness(manifest)
 
     # Overall score — worst of component scores and infrastructure gaps
     overall = "GREEN"

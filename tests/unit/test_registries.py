@@ -528,6 +528,20 @@ class TestRegistryCompletenessScoring(unittest.TestCase):
                 "outcome": "success",
                 "wave_timings": [], "gaps_found": [], "gaps_remediated": [],
             }],
+            # Hardware state present — suppresses MISSING_HARDWARE_STATE gap (Phase 13).
+            "hardware_state": {
+                "collected_at": _now,
+                "hardware_health": {"overall_status": "HEALTHY"},
+            },
+            # Platform state present — suppresses MISSING_PLATFORM_STATE gap (Phase 13).
+            "platform_state": {
+                "platform_health": {
+                    "overall_status": "HEALTHY",
+                    "services_failed": [],
+                    "certs_expiring_soon": [],
+                    "security_updates_pending": False,
+                }
+            },
         }
         # Minimal empty graph (no VM nodes, so no per-VM contract gap)
         from dependencies import DependencyGraph
@@ -789,6 +803,19 @@ class TestFixtureIntegration(unittest.TestCase):
             "outcome": "success",
             "wave_timings": [], "gaps_found": [], "gaps_remediated": [],
         }]
+        # Phase 13 — hardware and platform state present
+        manifest["hardware_state"] = {
+            "collected_at": _now,
+            "hardware_health": {"overall_status": "HEALTHY"},
+        }
+        manifest["platform_state"] = {
+            "platform_health": {
+                "overall_status": "HEALTHY",
+                "services_failed": [],
+                "certs_expiring_soon": [],
+                "security_updates_pending": False,
+            }
+        }
 
         graph = dep_mod.build_graph(manifest)
         report = score_graph(graph, manifest)

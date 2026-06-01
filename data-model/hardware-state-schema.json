@@ -1,0 +1,225 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Hardware State",
+  "description": "Physical hardware state for a single Proxmox host node. Tracks BIOS/firmware versions, disk inventory, NIC inventory, UPS, and hardware-level health indicators. Used by Track 2 assessment (Phase 13).",
+  "type": "object",
+  "required": ["schema_version", "cell_id", "node_hostname", "collected_at"],
+  "additionalProperties": false,
+  "definitions": {
+    "disk_entry": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": true,
+      "properties": {
+        "name":       {"type": "string", "description": "Block device name (e.g. sda, nvme0n1)"},
+        "size_gb":    {"type": "number",  "description": "Disk size in GiB"},
+        "model":      {"type": ["string", "null"]},
+        "serial":     {"type": ["string", "null"]},
+        "firmware":   {"type": ["string", "null"], "description": "Drive firmware version"},
+        "rotational": {"type": "boolean", "description": "true=HDD, false=SSD/NVMe"},
+        "removable":  {"type": "boolean"},
+        "transport":  {"type": ["string", "null"], "description": "sata, nvme, usb, sas"},
+        "health":     {
+          "type": ["string", "null"],
+          "enum": ["PASSED", "FAILED", "WARNING", "UNKNOWN", null],
+          "description": "SMART health status"
+        },
+        "smart_errors": {"type": ["integer", "null"], "description": "SMART reallocated sector count (if available)"},
+        "temperature_c": {"type": ["integer", "null"], "description": "Current temperature in °C"},
+        "power_on_hours": {"type": ["integer", "null"]},
+        "zfs_role": {
+          "type": ["string", "null"],
+          "description": "Role in ZFS pool if applicable (member, spare, cache, log)"
+        },
+        "zfs_pool": {"type": ["string", "null"], "description": "ZFS pool name if member"},
+        "partition_table": {"type": ["string", "null"], "description": "gpt, mbr, none"}
+      }
+    },
+    "nic_entry": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": true,
+      "properties": {
+        "name":       {"type": "string", "description": "Interface name (e.g. enp3s0, eno1)"},
+        "mac":        {"type": ["string", "null"]},
+        "vendor":     {"type": ["string", "null"]},
+        "model":      {"type": ["string", "null"]},
+        "driver":     {"type": ["string", "null"], "description": "Kernel driver name"},
+        "speed_mbps": {"type": ["integer", "null"]},
+        "duplex":     {"type": ["string", "null"], "enum": ["full", "half", "unknown", null]},
+        "link_up":    {"type": ["boolean", "null"]},
+        "pci_slot":   {"type": ["string", "null"]},
+        "firmware":   {"type": ["string", "null"]},
+        "bridge":     {"type": ["string", "null"], "description": "Proxmox bridge this NIC is assigned to"},
+        "vlan_aware": {"type": ["boolean", "null"]},
+        "numa_node":  {"type": ["integer", "null"]}
+      }
+    },
+    "memory_module": {
+      "type": "object",
+      "required": ["slot"],
+      "additionalProperties": true,
+      "properties": {
+        "slot":         {"type": "string", "description": "DIMM slot identifier"},
+        "size_gib":     {"type": ["integer", "null"]},
+        "type":         {"type": ["string", "null"], "description": "DDR4, DDR5, etc."},
+        "speed_mhz":    {"type": ["integer", "null"]},
+        "manufacturer": {"type": ["string", "null"]},
+        "serial":       {"type": ["string", "null"]},
+        "ecc":          {"type": ["boolean", "null"]}
+      }
+    },
+    "ups_entry": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": true,
+      "properties": {
+        "name":           {"type": "string"},
+        "model":          {"type": ["string", "null"]},
+        "driver":         {"type": ["string", "null"]},
+        "status":         {"type": ["string", "null"]},
+        "battery_charge_pct": {"type": ["integer", "null"]},
+        "runtime_remaining_sec": {"type": ["integer", "null"]},
+        "input_voltage":  {"type": ["number", "null"]},
+        "output_voltage": {"type": ["number", "null"]},
+        "load_pct":       {"type": ["integer", "null"]},
+        "last_checked_at": {"type": ["string", "null"], "format": "date-time"}
+      }
+    },
+    "cpu_info": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "model":             {"type": ["string", "null"]},
+        "vendor_id":         {"type": ["string", "null"]},
+        "physical_cores":    {"type": ["integer", "null"]},
+        "logical_cores":     {"type": ["integer", "null"]},
+        "threads_per_core":  {"type": ["integer", "null"]},
+        "sockets":           {"type": ["integer", "null"]},
+        "base_freq_mhz":     {"type": ["integer", "null"]},
+        "max_freq_mhz":      {"type": ["integer", "null"]},
+        "architecture":      {"type": ["string", "null"]},
+        "virtualization":    {"type": ["string", "null"], "description": "VT-x, AMD-V, none"},
+        "microcode":         {"type": ["string", "null"]},
+        "flags":             {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "bios_info": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "vendor":       {"type": ["string", "null"]},
+        "version":      {"type": ["string", "null"]},
+        "release_date": {"type": ["string", "null"]},
+        "type":         {"type": ["string", "null"], "description": "BIOS, UEFI"},
+        "secure_boot":  {"type": ["boolean", "null"]}
+      }
+    }
+  },
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "cell_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Cell identifier (federation-readiness gate)."
+    },
+    "node_hostname": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Short hostname of this Proxmox node."
+    },
+    "node_fqdn": {
+      "type": ["string", "null"],
+      "description": "FQDN of this node."
+    },
+    "collected_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "UTC timestamp when this hardware state was collected."
+    },
+    "collection_errors": {
+      "type": "array",
+      "description": "Errors encountered during collection (partial data is still usable).",
+      "items": {
+        "type": "object",
+        "properties": {
+          "component": {"type": "string"},
+          "error":     {"type": "string"}
+        }
+      }
+    },
+    "bios": {"$ref": "#/definitions/bios_info"},
+    "cpu":  {"$ref": "#/definitions/cpu_info"},
+    "memory": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "total_gib":   {"type": ["integer", "null"]},
+        "used_gib":    {"type": ["integer", "null"]},
+        "free_gib":    {"type": ["integer", "null"]},
+        "ecc_enabled": {"type": ["boolean", "null"]},
+        "modules":     {"type": "array", "items": {"$ref": "#/definitions/memory_module"}}
+      }
+    },
+    "disks": {
+      "type": "array",
+      "items": {"$ref": "#/definitions/disk_entry"},
+      "description": "All block devices detected (including boot disk, removable media)."
+    },
+    "nics": {
+      "type": "array",
+      "items": {"$ref": "#/definitions/nic_entry"},
+      "description": "Physical NICs (virtual/bridge interfaces excluded by collector)."
+    },
+    "ups_devices": {
+      "type": "array",
+      "items": {"$ref": "#/definitions/ups_entry"},
+      "description": "UPS devices monitored via NUT or direct query."
+    },
+    "pcie_devices": {
+      "type": "array",
+      "description": "PCIe device inventory (from lspci).",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "slot":   {"type": "string"},
+          "class":  {"type": "string"},
+          "vendor": {"type": ["string", "null"]},
+          "device": {"type": ["string", "null"]},
+          "driver": {"type": ["string", "null"]}
+        }
+      }
+    },
+    "hardware_health": {
+      "type": "object",
+      "description": "Aggregate hardware health summary.",
+      "additionalProperties": false,
+      "properties": {
+        "overall_status": {
+          "type": "string",
+          "enum": ["HEALTHY", "DEGRADED", "CRITICAL", "UNKNOWN"],
+          "description": "Overall hardware health."
+        },
+        "disk_health_summary": {
+          "type": "string",
+          "enum": ["ALL_PASSED", "WARNINGS", "FAILURES", "UNKNOWN"],
+          "description": "Aggregate SMART health across all disks."
+        },
+        "memory_errors_detected": {"type": ["boolean", "null"]},
+        "temperature_warnings": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "List of components with temperature warnings."
+        },
+        "ups_status": {
+          "type": ["string", "null"],
+          "description": "Aggregate UPS status if any UPS configured."
+        }
+      }
+    }
+  }
+}

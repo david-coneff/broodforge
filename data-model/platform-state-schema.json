@@ -1,0 +1,188 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Platform State",
+  "description": "Proxmox platform software state for a single node: Proxmox version, installed packages, TLS certificates, kernel info, and configuration fingerprints. Used by Track 2 assessment (Phase 13).",
+  "type": "object",
+  "required": ["schema_version", "cell_id", "node_hostname", "collected_at"],
+  "additionalProperties": false,
+  "definitions": {
+    "package_entry": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": true,
+      "properties": {
+        "name":         {"type": "string"},
+        "version":      {"type": ["string", "null"]},
+        "architecture": {"type": ["string", "null"]},
+        "source":       {"type": ["string", "null"], "description": "apt source / repo"}
+      }
+    },
+    "cert_entry": {
+      "type": "object",
+      "required": ["path"],
+      "additionalProperties": true,
+      "properties": {
+        "path":       {"type": "string", "description": "Filesystem path of the certificate"},
+        "subject":    {"type": ["string", "null"]},
+        "issuer":     {"type": ["string", "null"]},
+        "sans":       {"type": "array", "items": {"type": "string"}},
+        "not_before": {"type": ["string", "null"], "format": "date-time"},
+        "not_after":  {"type": ["string", "null"], "format": "date-time"},
+        "is_self_signed": {"type": ["boolean", "null"]},
+        "fingerprint_sha256": {"type": ["string", "null"]},
+        "auto_renew": {"type": ["boolean", "null"]},
+        "renewal_tool": {"type": ["string", "null"], "description": "certbot, acme.sh, none"}
+      }
+    },
+    "service_unit": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": true,
+      "properties": {
+        "name":        {"type": "string", "description": "systemd unit name"},
+        "active":      {"type": ["boolean", "null"]},
+        "enabled":     {"type": ["boolean", "null"]},
+        "load_state":  {"type": ["string", "null"]},
+        "active_state": {"type": ["string", "null"]},
+        "sub_state":   {"type": ["string", "null"]},
+        "main_pid":    {"type": ["integer", "null"]}
+      }
+    }
+  },
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "cell_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Cell identifier (federation-readiness gate)."
+    },
+    "node_hostname": {
+      "type": "string",
+      "minLength": 1
+    },
+    "node_fqdn": {
+      "type": ["string", "null"]
+    },
+    "collected_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "collection_errors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "component": {"type": "string"},
+          "error":     {"type": "string"}
+        }
+      }
+    },
+    "proxmox": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "version":         {"type": ["string", "null"], "description": "Proxmox VE version string"},
+        "pve_manager_ver": {"type": ["string", "null"]},
+        "pve_kernel_ver":  {"type": ["string", "null"]},
+        "subscription":    {
+          "type": ["string", "null"],
+          "description": "Subscription tier (none, community, basic, standard, premium)"
+        },
+        "cluster_name":    {"type": ["string", "null"]},
+        "node_id":         {"type": ["integer", "null"]},
+        "quorum_ok":       {"type": ["boolean", "null"]},
+        "corosync_version": {"type": ["string", "null"]}
+      }
+    },
+    "kernel": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "release":     {"type": ["string", "null"], "description": "uname -r output"},
+        "version":     {"type": ["string", "null"]},
+        "machine":     {"type": ["string", "null"], "description": "x86_64, aarch64"},
+        "os":          {"type": ["string", "null"]},
+        "pve_patched": {"type": ["boolean", "null"], "description": "Is this the PVE-patched kernel?"}
+      }
+    },
+    "apt": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "sources": {
+          "type": "array",
+          "description": "Configured apt repositories.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "uri":         {"type": "string"},
+              "suite":       {"type": "string"},
+              "components":  {"type": "array", "items": {"type": "string"}},
+              "enabled":     {"type": "boolean"}
+            }
+          }
+        },
+        "packages_upgraded_available": {
+          "type": ["integer", "null"],
+          "description": "Number of packages with upgrades available."
+        },
+        "security_updates_available": {
+          "type": ["integer", "null"]
+        },
+        "last_update_check": {
+          "type": ["string", "null"],
+          "format": "date-time"
+        }
+      }
+    },
+    "installed_packages": {
+      "type": "array",
+      "description": "Key platform packages (not all — focused on broodforge stack).",
+      "items": {"$ref": "#/definitions/package_entry"}
+    },
+    "certificates": {
+      "type": "array",
+      "description": "TLS certificates on this node (Proxmox UI cert, Headscale cert, etc.).",
+      "items": {"$ref": "#/definitions/cert_entry"}
+    },
+    "systemd_services": {
+      "type": "array",
+      "description": "Status of key broodforge-related systemd services.",
+      "items": {"$ref": "#/definitions/service_unit"}
+    },
+    "config_fingerprints": {
+      "type": "object",
+      "description": "SHA-256 fingerprints of key config files for drift detection.",
+      "additionalProperties": {"type": "string"},
+      "examples": [
+        {"/etc/network/interfaces": "sha256:..."},
+        {"/etc/pve/corosync.conf": "sha256:..."}
+      ]
+    },
+    "platform_health": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "overall_status": {
+          "type": "string",
+          "enum": ["HEALTHY", "DEGRADED", "CRITICAL", "UNKNOWN"]
+        },
+        "security_updates_pending": {"type": ["boolean", "null"]},
+        "certs_expiring_soon": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Certificate paths expiring within 30 days."
+        },
+        "services_failed": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Names of systemd units in failed state."
+        },
+        "quorum_healthy": {"type": ["boolean", "null"]}
+      }
+    }
+  }
+}
