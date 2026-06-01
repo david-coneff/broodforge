@@ -240,6 +240,57 @@
 <summary>🌐 Network topology</summary>
 <div class="detail-body">
 <p>Discovered from the Proxmox host's existing network configuration. Changes here affect Cloud-Init snippets for all VMs — regenerate after any change.</p>
+
+<details class="leaf"><summary>🔑 Network profile — choose first <span class="tag tag-required">required</span></summary><div class="detail-body">
+<p>The network profile determines which services are deployed and which spawn modes are available. Choose once; migration between profiles is supported later (see below).</p>
+<div class="setting-row"><span class="setting-label">LAN-only (A)</span><span class="setting-desc">Simple flat network. Local DNS only (dnsmasq, <code>.internal</code> domain). No Headscale. No DDNS. Self-signed TLS or no TLS. Spawn is LAN-only. Recommended for: home networks, air-gapped environments, first-time setup.</span></div>
+<div class="setting-row"><span class="setting-label">WAN-capable (B)</span><span class="setting-desc">Full stack: split-horizon DNS (dnsmasq + your registrar), Headscale for WAN spawn, DDNS for dynamic WAN IP, Let's Encrypt TLS via DNS-01. Recommended for: multi-site deployments, VPS nodes, any broodling not on the same LAN.</span></div>
+<div class="tip">You can start with LAN-only and migrate to WAN-capable later using <code>setup-network.py --migrate-to wan</code>. Migration is autonomous or guided.</div>
+
+<h4>Profile A — LAN-only, what gets deployed</h4>
+<ul>
+  <li>dnsmasq for local name resolution (<code>pve01.internal</code>, <code>forgejo.internal</code>, etc.)</li>
+  <li>Self-signed TLS certificate for Proxmox UI (optional)</li>
+  <li>No Headscale, no DDNS agent, no Let's Encrypt</li>
+  <li>Spawn packages work only from the same LAN</li>
+</ul>
+
+<h4>Profile B — WAN-capable, what gets deployed (in addition to A)</h4>
+<ul>
+  <li>Your domain (e.g. <code>home.example.com</code>) or DuckDNS subdomain</li>
+  <li>dnsmasq in split-horizon mode — LAN clients resolve to LAN IPs, WAN clients to WAN IP via registrar</li>
+  <li>Headscale on port 8080 — WAN broodlings join the hatchery's tailnet using a one-time auth key</li>
+  <li>DDNS agent (broodforge-ddns.timer) — keeps your A record current if WAN IP is dynamic</li>
+  <li>Let's Encrypt wildcard cert (<code>*.home.example.com</code>) via DNS-01 — Headscale + services use it</li>
+  <li>Router port forwarding required: 8080 (Headscale). Your router, cannot be automated.</li>
+</ul>
+</div></details>
+
+<details class="leaf"><summary>🔄 Migrating between profiles later</summary><div class="detail-body">
+<p>Run on the hatchery:</p>
+<pre><code># Guided migration (step-by-step with explanations):
+python3 proxmox-bootstrap/setup-network.py \
+  --state proxmox-bootstrap/bootstrap-state.json \
+  --migrate-to wan \
+  --mode guided
+
+# Autonomous migration (auto-suggestions, minimal prompts):
+python3 proxmox-bootstrap/setup-network.py \
+  --migrate-to wan \
+  --mode autonomous</code></pre>
+<p>LAN → WAN migration steps (all autonomous except the router step):</p>
+<ol>
+  <li>Configure domain + DNS provider credentials in KeePass</li>
+  <li>Install and configure DDNS agent</li>
+  <li>Update dnsmasq for split-horizon DNS</li>
+  <li>Deploy Headscale</li>
+  <li>Issue Let's Encrypt certificate</li>
+  <li><strong>Manual:</strong> forward port 8080 on your router to the hatchery's LAN IP</li>
+  <li>Update bootstrap-state.json + commit to Forgejo</li>
+</ol>
+<div class="warn">The router port forwarding step (6) cannot be automated — broodforge cannot configure your router. All other steps are autonomous.</div>
+<p>WAN → LAN migration is also supported: DDNS disabled, Headscale optionally stopped (or retained), dnsmasq simplified, state updated.</p>
+</div></details>
 <details class="leaf"><summary>Management CIDR <span class="tag tag-auto">auto</span></summary><div class="detail-body">
   <p>The subnet all infrastructure VMs attach to. Auto-detected from the host's management interface.</p>
   <div class="setting-row"><span class="setting-label">Auto-suggestion</span><span class="setting-desc">Inferred from the host's <code>vmbr0</code> address (e.g. <code>192.168.1.0/24</code>)</span></div>
@@ -520,6 +571,12 @@
 <summary>🌐 Network topology (broodling-specific)</summary>
 <div class="detail-body">
 <p>Each broodling gets its own non-conflicting IP allocation from the hatchery's DNS registry. The spawn manifest contains all reserved IPs so no collision can occur.</p>
+
+<details class="leaf"><summary>Impact of hatchery network profile on spawn</summary><div class="detail-body">
+<div class="setting-row"><span class="setting-label">Hatchery on LAN profile</span><span class="setting-desc">Spawn is LAN-only. No Headscale available. Broodlings must be on the same LAN or directly reachable from the hatchery. WAN Mode (Step 0) is unavailable.</span></div>
+<div class="setting-row"><span class="setting-label">Hatchery on WAN profile</span><span class="setting-desc">Both LAN and WAN spawn modes available. WAN broodlings receive a Headscale auth key in the spawn package and join via tailnet. Headscale URL auto-populated from hatchery's configured FQDN.</span></div>
+<div class="tip">To enable WAN spawn on a hatchery currently running LAN profile: run <code>setup-network.py --migrate-to wan</code> on the hatchery first, then regenerate the spawn package.</div>
+</div></details>
 <details class="leaf"><summary>IP assignment <span class="tag tag-auto">auto</span></summary><div class="detail-body">
   <p>IPs are allocated from the management CIDR, skipping all addresses already in the DNS registry and provenance records. Override in IP-selective mode.</p>
 </div></details>

@@ -651,6 +651,39 @@ Features:
   Colour-coded callout boxes: .tip (blue), .warn (amber), .danger (red)
   Setting rows grid for dense reference sections
 
+## Completed: Network Profiles (setup_network.py + schema, 66 tests)
+
+AD-050: Two network profiles — LAN-only (A) and WAN-capable (B).
+
+setup_network.py:
+  LanNetworkConfig / WanNetworkConfig dataclasses
+  suggest_lan(field, manifest, partial) — auto-suggestions revised from partial config:
+    management_cidr → gateway revision; gateway → nameservers revision
+  suggest_wan(field, manifest, partial) — WAN-specific:
+    domain → fqdn; dns_provider → tls_provider (cloudflare→certbot, duckdns→acme.sh)
+    fqdn → headscale_url
+  validate_lan_config() / validate_wan_config() — errors and warnings
+  plan_migration_to_wan(current, target) → MigrationPlan:
+    7 steps: domain, ddns, dnsmasq, headscale, tls, router (NOT autonomous), commit
+    Warnings when domain or credentials missing
+  plan_migration_to_lan(current, preserve_headscale) → MigrationPlan:
+    4 steps: ddns disable, headscale stop/keep, dnsmasq simplify, commit
+  lan_config_to_state() / wan_config_to_state() — bootstrap-state.json serialization
+  apply_network_config_to_state() — merge into state dict
+  generate_dnsmasq_config(network_topology, dns_registry) — correct for both profiles;
+    LAN: local resolution only; WAN: split-horizon comment + same address= lines
+
+Schema additions (bootstrap-state-schema.json):
+  network_topology.profile: "lan" | "wan"
+  network_topology.wan_config: domain, dns_provider, ddns_*, headscale_*, tls_provider
+  network_topology.lan_config: tls_mode, dnsmasq_enabled
+  ssl_provider enum expanded: certbot-cloudflare, acme.sh-duckdns, self-signed, none added
+
+SETUP-GUIDE.html updated:
+  Network section for Forge: profile choice details (LAN vs WAN), what each deploys,
+    migration guide with steps, WAN caveats
+  Network section for Spawn: impact of hatchery profile on spawn mode availability
+
 ## Next Action: Phase 12.E — Node Spawn Bootstrap (Hatchery Process)
 
 ### What It Is

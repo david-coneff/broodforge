@@ -61,7 +61,9 @@ See ROADMAP.md Milestone 7.4 for the full spec.
 
 | 1.G | Guided Setup Framework — SETTING_GROUPS, GuidedSetupSession (4 modes), suggest() with revision cascades, check_conflicts() (CIDR overlap, gateway subnet, VMID collision, hostname format, RAM headroom), set_value(), group_selector_rows(), run_ip_selective_suggestions(), session_to_overrides() (60 tests) | Complete |
 
-**Tests: 1673 total (1669 passed, 4 skipped)**
+| 1.G (network) | Network profiles — LanNetworkConfig/WanNetworkConfig, suggest_lan/wan (with field revision), validate, migration plan generation (7-step LAN→WAN/4-step WAN→LAN), state serialization, dnsmasq config generator, schema additions, SETUP-GUIDE.html updated (66 tests) | Complete |
+
+**Tests: 1739 total (1735 passed, 4 skipped)**
 
 ## Next Milestones
 

@@ -932,6 +932,33 @@
           "type": "string",
           "description": "NIC interface name inside the VM, e.g. ens18 for VirtIO in Proxmox. All network-config snippets are generated for this interface."
         },
+        "profile": {
+          "type": ["string", "null"],
+          "enum": ["lan", "wan", null],
+          "description": "Network profile: lan = LAN-only (simple, no external DNS/Headscale/TLS); wan = WAN-capable (split-horizon DNS, Headscale, DDNS, Let's Encrypt). Determines which services are deployed and which spawn modes are available."
+        },
+        "wan_config": {
+          "type": ["object", "null"],
+          "description": "WAN-profile-specific settings. Null when profile=lan.",
+          "properties": {
+            "domain":                    { "type": ["string", "null"] },
+            "dns_provider":              { "type": ["string", "null"], "enum": ["cloudflare", "duckdns", "other", null] },
+            "dns_provider_credential_reference": { "type": ["string", "null"] },
+            "ddns_enabled":              { "type": "boolean" },
+            "ddns_update_interval_min":  { "type": ["integer", "null"] },
+            "headscale_enabled":         { "type": "boolean" },
+            "tls_provider":              { "type": ["string", "null"], "enum": ["certbot-cloudflare", "acme.sh-duckdns", "self-signed", "none", null] },
+            "router_port_forward_note":  { "type": ["string", "null"] }
+          }
+        },
+        "lan_config": {
+          "type": ["object", "null"],
+          "description": "LAN-profile-specific settings. Null when profile=wan.",
+          "properties": {
+            "tls_mode":        { "type": ["string", "null"], "enum": ["self-signed", "none", null] },
+            "dnsmasq_enabled": { "type": "boolean" }
+          }
+        },
         "headscale_url": {
           "type": ["string", "null"],
           "description": "Headscale coordination server URL, e.g. https://hatchery.home.example.com:8080. Used in spawn packages for WAN-mode broodling registration."
@@ -954,8 +981,8 @@
         },
         "ssl_provider": {
           "type": ["string", "null"],
-          "enum": ["certbot", "acme.sh", null],
-          "description": "Let's Encrypt client used for host-level TLS certificates"
+          "enum": ["certbot", "acme.sh", "certbot-cloudflare", "acme.sh-duckdns", "self-signed", "none", null],
+          "description": "Let's Encrypt / TLS provider for host-level certificates"
         },
         "ssl_method": {
           "type": ["string", "null"],

@@ -410,6 +410,14 @@ Warnings are shown with specific conflict details. The operator may still procee
       `run_ip_selective(session)` — prompts only for CIDR, gateway, and VM IP assignments;
         all other settings auto-calculated; subsequent IP suggestions revised from choices
 
+- [x] 1.G.3b: Network profiles (setup_network.py):
+      LanNetworkConfig / WanNetworkConfig dataclasses; suggest_lan/wan() with field
+      revision (cidr→gateway, domain→fqdn, dns_provider→tls_provider);
+      validate_lan/wan_config() with errors/warnings; plan_migration_to_wan()
+      (7-step plan, router step non-autonomous); plan_migration_to_lan() with
+      preserve_headscale option; lan/wan_config_to_state() serialization;
+      apply_network_config_to_state(); generate_dnsmasq_config() for both profiles.
+      Schema: network_topology.profile + wan_config + lan_config + ssl_provider enum updated.
 - [ ] 1.G.4: Wire into forge (Phase 1.F):
       forge-planner.py phase-01 (plan) asks which configuration mode to use;
       autonomous: existing behaviour; ip-selective / group-manual / full-manual:
