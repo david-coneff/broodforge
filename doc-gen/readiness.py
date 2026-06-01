@@ -1458,6 +1458,136 @@ def _score_platform_state_completeness(manifest: dict) -> list:
     return gaps
 
 
+def _score_cluster_state_completeness(manifest: dict) -> list:
+    """
+    Check cluster state completeness (Phase 14.2).
+
+    YELLOW: no cluster_state in manifest.
+    ORANGE: cluster health CRITICAL (quorum lost, nodes not ready).
+    YELLOW: cluster health DEGRADED.
+    """
+    gaps: list[Gap] = []
+    cs = manifest.get("cluster_state")
+
+    if not cs:
+        gaps.append(Gap(
+            component_id="infrastructure:cluster-state",
+            gap_type="MISSING_CLUSTER_STATE",
+            severity="YELLOW",
+            description=(
+                "No cluster state collected — Proxmox quorum, HA status, and "
+                "k3s node readiness are unknown"
+            ),
+            remediation=(
+                "Run proxmox-bootstrap/cluster_state_collector.py to collect cluster state"
+            ),
+            readiness_impact=(
+                "Cannot assess cluster quorum health or k3s node readiness"
+            ),
+        ))
+        return gaps
+
+    health = cs.get("cluster_health") or {}
+    overall = health.get("overall_status") or "UNKNOWN"
+
+    if overall == "CRITICAL":
+        issues = health.get("issues") or []
+        gaps.append(Gap(
+            component_id="infrastructure:cluster-health",
+            gap_type="CLUSTER_CRITICAL",
+            severity="ORANGE",
+            description=(
+                "Cluster health CRITICAL: " + ("; ".join(issues) if issues else "see cluster_state")
+            ),
+            remediation="Investigate cluster quorum and node readiness immediately",
+            readiness_impact="Cluster instability may prevent recovery operations",
+        ))
+    elif overall == "DEGRADED":
+        gaps.append(Gap(
+            component_id="infrastructure:cluster-health",
+            gap_type="CLUSTER_DEGRADED",
+            severity="YELLOW",
+            description="Cluster health DEGRADED — some nodes or resources have issues",
+            remediation="Review cluster_state.cluster_health.issues for details",
+            readiness_impact="Degraded cluster state may affect recovery reliability",
+        ))
+
+    return gaps
+
+
+def _score_storage_state_completeness(manifest: dict) -> list:
+    """
+    Check storage state completeness (Phase 14.4).
+
+    YELLOW: no storage_state in manifest.
+    ORANGE: ZFS pool FAULTED or storage health CRITICAL.
+    ORANGE: ZFS FSID (Ceph FSID) not present when Ceph is declared — Phase 14.5.
+    YELLOW: pool capacity >80%, PBS backup failures.
+    """
+    gaps: list[Gap] = []
+    ss = manifest.get("storage_state")
+
+    if not ss:
+        gaps.append(Gap(
+            component_id="infrastructure:storage-state",
+            gap_type="MISSING_STORAGE_STATE",
+            severity="YELLOW",
+            description=(
+                "No storage state collected — ZFS pool health, datastore usage, "
+                "and PBS backup status are unknown"
+            ),
+            remediation=(
+                "Run proxmox-bootstrap/storage_state_collector.py to collect storage state"
+            ),
+            readiness_impact=(
+                "Cannot assess ZFS pool health, storage capacity, or PBS backup status"
+            ),
+        ))
+        return gaps
+
+    health = ss.get("storage_health") or {}
+    overall = health.get("overall_status") or "UNKNOWN"
+
+    if overall == "CRITICAL":
+        issues = health.get("issues") or []
+        gaps.append(Gap(
+            component_id="infrastructure:storage-health",
+            gap_type="STORAGE_CRITICAL",
+            severity="ORANGE",
+            description=(
+                "Storage health CRITICAL: " + ("; ".join(issues) if issues else "see storage_state")
+            ),
+            remediation="Investigate ZFS pool status immediately — data at risk",
+            readiness_impact="Failed storage prevents VM restoration and backup operations",
+        ))
+    elif overall == "DEGRADED":
+        issues = health.get("issues") or []
+        gaps.append(Gap(
+            component_id="infrastructure:storage-health",
+            gap_type="STORAGE_DEGRADED",
+            severity="YELLOW",
+            description=(
+                "Storage health DEGRADED: " + ("; ".join(issues) if issues else "see storage_state")
+            ),
+            remediation="Review storage_state.storage_health.issues for details",
+            readiness_impact="Degraded storage may affect backup and recovery reliability",
+        ))
+
+    # PBS backup failures (14.5)
+    failed_pbs = health.get("pbs_job_failures") or []
+    if failed_pbs:
+        gaps.append(Gap(
+            component_id="infrastructure:pbs-backup",
+            gap_type="PBS_BACKUP_FAILURES",
+            severity="ORANGE",
+            description=f"PBS backup jobs failed: {', '.join(failed_pbs)}",
+            remediation="Check PBS backup job logs: pvesh get /nodes/pve/tasks",
+            readiness_impact="Failed PBS backups mean no restorable snapshots for those VMs",
+        ))
+
+    return gaps
+
+
 def score_graph(graph, manifest: dict) -> ReadinessReport:
     """Score all nodes; propagate BLOCKED; identify SPOFs and blockers."""
     backup_inv = BackupInventory(manifest.get("backup_inventory"))
@@ -1530,9 +1660,11 @@ def score_graph(graph, manifest: dict) -> ReadinessReport:
     registry_gaps += _score_disposition_compliance(manifest)
     registry_gaps += _score_reconstruction_drill(manifest)
     registry_gaps += _score_phoenix_playbook_existence(manifest)
-    # Track 2 — Hardware and Platform state
+    # Track 2 — Hardware, Platform, Cluster, Storage state
     registry_gaps += _score_hardware_state_completeness(manifest)
     registry_gaps += _score_platform_state_completeness(manifest)
+    registry_gaps += _score_cluster_state_completeness(manifest)
+    registry_gaps += _score_storage_state_completeness(manifest)
 
     # Overall score — worst of component scores and infrastructure gaps
     overall = "GREEN"

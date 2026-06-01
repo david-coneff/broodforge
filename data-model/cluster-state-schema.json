@@ -1,0 +1,119 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Cluster State",
+  "description": "Proxmox cluster identity, topology, membership, and health state. Covers Corosync quorum, HA manager, and k3s cluster status. Used by Track 2 assessment (Phase 14).",
+  "type": "object",
+  "required": ["schema_version", "cell_id", "collected_at"],
+  "additionalProperties": false,
+  "definitions": {
+    "proxmox_node": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": true,
+      "properties": {
+        "name":       {"type": "string"},
+        "id":         {"type": ["integer", "null"]},
+        "ip":         {"type": ["string", "null"]},
+        "online":     {"type": ["boolean", "null"]},
+        "role":       {"type": ["string", "null"], "description": "master, node"},
+        "cpu_usage":  {"type": ["number", "null"]},
+        "mem_usage":  {"type": ["number", "null"]},
+        "uptime_sec": {"type": ["integer", "null"]},
+        "pve_version": {"type": ["string", "null"]}
+      }
+    },
+    "k3s_node": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": true,
+      "properties": {
+        "name":       {"type": "string"},
+        "status":     {"type": ["string", "null"], "description": "Ready, NotReady"},
+        "roles":      {"type": "array", "items": {"type": "string"}},
+        "version":    {"type": ["string", "null"]},
+        "internal_ip": {"type": ["string", "null"]},
+        "os_image":   {"type": ["string", "null"]},
+        "kernel_version": {"type": ["string", "null"]},
+        "age_seconds": {"type": ["integer", "null"]},
+        "taint_no_schedule": {"type": ["boolean", "null"]}
+      }
+    },
+    "ha_resource": {
+      "type": "object",
+      "required": ["sid"],
+      "additionalProperties": true,
+      "properties": {
+        "sid":    {"type": "string", "description": "HA resource SID (e.g. vm:100)"},
+        "state":  {"type": ["string", "null"]},
+        "node":   {"type": ["string", "null"]},
+        "group":  {"type": ["string", "null"]}
+      }
+    }
+  },
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "cell_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "collected_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "collection_errors": {
+      "type": "array",
+      "items": {"type": "object"}
+    },
+    "proxmox_cluster": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name":         {"type": ["string", "null"]},
+        "quorum_votes": {"type": ["integer", "null"]},
+        "quorum_ok":    {"type": ["boolean", "null"]},
+        "node_count":   {"type": ["integer", "null"]},
+        "nodes":        {"type": "array", "items": {"$ref": "#/definitions/proxmox_node"}},
+        "ha_enabled":   {"type": ["boolean", "null"]},
+        "ha_resources": {"type": "array", "items": {"$ref": "#/definitions/ha_resource"}},
+        "corosync_ring_status": {
+          "type": ["string", "null"],
+          "description": "OK, degraded, etc."
+        }
+      }
+    },
+    "k3s_cluster": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "version":      {"type": ["string", "null"]},
+        "server_url":   {"type": ["string", "null"]},
+        "is_ha":        {"type": ["boolean", "null"], "description": "true=embedded etcd, false=SQLite"},
+        "node_count":   {"type": ["integer", "null"]},
+        "server_count": {"type": ["integer", "null"]},
+        "worker_count": {"type": ["integer", "null"]},
+        "nodes":        {"type": "array", "items": {"$ref": "#/definitions/k3s_node"}},
+        "all_nodes_ready": {"type": ["boolean", "null"]},
+        "flux_reconciled":  {"type": ["boolean", "null"]},
+        "etcd_healthy":     {"type": ["boolean", "null"]}
+      }
+    },
+    "cluster_health": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "overall_status": {
+          "type": "string",
+          "enum": ["HEALTHY", "DEGRADED", "CRITICAL", "UNKNOWN"]
+        },
+        "quorum_ok":              {"type": ["boolean", "null"]},
+        "all_proxmox_nodes_up":   {"type": ["boolean", "null"]},
+        "all_k3s_nodes_ready":    {"type": ["boolean", "null"]},
+        "ha_resources_healthy":   {"type": ["boolean", "null"]},
+        "issues":                 {"type": "array", "items": {"type": "string"}}
+      }
+    }
+  }
+}

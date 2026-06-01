@@ -1,0 +1,133 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Storage State",
+  "description": "ZFS, Proxmox Backup Server (PBS), and datastore state for a cell. Covers pool health, usage, snapshots, and PBS backup job status. Used by Track 2 assessment (Phase 14).",
+  "type": "object",
+  "required": ["schema_version", "cell_id", "collected_at"],
+  "additionalProperties": false,
+  "definitions": {
+    "zfs_pool": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": true,
+      "properties": {
+        "name":         {"type": "string"},
+        "state":        {"type": ["string", "null"], "description": "ONLINE, DEGRADED, FAULTED, OFFLINE, UNAVAIL, REMOVED"},
+        "size_gb":      {"type": ["number", "null"]},
+        "allocated_gb": {"type": ["number", "null"]},
+        "free_gb":      {"type": ["number", "null"]},
+        "capacity_pct": {"type": ["integer", "null"]},
+        "dedup_ratio":  {"type": ["number", "null"]},
+        "health":       {"type": ["string", "null"]},
+        "scan_status":  {"type": ["string", "null"], "description": "scrub status"},
+        "last_scrub_at": {"type": ["string", "null"], "format": "date-time"},
+        "vdevs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+              "name":  {"type": "string"},
+              "type":  {"type": "string", "description": "mirror, raidz, raidz2, raidz3, stripe"},
+              "state": {"type": ["string", "null"]},
+              "disks": {"type": "array", "items": {"type": "string"}}
+            }
+          }
+        }
+      }
+    },
+    "proxmox_datastore": {
+      "type": "object",
+      "required": ["id"],
+      "additionalProperties": true,
+      "properties": {
+        "id":        {"type": "string", "description": "Proxmox storage ID"},
+        "type":      {"type": ["string", "null"], "description": "zfspool, dir, nfs, ceph, etc."},
+        "content":   {"type": "array", "items": {"type": "string"}},
+        "enabled":   {"type": ["boolean", "null"]},
+        "size_gb":   {"type": ["number", "null"]},
+        "used_gb":   {"type": ["number", "null"]},
+        "avail_gb":  {"type": ["number", "null"]},
+        "shared":    {"type": ["boolean", "null"]},
+        "path":      {"type": ["string", "null"]}
+      }
+    },
+    "pbs_job": {
+      "type": "object",
+      "required": ["id"],
+      "additionalProperties": true,
+      "properties": {
+        "id":           {"type": "string"},
+        "store":        {"type": ["string", "null"]},
+        "vm_id":        {"type": ["integer", "null"]},
+        "last_run":     {"type": ["string", "null"], "format": "date-time"},
+        "last_status":  {"type": ["string", "null"], "description": "ok, error, warning"},
+        "next_run":     {"type": ["string", "null"], "format": "date-time"},
+        "snapshot_count": {"type": ["integer", "null"]},
+        "size_gb":      {"type": ["number", "null"]}
+      }
+    }
+  },
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "cell_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "collected_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "collection_errors": {
+      "type": "array",
+      "items": {"type": "object"}
+    },
+    "zfs_pools": {
+      "type": "array",
+      "items": {"$ref": "#/definitions/zfs_pool"}
+    },
+    "proxmox_datastores": {
+      "type": "array",
+      "items": {"$ref": "#/definitions/proxmox_datastore"}
+    },
+    "pbs_jobs": {
+      "type": "array",
+      "items": {"$ref": "#/definitions/pbs_job"}
+    },
+    "pbs_datastore_id": {
+      "type": ["string", "null"],
+      "description": "PBS datastore node name for this cell (used in phoenix playbooks)"
+    },
+    "storage_health": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "overall_status": {
+          "type": "string",
+          "enum": ["HEALTHY", "DEGRADED", "CRITICAL", "UNKNOWN"]
+        },
+        "pool_health_summary": {
+          "type": "string",
+          "enum": ["ALL_ONLINE", "DEGRADED", "FAULTED", "UNKNOWN"]
+        },
+        "high_capacity_pools": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Pool names where capacity_pct > 80"
+        },
+        "pbs_job_failures": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "PBS job IDs that failed on last run"
+        },
+        "issues": {
+          "type": "array",
+          "items": {"type": "string"}
+        }
+      }
+    }
+  }
+}

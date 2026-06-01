@@ -542,6 +542,19 @@ class TestRegistryCompletenessScoring(unittest.TestCase):
                     "security_updates_pending": False,
                 }
             },
+            # Cluster state present — suppresses MISSING_CLUSTER_STATE gap (Phase 14).
+            "cluster_state": {
+                "cluster_health": {"overall_status": "HEALTHY"}
+            },
+            # Storage state present — suppresses MISSING_STORAGE_STATE gap (Phase 14).
+            "storage_state": {
+                "storage_health": {
+                    "overall_status": "HEALTHY",
+                    "pool_health_summary": "ALL_ONLINE",
+                    "high_capacity_pools": [],
+                    "pbs_job_failures": [],
+                }
+            },
         }
         # Minimal empty graph (no VM nodes, so no per-VM contract gap)
         from dependencies import DependencyGraph
@@ -814,6 +827,18 @@ class TestFixtureIntegration(unittest.TestCase):
                 "services_failed": [],
                 "certs_expiring_soon": [],
                 "security_updates_pending": False,
+            }
+        }
+        # Phase 14 — cluster and storage state present
+        manifest["cluster_state"] = {
+            "cluster_health": {"overall_status": "HEALTHY"}
+        }
+        manifest["storage_state"] = {
+            "storage_health": {
+                "overall_status": "HEALTHY",
+                "pool_health_summary": "ALL_ONLINE",
+                "high_capacity_pools": [],
+                "pbs_job_failures": [],
             }
         }
 
