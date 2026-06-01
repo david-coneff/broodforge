@@ -1,0 +1,63 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Capability State",
+  "description": "Declared capabilities of a broodforge cell. Used for federation capability matching and placement decisions. Each capability category describes what this cell can do for itself or other cells.",
+  "type": "object",
+  "required": ["schema_version", "cell_id", "declared_at"],
+  "additionalProperties": false,
+  "definitions": {
+    "capability_entry": {
+      "type": "object",
+      "required": ["id", "category", "status"],
+      "additionalProperties": true,
+      "properties": {
+        "id":          {"type": "string", "description": "Unique capability ID (e.g. k3s-server, pbs-datastore)"},
+        "category":    {"type": "string", "description": "Category: compute, storage, networking, intelligence, observability, backup, gitops, security"},
+        "status":      {"type": "string", "enum": ["active", "degraded", "inactive", "planned"], "description": "Current operational status"},
+        "description": {"type": ["string", "null"]},
+        "version":     {"type": ["string", "null"], "description": "Version of this capability (e.g. k3s v1.28)"},
+        "endpoint":    {"type": ["string", "null"], "description": "Service endpoint URL if externally accessible"},
+        "verified_at": {"type": ["string", "null"], "format": "date-time", "description": "When this capability was last verified as operational"},
+        "verification_method": {"type": ["string", "null"], "description": "How verification was performed"},
+        "serves_cells": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Other cell_ids this capability serves (for cross-cell capabilities)"
+        },
+        "resource_requirements": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "ram_gib":   {"type": ["number", "null"]},
+            "cpu_cores": {"type": ["integer", "null"]},
+            "disk_gib":  {"type": ["number", "null"]}
+          }
+        },
+        "tags": {"type": "array", "items": {"type": "string"}}
+      }
+    }
+  },
+  "properties": {
+    "schema_version": {"type": "string", "const": "1.0"},
+    "cell_id":  {"type": "string", "minLength": 1},
+    "declared_at": {"type": "string", "format": "date-time"},
+    "last_verified_at": {"type": ["string", "null"], "format": "date-time"},
+    "collection_errors": {"type": "array", "items": {"type": "object"}},
+    "capabilities": {
+      "type": "array",
+      "items": {"$ref": "#/definitions/capability_entry"},
+      "description": "All capabilities declared for this cell."
+    },
+    "capability_summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "total":    {"type": "integer"},
+        "active":   {"type": "integer"},
+        "degraded": {"type": "integer"},
+        "inactive": {"type": "integer"},
+        "planned":  {"type": "integer"}
+      }
+    }
+  }
+}
