@@ -565,6 +565,84 @@ def _score_service_contract_completeness(graph, manifest: dict) -> list:
     return gaps
 
 
+def _score_network_topology_completeness(manifest: dict) -> list:
+    """
+    Check network topology declaration completeness and drift.
+
+    YELLOW: network_topology_declared not present — network reconstruction
+            requires manual documentation of bridges and routing.
+    ORANGE: drift detected between declared and observed state.
+    RED:    declared bridges exist but observed state shows none of them
+            present (suggests entire network config is missing or wrong).
+    """
+    gaps: list[Gap] = []
+    ntd = manifest.get("network_topology_declared")
+
+    if not ntd:
+        gaps.append(Gap(
+            component_id="infrastructure:network-topology",
+            gap_type="MISSING_NETWORK_TOPOLOGY",
+            severity="YELLOW",
+            description=(
+                "Network topology not declared — bridge configuration, VLANs, "
+                "and firewall policy are not tracked as code"
+            ),
+            remediation=(
+                "Populate network_topology_declared in bootstrap-state.json "
+                "with the bridges and VLANs configured on this Proxmox host"
+            ),
+            readiness_impact=(
+                "Recovery Wave 0 (network reconstruction) cannot be pre-populated; "
+                "operator must document bridges manually during recovery"
+            ),
+        ))
+        return gaps
+
+    declared = ntd.get("bridges") or []
+    observed = ntd.get("observed_bridges")
+    drift    = ntd.get("drift_detected", False)
+    detail   = ntd.get("drift_details") or ""
+
+    if not declared:
+        gaps.append(Gap(
+            component_id="infrastructure:network-topology",
+            gap_type="MISSING_NETWORK_TOPOLOGY",
+            severity="YELLOW",
+            description="network_topology_declared present but no bridges declared",
+            remediation="Add bridge declarations to network_topology_declared.bridges",
+            readiness_impact="Network reconstruction commands cannot be pre-populated",
+        ))
+        return gaps
+
+    # Drift from observed state
+    if observed is not None and drift:
+        # Check severity: all declared bridges missing = RED
+        observed_names  = {b["name"] for b in observed}
+        declared_names  = {b["name"] for b in declared}
+        all_missing     = declared_names and not (declared_names & observed_names)
+        severity = "RED" if all_missing else "ORANGE"
+        gaps.append(Gap(
+            component_id="infrastructure:network-topology",
+            gap_type="NETWORK_TOPOLOGY_DRIFT",
+            severity=severity,
+            description=(
+                f"Network topology drift detected: {detail[:200]}"
+                if detail else
+                "Declared network topology does not match observed bridge configuration"
+            ),
+            remediation=(
+                "Run network_topology_collector.py to refresh observed state, "
+                "then reconcile differences between declared and actual configuration"
+            ),
+            readiness_impact=(
+                "Recovery Wave 0 commands may not match actual host configuration; "
+                "network reconstruction may fail if bridges differ"
+            ),
+        ))
+
+    return gaps
+
+
 def _score_backup_config_completeness(manifest: dict) -> list:
     """
     Score backup configuration completeness.
@@ -941,13 +1019,14 @@ def score_graph(graph, manifest: dict) -> ReadinessReport:
         if cr.score == "RED" and dependent_counts.get(nid, 0) > 0
     ]
 
-    # Registry, provenance, service contract, external dependency, and backup completeness
+    # Registry, provenance, service contract, external dependency, backup, and network completeness
     registry_gaps = _score_registry_completeness(manifest)
     registry_gaps += _score_provenance_completeness(graph, manifest)
     registry_gaps += _score_template_registry_completeness(manifest)
     registry_gaps += _score_service_contract_completeness(graph, manifest)
     registry_gaps += _score_external_dependency_state(manifest)
     registry_gaps += _score_backup_config_completeness(manifest)
+    registry_gaps += _score_network_topology_completeness(manifest)
 
     # Overall score — worst of component scores and infrastructure gaps
     overall = "GREEN"

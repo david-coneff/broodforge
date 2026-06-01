@@ -410,6 +410,14 @@ def run_bootstrap(args):
     else:
         print("[doc-gen] Backup config: not configured — run setup-backup.py")
 
+    _ntd = bootstrap_state.get("network_topology_declared")
+    if _ntd:
+        manifest["network_topology_declared"] = _ntd
+        n_bridges = len(_ntd.get("bridges") or [])
+        print(f"[doc-gen] Network topology: {n_bridges} bridge(s) declared")
+    else:
+        print("[doc-gen] Network topology: not declared")
+
     service_state = _load_service_state(REPO_ROOT)
     if service_state:
         manifest["service_state"] = service_state
@@ -579,6 +587,16 @@ def run_recovery(args):
         print(f"[doc-gen] Backup config: {n_layers} enabled layer(s)")
     else:
         print("[doc-gen] Backup config: not configured — run setup-backup.py")
+
+    _ntd = bootstrap_state.get("network_topology_declared")
+    if _ntd:
+        manifest["network_topology_declared"] = _ntd
+        n_bridges = len(_ntd.get("bridges") or [])
+        drift = _ntd.get("drift_detected", False)
+        print(f"[doc-gen] Network topology: {n_bridges} bridge(s) declared"
+              + ("  ⚠ DRIFT DETECTED" if drift else ""))
+    else:
+        print("[doc-gen] Network topology: not declared — readiness gap will fire")
 
     service_state = _load_service_state(REPO_ROOT)
     if service_state:

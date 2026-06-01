@@ -50,14 +50,15 @@ See ROADMAP.md Milestone 7.4 for the full spec.
 | 7.3 | External Dependency State — schema, ExternalDependencyRegistry, cert expiry scorer, Appendix G in recovery runbook, engine injection (71 tests) | Complete |
 | 7.4 | Recovery Documentation Update (Service Layer) — per-VM service contract block, health check commands, restart commands, required interfaces, Appendix A edge legend + ★ marker (44 tests) | Complete |
 | 6.B | Backup Infrastructure — restic+rclone engine, BackupNaming, SpaceProbe, ResticRunner, RcloneRunner, BackupEngine, RestoreEngine, run-backup.py, restore-from-backup.py, setup-backup.py, readiness scoring, Appendix H, schema additions (82 tests) | Complete |
+| 8 | Network Topology as Code — network-topology-schema.json, network_topology_declared in bootstrap-state-schema.json, network_topology_collector.py (parser + SSH collector + compare + merge), _score_network_topology_completeness(), Wave 0 in recovery runbook, engine injection (58 tests) | Complete |
 
-**Tests: 1354 total (1350 passed, 4 skipped)**
+**Tests: 1412 total (1408 passed, 4 skipped)**
 
 ## Next Milestones
 
 | Milestone | Description |
 |---|---|
-| **Phase 8** | **Network Topology as Code — START HERE** |
+| **Phase 9** | **Phoenix Playbooks (Stargate Process) — START HERE** |
 | Phase 1.F | Forge Package Assembly (capstone of forging process) |
 | Phase 9 | Phoenix Playbooks (Stargate Process) |
 

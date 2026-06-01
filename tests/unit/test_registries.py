@@ -490,6 +490,12 @@ class TestRegistryCompletenessScoring(unittest.TestCase):
             # Service contracts present — empty graph has no VM nodes so no per-VM gap fires,
             # and the non-empty contracts list suppresses the MISSING_SERVICE_CONTRACTS gap.
             "service_contracts": [{"service": "dummy", "vm": "dummy-vm"}],
+            # Network topology declared — suppresses MISSING_NETWORK_TOPOLOGY gap.
+            "network_topology_declared": {
+                "bridges": [{"name": "vmbr0", "ports": ["eno1"], "vlan_aware": True,
+                             "ip": "192.168.1.10/24", "gateway": "192.168.1.1"}],
+                "drift_detected": False, "observed_bridges": None,
+            },
             # Backup config present — suppresses MISSING_BACKUP_CONFIG gap.
             "backup_config": {
                 "layers": {
@@ -719,6 +725,13 @@ class TestFixtureIntegration(unittest.TestCase):
             {"service": vm.get("name", ""), "vm": vm.get("name", "")}
             for vm in vms if vm.get("name")
         ]
+        # Inject network_topology_declared so no MISSING_NETWORK_TOPOLOGY gap fires
+        manifest["network_topology_declared"] = {
+            "bridges": [{"name": "vmbr0", "ports": ["eno1"], "vlan_aware": True,
+                         "ip": "192.168.1.10/24", "gateway": "192.168.1.1"}],
+            "drift_detected": False, "observed_bridges": None,
+        }
+
         # Inject backup_config so no MISSING_BACKUP_CONFIG gap fires
         from datetime import datetime, timezone as _tz
         _now = datetime.now(_tz.utc).isoformat()

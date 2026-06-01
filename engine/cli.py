@@ -1,5 +1,5 @@
 ﻿"""
-Proxmox Assessment Engine – CLI entry point.
+Broodforge – CLI entry point.
 
 Usage:
     pae collect        [--output FILE] [--collectors LIST]
@@ -327,7 +327,7 @@ def cmd_guest_report(args: argparse.Namespace) -> int:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="pae",
-        description="Proxmox Assessment Engine",
+        description="Broodforge",
     )
     sub = parser.add_subparsers(dest="command", metavar="COMMAND")
     sub.required = True

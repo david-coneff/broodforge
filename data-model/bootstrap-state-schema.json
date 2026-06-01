@@ -115,6 +115,11 @@
       "items": { "$ref": "#/definitions/external_dependency" }
     },
 
+    "network_topology_declared": {
+      "$ref": "#/definitions/network_topology_declared",
+      "description": "Declared bridge, VLAN, and firewall topology (Phase 8). Source of truth for network reconstruction and drift detection. Distinct from network_topology (Cloud-Init CIDR/gateway parameters)."
+    },
+
     "backup_config": {
       "$ref": "#/definitions/backup_config",
       "description": "Restic + rclone backup configuration (Phase 6.B). Three layers: secrets (KeePass DB, rclone copy — no restic), config (bootstrap state + assessment, encrypted restic), appdata (VM data volumes, encrypted restic, opt-in). Distinct from external_backup (git mirroring)."
@@ -1045,6 +1050,83 @@
         "health_check_url": { "type": ["string", "null"] },
         "failover":         { "type": ["string", "null"] },
         "notes":            { "type": ["string", "null"] }
+      }
+    },
+
+    "network_topology_declared": {
+      "type": "object",
+      "description": "Declared network topology — bridges, VLANs, firewall policy. Source of truth for network reconstruction commands and drift scoring.",
+      "properties": {
+        "bridges": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name"],
+            "properties": {
+              "name":               { "type": "string", "description": "Bridge interface name, e.g. vmbr0" },
+              "ports":              { "type": "array", "items": { "type": "string" } },
+              "vlan_aware":         { "type": "boolean" },
+              "ip":                 { "type": ["string", "null"], "description": "Host IP in CIDR notation, e.g. 192.168.1.10/24" },
+              "gateway":            { "type": ["string", "null"] },
+              "mtu":                { "type": ["integer", "null"] },
+              "management_bridge":  { "type": "boolean" },
+              "headscale_bridge":   { "type": "boolean" },
+              "purpose":            { "type": ["string", "null"] }
+            }
+          }
+        },
+        "vlans": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "bridge"],
+            "properties": {
+              "id":      { "type": "integer", "minimum": 1, "maximum": 4094 },
+              "name":    { "type": ["string", "null"] },
+              "bridge":  { "type": "string" },
+              "purpose": { "type": ["string", "null"] }
+            }
+          }
+        },
+        "firewall": {
+          "type": "object",
+          "properties": {
+            "enabled":     { "type": "boolean" },
+            "host_policy": { "type": "string", "enum": ["accept", "drop", "reject"] },
+            "rules": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["direction", "action"],
+                "properties": {
+                  "direction": { "type": "string", "enum": ["in", "out"] },
+                  "action":    { "type": "string", "enum": ["accept", "drop", "reject"] },
+                  "proto":     { "type": ["string", "null"] },
+                  "dport":     { "type": ["string", "null"] },
+                  "source":    { "type": ["string", "null"] },
+                  "comment":   { "type": ["string", "null"] }
+                }
+              }
+            }
+          }
+        },
+        "observed_bridges": {
+          "type": "array",
+          "description": "Bridge state observed by Tier 2 collector (compare with bridges[] to detect drift)",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name":       { "type": "string" },
+              "ports":      { "type": "array", "items": { "type": "string" } },
+              "vlan_aware": { "type": "boolean" },
+              "ip":         { "type": ["string", "null"] },
+              "state":      { "type": "string", "enum": ["UP", "DOWN", "UNKNOWN"] }
+            }
+          }
+        },
+        "drift_detected":  { "type": "boolean" },
+        "drift_details":   { "type": ["string", "null"] },
+        "observed_at":     { "type": ["string", "null"], "format": "date-time" }
       }
     },
 

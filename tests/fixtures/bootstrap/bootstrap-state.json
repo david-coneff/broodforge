@@ -442,6 +442,35 @@
       "owner": "infrastructure"
     }
   ],
+  "network_topology_declared": {
+    "bridges": [
+      {
+        "name": "vmbr0",
+        "ports": ["eno1"],
+        "vlan_aware": true,
+        "ip": "192.168.1.10/24",
+        "gateway": "192.168.1.1",
+        "mtu": null,
+        "management_bridge": true,
+        "headscale_bridge": true,
+        "purpose": "Primary management bridge — all VMs and WAN-reachable services"
+      }
+    ],
+    "vlans": [],
+    "firewall": {
+      "enabled": false,
+      "host_policy": "accept",
+      "rules": [
+        {"direction": "in", "action": "accept", "proto": "tcp", "dport": "22",   "source": null, "comment": "SSH"},
+        {"direction": "in", "action": "accept", "proto": "tcp", "dport": "8006", "source": null, "comment": "Proxmox UI"},
+        {"direction": "in", "action": "accept", "proto": "tcp", "dport": "8080", "source": null, "comment": "Headscale"}
+      ]
+    },
+    "drift_detected": false,
+    "drift_details": null,
+    "observed_at": null
+  },
+
   "external_dependencies": [
     {
       "id": "cloudflare-dns",

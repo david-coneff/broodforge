@@ -408,6 +408,96 @@ def build_recovery_runbook(
     rb.spacer()
 
     # ------------------------------------------------------------------
+    # Wave 0 — Network Reconstruction (from declared topology)
+    # ------------------------------------------------------------------
+    rb.h1("Wave 0 — Network Reconstruction")
+    rb.body(
+        "Wave 0 rebuilds the Proxmox host's network configuration before "
+        "any VM is restored. Bridges must exist before VMs can be started; "
+        "routing must be correct before SSH or backup storage is reachable."
+    )
+    rb.spacer()
+
+    ntd = manifest.get("network_topology_declared")
+    declared_bridges = (ntd.get("bridges") or []) if ntd else []
+
+    if declared_bridges:
+        drift = ntd.get("drift_detected", False)
+        if drift:
+            rb.warning(
+                f"Network topology drift was detected at last collection: "
+                f"{ntd.get('drift_details') or 'details unavailable'}"
+            )
+            rb.warning(
+                "Verify bridges match declared configuration before proceeding"
+            )
+        rb.body(f"Declared bridges: {len(declared_bridges)}")
+        rb.spacer()
+
+        for bridge in declared_bridges:
+            bname = bridge.get("name", "?")
+            bip   = bridge.get("ip")
+            bgw   = bridge.get("gateway")
+            bports = bridge.get("ports") or []
+            bvlan  = bridge.get("vlan_aware", False)
+            bpurpose = bridge.get("purpose")
+
+            rb.h2(f"Bridge: {bname}")
+            if bpurpose:
+                rb.body(f"Purpose: {bpurpose.strip()}")
+            rb.field("IP",           bip or "(no host IP — VM-only bridge)", "AUTO", "")
+            rb.field("Gateway",      bgw or "(no gateway)",                  "AUTO", "")
+            rb.field("Ports",        ", ".join(bports) or "(no physical ports — internal)", "AUTO", "")
+            rb.field("VLAN-aware",   "yes" if bvlan else "no",              "AUTO", "")
+
+            rb.h3(f"Verify: {bname}")
+            rb.code(f"ip link show {bname}")
+            rb.body("Expected: bridge visible and state UP")
+            if bip:
+                rb.code(f"ip addr show {bname}")
+                rb.body(f"Expected: inet {bip} assigned")
+            rb.checkbox(f"Bridge {bname} UP")
+            if bip:
+                rb.checkbox(f"Bridge {bname} has correct IP {bip}")
+            rb.spacer()
+
+            rb.h3(f"Reconstruct {bname} (if missing)")
+            rb.body("If the bridge is missing, reconstruct from /etc/network/interfaces:")
+            rb.code("# Verify /etc/network/interfaces contains the bridge declaration:")
+            rb.code(f"grep -A 10 'iface {bname}' /etc/network/interfaces")
+            rb.body("Expected: bridge stanza present with correct address and bridge-ports.")
+            rb.body("If the stanza is missing, restore from the forge/phoenix package's")
+            rb.body("  proxmox-bootstrap/metadata/network-topology.yaml")
+            rb.body("  and write it to /etc/network/interfaces, then run:")
+            rb.code("ifreload -a")
+            rb.body("Expected: bridge comes up without a full reboot.")
+            rb.checkbox(f"Bridge {bname} reconstructed and verified")
+            rb.spacer()
+
+        if bgw:
+            rb.h2("Verify Routing")
+            rb.code(f"ping -c 3 {bgw}")
+            rb.body(f"Expected: 3 packets received — gateway {bgw} reachable")
+            rb.code("ip route show")
+            rb.body("Expected: default route via gateway visible")
+            rb.checkbox("Default route confirmed")
+            rb.checkbox("External network reachable from host")
+            rb.spacer()
+    else:
+        rb.field(
+            "Network topology",
+            "NOT DECLARED — manual bridge verification required",
+            "UNRESOLVED",
+            "Populate network_topology_declared in bootstrap-state.json to "
+            "enable pre-populated Wave 0 reconstruction commands",
+        )
+        rb.body("Without declared topology, verify bridges manually:")
+        rb.code("ip link show type bridge")
+        rb.code("cat /etc/network/interfaces")
+        rb.checkbox("[HUMAN] All bridges present and correctly configured")
+        rb.spacer()
+
+    # ------------------------------------------------------------------
     # Restore waves
     # ------------------------------------------------------------------
     rb.h1("Restore Sequence")

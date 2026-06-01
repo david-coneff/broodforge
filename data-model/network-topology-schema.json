@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "network-topology-schema",
+  "title": "Network Topology",
+  "description": "Declared network topology for a broodforge cell — bridges, VLANs, and firewall policy. This is the authoritative declaration from which network config is generated and against which observed state is compared during Tier 2 assessment.",
+  "type": "object",
+  "required": ["schema_version", "cell_id", "declared_at", "bridges"],
+  "properties": {
+    "schema_version": { "type": "string", "enum": ["1.0"] },
+    "cell_id": {
+      "type": "string",
+      "description": "Infrastructure cell this topology belongs to"
+    },
+    "declared_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "bridges": {
+      "type": "array",
+      "description": "Linux bridges managed on the Proxmox host",
+      "items": { "$ref": "#/definitions/bridge" }
+    },
+    "vlans": {
+      "type": "array",
+      "description": "VLAN declarations for VLAN-aware bridges",
+      "items": { "$ref": "#/definitions/vlan" }
+    },
+    "firewall": {
+      "$ref": "#/definitions/firewall_policy"
+    },
+    "observed_at": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "Timestamp when observed state was last collected for comparison"
+    },
+    "drift_summary": {
+      "type": ["string", "null"],
+      "description": "Human-readable drift summary from last collector run"
+    }
+  },
+  "definitions": {
+    "bridge": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Bridge interface name, e.g. vmbr0"
+        },
+        "ports": {
+          "type": "array",
+          "description": "Physical NIC(s) enslaved to this bridge",
+          "items": { "type": "string" }
+        },
+        "vlan_aware": {
+          "type": "boolean",
+          "description": "Whether this bridge is VLAN-aware (enables 802.1Q tagging for VM NICs)"
+        },
+        "ip": {
+          "type": ["string", "null"],
+          "description": "Host IP address on this bridge, CIDR notation e.g. 192.168.1.10/24. Null for VM-only bridges."
+        },
+        "gateway": {
+          "type": ["string", "null"],
+          "description": "Default gateway reachable via this bridge. Null if not the management bridge."
+        },
+        "mtu": {
+          "type": ["integer", "null"],
+          "description": "MTU override. Null = system default (usually 1500)."
+        },
+        "purpose": {
+          "type": ["string", "null"],
+          "description": "Human-readable description of this bridge's role"
+        },
+        "headscale_bridge": {
+          "type": "boolean",
+          "description": "If true, Headscale and WAN-reachable services bind to an IP on this bridge"
+        },
+        "management_bridge": {
+          "type": "boolean",
+          "description": "If true, this is the primary management bridge (Proxmox web UI, SSH, DNS)"
+        }
+      }
+    },
+    "vlan": {
+      "type": "object",
+      "required": ["id", "bridge"],
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4094,
+          "description": "802.1Q VLAN ID"
+        },
+        "name": { "type": ["string", "null"] },
+        "bridge": {
+          "type": "string",
+          "description": "The VLAN-aware bridge this VLAN is associated with"
+        },
+        "purpose": { "type": ["string", "null"] }
+      }
+    },
+    "firewall_policy": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Whether Proxmox datacenter-level firewall is enabled"
+        },
+        "host_policy": {
+          "type": "string",
+          "enum": ["accept", "drop", "reject"],
+          "description": "Default policy for traffic to the Proxmox host itself"
+        },
+        "rules": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/firewall_rule" }
+        }
+      }
+    },
+    "firewall_rule": {
+      "type": "object",
+      "required": ["direction", "action"],
+      "properties": {
+        "direction": { "type": "string", "enum": ["in", "out"] },
+        "action":    { "type": "string", "enum": ["accept", "drop", "reject"] },
+        "proto":     { "type": ["string", "null"] },
+        "dport":     { "type": ["string", "null"] },
+        "source":    { "type": ["string", "null"] },
+        "comment":   { "type": ["string", "null"] }
+      }
+    }
+  }
+}

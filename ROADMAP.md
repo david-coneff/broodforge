@@ -699,11 +699,25 @@ artifact an operator downloads and runs on bare Proxmox to forge the first hatch
 
 ### Phase 8 — Network Topology as Code
 
-- [ ] 8.1: Network topology OpenTofu resources (bridges, VLANs, firewall rules)
-- [ ] 8.2: Network topology collector (compare observed vs. declared)
-- [ ] 8.3: Network topology drift detection
-- [ ] 8.4: Recovery documentation Wave 0: network reconstruction from code
-- [ ] 8.5: Network topology completeness in readiness scorer
+- [x] 8.1: Network topology declaration format — `data-model/network-topology-schema.json`
+      (bridges, VLANs, firewall policy) + `network_topology_declared` section in
+      bootstrap-state-schema.json + canonical fixture in bootstrap-state.json
+- [x] 8.2: Network topology collector — `proxmox-bootstrap/network_topology_collector.py`:
+      parse_interfaces_file() parses /etc/network/interfaces format;
+      collect_observed_bridges() SSHes to host (injectable runner for tests);
+      compare_topology() diffs declared vs observed; merge_observed_topology()
+      writes drift results back into bootstrap-state.json
+- [x] 8.3: Network topology drift detection — compare_topology() returns
+      (drift_detected: bool, drift_details: str); merge_observed_topology()
+      persists both fields; readiness scorer surfaces as ORANGE/RED
+- [x] 8.4: Recovery documentation Wave 0 — build_recovery_runbook() now emits
+      a full "Wave 0 — Network Reconstruction" section before the restore sequence:
+      per-bridge IP, ports, vlan_aware; verify commands (ip link, ip addr);
+      reconstruct commands (ifreload -a from /etc/network/interfaces);
+      drift warning if drift_detected; "NOT DECLARED" UNRESOLVED field if absent
+- [x] 8.5: Network topology completeness in readiness scorer —
+      _score_network_topology_completeness(): YELLOW if not declared; ORANGE if
+      drift detected; RED if all declared bridges are missing in observed state
 
 ### Phase 9 — Phoenix Playbooks *(Stargate Process — reconstruction scripts)*
 
