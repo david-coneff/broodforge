@@ -1,0 +1,85 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Federation State",
+  "description": "Complete federation state for a group of broodforge cells. Declares which cells participate, how they trust each other, and which cells can recover which.",
+  "type": "object",
+  "required": ["schema_version", "federation_id", "declared_at"],
+  "additionalProperties": false,
+  "definitions": {
+    "cell_registry_entry": {
+      "type": "object",
+      "required": ["cell_id", "registered_at"],
+      "additionalProperties": true,
+      "properties": {
+        "cell_id":       {"type": "string"},
+        "registered_at": {"type": "string", "format": "date-time"},
+        "hostname":      {"type": ["string", "null"]},
+        "domain":        {"type": ["string", "null"]},
+        "fqdn":          {"type": ["string", "null"]},
+        "endpoint":      {"type": ["string", "null"]},
+        "status":        {"type": "string", "enum": ["active", "degraded", "unreachable", "decommissioned"]},
+        "last_seen_at":  {"type": ["string", "null"]},
+        "capabilities":  {"type": "array", "items": {"type": "string"}},
+        "notes":         {"type": ["string", "null"]}
+      }
+    },
+    "trust_relationship": {
+      "type": "object",
+      "required": ["relationship_id", "from_cell", "to_cell", "relationship_type", "declared_at"],
+      "additionalProperties": true,
+      "properties": {
+        "relationship_id":   {"type": "string"},
+        "from_cell":         {"type": "string"},
+        "to_cell":           {"type": "string"},
+        "relationship_type": {"type": "string", "enum": ["peer", "recovery", "backup-provider", "read-only"]},
+        "declared_at":       {"type": "string", "format": "date-time"},
+        "expires_at":        {"type": ["string", "null"]},
+        "verified_at":       {"type": ["string", "null"]},
+        "status":            {"type": "string", "enum": ["active", "expired", "unverified", "revoked"]},
+        "reverify_days":     {"type": ["integer", "null"]},
+        "notes":             {"type": ["string", "null"]}
+      }
+    },
+    "backup_location": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "type":   {"type": "string", "enum": ["restic", "rclone", "local"]},
+        "remote": {"type": ["string", "null"]},
+        "path":   {"type": ["string", "null"]},
+        "layer":  {"type": ["string", "null"]}
+      }
+    },
+    "recovery_relationship": {
+      "type": "object",
+      "required": ["relationship_id", "subject_cell", "coordinator_cell", "declared_at"],
+      "additionalProperties": true,
+      "properties": {
+        "relationship_id":  {"type": "string"},
+        "subject_cell":     {"type": "string"},
+        "coordinator_cell": {"type": "string"},
+        "declared_at":      {"type": "string", "format": "date-time"},
+        "backup_locations": {
+          "type": "array",
+          "items": {"$ref": "#/definitions/backup_location"}
+        },
+        "verified_at":    {"type": ["string", "null"]},
+        "status":         {"type": "string", "enum": ["active", "unverified", "degraded", "unavailable"]},
+        "last_backup_at": {"type": ["string", "null"]},
+        "rto_minutes":    {"type": ["integer", "null"]},
+        "rpo_hours":      {"type": ["integer", "null"]},
+        "notes":          {"type": ["string", "null"]}
+      }
+    }
+  },
+  "properties": {
+    "schema_version":          {"type": "string"},
+    "federation_id":           {"type": "string", "description": "Unique ID for this federation (e.g. homelab-fed-01)"},
+    "federation_name":         {"type": ["string", "null"], "description": "Human-readable federation name"},
+    "declared_at":             {"type": "string", "format": "date-time"},
+    "notes":                   {"type": ["string", "null"]},
+    "cells":                   {"type": "array", "items": {"$ref": "#/definitions/cell_registry_entry"}},
+    "trust_relationships":     {"type": "array", "items": {"$ref": "#/definitions/trust_relationship"}},
+    "recovery_relationships":  {"type": "array", "items": {"$ref": "#/definitions/recovery_relationship"}}
+  }
+}
