@@ -1268,7 +1268,7 @@ never needs to ask the operator what is already taken.
       - Machine-updated by each spawn script phase
       - Spawn failure package generated automatically if any phase fails
 
-- [ ] 12.E.9: **Bootstrap-state.json updater** — runs on the hatchery after the
+- [x] 12.E.9: **Bootstrap-state.json updater** — runs on the hatchery after the
       broodling reports successful spawn (phase-08-verify.sh exits 0); merges the broodling's
       hardware profile, allocated VMIDs, IPs, hostnames, and cluster role into
       `bootstrap-state.json`; adds provenance records for new VMs; commits to Forgejo.
