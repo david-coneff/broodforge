@@ -47,6 +47,8 @@ Architecture: v7.1 (see ARCHITECTURE.md and docs/ARCHITECTURE-REVIEW-v7.md)
 
 ### Remaining / Future Work
 
+- [ ] **Phase 26 — Autonomous Remediation** (Track 4): Detect → Propose → Approve → Execute → Reassess loop.
+      All phases designed in the Track 4 section below. Start here for the next major feature.
 - [ ] 9.T: Talos Linux alternative support — optional; scripts for template build, machine config
       generation, and Ubuntu↔Talos migration not yet implemented.
       See `docs/TALOS-ALTERNATIVE.html` for design and prerequisites.
@@ -63,7 +65,7 @@ Architecture: v7.1 (see ARCHITECTURE.md and docs/ARCHITECTURE-REVIEW-v7.md)
 | **Hatchery Process** | Spawn package | Phase 12.E | Hatchery → broodling joins without conflict |
 | **Stargate Process** | Phoenix package | Phase 9 + Phase C/D | Failed node → identity resurrected |
 
-### Three Tracks
+### Four Tracks
 
 **Forging Foundation (Phases 0–3, Phase 1.F)**
 Establish the metadata model and all Phase A tooling. Culminates in the forge
@@ -87,8 +89,15 @@ External Dependencies, Data Protection, Observability, Capability, Federation St
 Build the Digital Twin platform, federation architecture, federated reconstruction,
 and continuous assessment capability.
 
+**Track 4 — Autonomous Operations (Phase 26)**
+Close the detect → propose → approve → execute → reassess loop. The assessment
+engine has always found and scored gaps; Track 4 adds the ability to act on them,
+always gated by explicit human approval. No autonomous action without a recorded
+operator decision.
+
 Track 2 begins after Phase 12.E completes the single-cell + expansion foundation.
 Track 3 begins after Phase 18 completes the expanded state model.
+Track 4 begins after Track 3 and requires Phase 24 (continuous assessment) running.
 
 ---
 
@@ -1489,6 +1498,256 @@ Track 3 begins after Phase 18.
 
 ---
 
+## Track 4 — Autonomous Operations
+
+*Prerequisite: Tracks 1–3 complete. The assessment engine must be operational,
+continuous assessment (Phase 24) running, and the digital twin current before
+autonomous remediation can propose meaningful actions.*
+
+### Design contract for autonomous remediation
+
+The assessment engine has always surfaced gaps and scored them. Track 4 closes
+the loop: from detection → proposal → human approval → execution → reassessment.
+
+**The core constraint is this: remediation is proposed, not imposed.**
+The system recommends; the operator approves; the system executes.
+No autonomous action changes infrastructure state without a recorded human
+approval. This constraint is not a configuration option — it is architectural.
+
+**Scope of autonomous action.** The executor handles reversible, observable,
+low-blast-radius operations. It explicitly does not handle:
+- Destruction of data, VMs, volumes, or snapshots
+- Changes to Proxmox cluster membership (those go through forge/spawn/phoenix flows)
+- Modifications to authoritative metadata YAML files
+- KeePass credential changes (those require the KeePass gate in an operator session)
+- Network topology declaration changes (operators must update the source of truth)
+- Any operation the operator has not explicitly approved in this session
+
+Anything not on the allowed-action list is blocked at the executor layer,
+regardless of what the planner proposes. An overly broad proposal is rejected
+before it runs, not after.
+
+---
+
+### Phase 26 — Autonomous Remediation
+
+*Closes the assess → detect → propose → approve → execute → reassess loop.*
+
+**26.1 — Remediation Planner** (`proxmox-bootstrap/remediation_planner.py`)
+
+Reads the current readiness report and twin state to produce a structured
+`RemediationPlan`: an ordered list of `RemediationProposal` objects, each
+with enough context for the operator to make an informed approval decision.
+
+Each proposal records:
+- `proposal_id` — stable UUID; survives across assessment cycles until resolved
+- `issue_id` — references the specific gap or readiness finding that triggered it
+- `severity` — mirrors the assessment score (YELLOW/ORANGE/RED) of the underlying issue
+- `action_type` — enumerated type (see below); determines which executor handler runs
+- `action_description` — human-readable "what will happen if you approve this"
+- `target` — component, service name, or node hostname the action affects
+- `dry_run_output` — what the action would produce, captured without making changes
+- `reversibility` — `reversible` | `irreversible` | `manual-rollback`; RED is blocked unless reversible
+- `estimated_duration_seconds` — from historical execution data
+- `proposed_at` — UTC timestamp
+- `prerequisite_ids` — other proposals that must execute successfully first
+
+Allowed action types (exhaustive list — anything not here is rejected at the
+executor):
+
+| Action type | What it does | Reversibility |
+|---|---|---|
+| `restart-service` | `systemctl restart {svc}` on target VM | Reversible (stop again) |
+| `run-backup` | `python3 run-backup.py --layer {layer}` | Reversible (restore from prior) |
+| `renew-cert` | `certbot renew` or `acme.sh --renew` for near-expiry cert | Reversible (prior cert still valid) |
+| `regenerate-phoenix` | Re-run phoenix playbook generator for stale node package | Reversible (old package kept) |
+| `sync-cert-to-k8s` | Re-run `sync-cert-to-k8s.sh` to push renewed cert into cluster secrets | Reversible (old secret restored from cert) |
+| `rotate-join-token` | Generate new k3s join token; update bootstrap-state.json | Manual rollback |
+| `restart-assessment-timer` | `systemctl enable --now broodforge-operational.timer` | Reversible |
+| `schedule-drill` | Append a drill reminder entry to bootstrap-state.json | Reversible (delete entry) |
+| `flag-manual` | Mark a finding for manual operator attention; no system change | N/A |
+
+The planner never proposes an action outside this list. Unknown findings produce
+`flag-manual` proposals, never executable ones.
+
+- [ ] 26.1.1: `RemediationProposal` dataclass and schema additions to `bootstrap-state-schema.json`
+- [ ] 26.1.2: Planner logic — map each gap type to its allowed action type
+- [ ] 26.1.3: Dry-run execution for each action type (produces `dry_run_output` without making changes)
+- [ ] 26.1.4: Proposal deduplication — if an identical proposal already exists in the queue, update it rather than creating a duplicate
+- [ ] 26.1.5: Integration with `engine.py --mode operational` — proposals generated automatically at the end of each operational assessment run
+- [ ] 26.1.6: Tests (propose phase: 30+ cases covering all action types and edge cases)
+
+**26.2 — Approval Queue** (`proxmox-bootstrap/remediation_queue.py`)
+
+Manages the lifecycle of proposals from creation through execution.
+
+State machine per proposal:
+```
+proposed → approved → executing → resolved
+        ↘ rejected
+        ↘ superseded   (newer proposal for same issue replaces this one)
+        ↘ expired      (underlying issue resolved by other means before approval)
+```
+
+Queue storage: `remediations` array in `bootstrap-state.json`. Each entry persists
+until resolved, rejected, or superseded. Queue is committed to Forgejo on every
+state change so the record is version-controlled and auditable.
+
+Approval record per transition:
+- `approved_by` — operator identifier (hostname + Unix user, or dashboard session token)
+- `approved_at` — UTC timestamp
+- `approval_channel` — `cli` | `dashboard` | `auto-policy`
+- `approval_note` — optional free-text comment from operator
+
+Auto-approve policy (operator-configured, disabled by default):
+- `auto_approve_threshold`: `null` (disabled) | `YELLOW` | `ORANGE`
+- When set, proposals at or below the threshold are auto-approved on creation
+- RED proposals are **never** auto-approved regardless of policy
+- `irreversible` proposals are **never** auto-approved regardless of policy
+- Auto-approvals are recorded with `approval_channel: auto-policy`
+
+- [ ] 26.2.1: Queue data model — `RemediationQueue`, state machine transitions, storage in bootstrap-state.json
+- [ ] 26.2.2: CLI for queue management (`python3 proxmox-bootstrap/remediation-cli.py`):
+  - `list` — show pending proposals with dry-run summary
+  - `approve {id}` — approve a single proposal
+  - `approve-all --severity YELLOW` — batch approve by max severity
+  - `reject {id} [--reason text]` — reject a proposal
+  - `dry-run {id}` — re-run dry-run and display output
+  - `history` — show resolved/rejected proposals
+- [ ] 26.2.3: Auto-approve policy configuration (stored in `bootstrap-state.json remediation_policy`)
+- [ ] 26.2.4: Proposal expiry — if the underlying issue is no longer present in the assessment, mark proposal as `expired` rather than leaving it in the queue
+- [ ] 26.2.5: Tests (queue lifecycle: 25+ cases)
+
+**26.3 — Executor** (`proxmox-bootstrap/remediation_executor.py`)
+
+Executes approved proposals with the same checkpoint and failure-package semantics
+as spawn/forge/phoenix scripts.
+
+Execution contract:
+1. **Re-validate** the proposal before running: confirm the underlying issue still
+   exists and the action type is still on the allowed list. Cancel if either check fails.
+2. **Record the start** in bootstrap-state.json (status → `executing`, `started_at`).
+3. **Dry-run first** — re-run dry-run and diff against the original. If significantly
+   different, pause and surface for re-approval rather than proceeding.
+4. **Execute** the action.
+5. **Checkpoint** at each meaningful step (mirrors spawn checkpoint pattern).
+6. On failure: generate a `RemediationFailurePackage` (same structure as spawn failure
+   packages) and set status to `failed`. Never silently swallow errors.
+7. On success: record `resolved_at`, `outcome`, and transition to `resolved`.
+8. **Trigger reassessment** — queue a fresh operational assessment run so the twin
+   reflects the post-remediation state.
+
+KeePass gate: any action that requires secrets (e.g. `rotate-join-token`,
+`run-backup`) requires the KeePass gate to be unlocked for that session. The
+executor checks for the gate before starting; if not unlocked, it suspends
+execution and prompts via `/dev/tty` — it never starts a secrets-accessing action
+unattended.
+
+- [ ] 26.3.1: `RemediationExecutor` class — pre-validate, checkpoint, execute, post-record
+- [ ] 26.3.2: Handler per action type (one function per allowed action type from 26.1)
+- [ ] 26.3.3: KeePass gate integration — suspend if gate not unlocked for secrets-requiring actions
+- [ ] 26.3.4: `RemediationFailurePackage` — extends failure package format from spawn
+- [ ] 26.3.5: Post-execution reassessment trigger
+- [ ] 26.3.6: Tests (executor: 35+ cases, all action types + failure paths)
+
+**26.4 — Dashboard Integration**
+
+Expose the remediation queue in the broodforge sidecar dashboard (`broodforge_dashboard.py`)
+so operators can review and approve proposals from the browser.
+
+New endpoints:
+- `GET /api/remediations` — list proposals (filterable by status and severity)
+- `GET /api/remediations/{id}` — full proposal detail including dry-run output
+- `POST /api/remediations/{id}/approve` — approve (requires `X-Broodforge-Token` header)
+- `POST /api/remediations/{id}/reject` — reject with optional reason
+- `POST /api/remediations/approve-batch` — approve multiple by severity threshold
+
+Dashboard HTML additions:
+- New **Remediations** section in the main dashboard page
+- Pending proposals listed with: severity badge, action description, target, dry-run summary, approve/reject buttons
+- Executed history section showing resolved and failed proposals
+- Auto-approve policy display and toggle
+
+Token requirement: all POST endpoints require the `X-Broodforge-Token` header
+(already enforced for `analyze-failures`). A proposal approved from the dashboard
+records `approval_channel: dashboard`.
+
+- [ ] 26.4.1: `GET /api/remediations` and `GET /api/remediations/{id}` endpoints
+- [ ] 26.4.2: `POST` approval/rejection endpoints with token gate
+- [ ] 26.4.3: Dashboard HTML section — proposal cards with approve/reject buttons
+- [ ] 26.4.4: Batch approve endpoint with severity filter
+- [ ] 26.4.5: Tests (dashboard endpoints: 15+ cases)
+
+**26.5 — Feedback Loop and Reporting**
+
+Close the loop: verify that approved remediations actually resolved the issue,
+and surface the closed-loop record in operational reports.
+
+- `RemediationRecord` — links a proposal, its execution result, and the post-execution
+  assessment delta (was the gap actually closed?)
+- Operational Report (Section 8 — new) — Remediation Summary:
+  - Pending proposals awaiting approval (count by severity)
+  - Recently executed proposals (last 30 days) with outcomes
+  - Failed remediations requiring operator attention
+  - Issues that were auto-approved and resolved without intervention
+  - Issues that resisted remediation (executed but issue persists after reassessment)
+
+- [ ] 26.5.1: `RemediationRecord` — execution + post-assessment delta + closed-loop status
+- [ ] 26.5.2: Operational report Section 8 — Remediation Summary renderer
+- [ ] 26.5.3: HTML operational report update — Section 8 added to `html_operational_report.py`
+- [ ] 26.5.4: `resists_remediation` flag — if an action executed successfully but the
+  underlying issue is still present in the next assessment, the proposal is marked
+  `resisted` and escalated to the operator
+- [ ] 26.5.5: Tests (feedback loop: 20+ cases)
+
+**26.6 — Policy Engine and Federation Remediation**
+
+*Advanced optional sub-phase.*
+
+**Policy engine** (`proxmox-bootstrap/remediation_policy.py`):
+Fine-grained control over what can be auto-approved, what requires human approval,
+and what is blocked entirely. Per-action-type overrides supplement the global
+severity threshold.
+
+Policy fields (stored in `bootstrap-state.json remediation_policy`):
+- `auto_approve_threshold`: global max severity for auto-approval (default: null)
+- `blocked_action_types`: list of action types that are always blocked regardless of approval
+- `require_approval_action_types`: action types always requiring approval even if under threshold
+- `max_concurrent_executions`: number of proposals that can execute simultaneously (default: 1)
+- `execution_window`: time-of-day window when executions may run (cron-style expression)
+- `notify_on_proposal`: emit a structured log event when new proposals are generated
+- `notify_on_approval`: emit a structured log event when proposals are approved
+- `notify_on_outcome`: emit a structured log event when proposals complete or fail
+
+**Federation remediation**:
+A federated remediation proposal is one that requires coordination across cells.
+Example: Cell A's backup is failing because Cell B (the backup destination) is
+full. The proposal must be visible to operators of both cells; approval from
+the "owning cell" operator is required before execution.
+
+Cross-cell proposals are stored in the federation state (Phase 19) alongside the
+originating cell's bootstrap-state.json. The federation runbook (Phase 20) gains a
+"Pending Remediations" section.
+
+- [ ] 26.6.1: `RemediationPolicy` dataclass and schema; CLI to update policy
+- [ ] 26.6.2: Execution window enforcement (don't execute outside configured hours)
+- [ ] 26.6.3: Concurrent execution limit (serialize by default; operator can allow parallel)
+- [ ] 26.6.4: Cross-cell proposal format — `owning_cell_id`, `requires_cell_approval[]`
+- [ ] 26.6.5: Federation remediation view in Federation Workbook (Phase 20 extension)
+- [ ] 26.6.6: Tests (policy engine: 20+ cases; cross-cell: 10+ cases)
+
+---
+
+**Gate:** Phase 26 completion adds the autonomous action layer.
+The platform can now detect, propose, and (with human approval) resolve
+operational gaps without requiring the operator to diagnose and execute
+remediation manually.
+
+**Track 4 begins after Track 3. No Track 4 phase requires any Track 4 prerequisite
+beyond a working Phase 24 (continuous assessment) deployment.**
+
+---
+
 ## Design Principles
 
 1. **Reconstruction is the objective.** Every state category, metadata field, and
@@ -1519,3 +1778,8 @@ Track 3 begins after Phase 18.
 10. **Single-cell work must be federation-ready from the start.** `cell_id` in all
     schemas. Recovery playbooks organized by cell. Documentation scoped by cell.
     The federation layer is added above, not retrofitted below.
+
+11. **Remediation is proposed, not imposed.** The assessment engine recommends;
+    the operator approves; the system executes. No autonomous action changes
+    infrastructure state without a recorded human approval. This is an
+    architectural constraint, not a configuration option.
