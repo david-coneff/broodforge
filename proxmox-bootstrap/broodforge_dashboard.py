@@ -51,7 +51,7 @@ from urllib.parse import urlparse
 # Version
 # ---------------------------------------------------------------------------
 
-DASHBOARD_VERSION = "1.0.0"
+DASHBOARD_VERSION = "7.1"
 DEFAULT_PORT      = 9322
 DEFAULT_STATE     = "/var/lib/broodforge/bootstrap-state.json"
 DEFAULT_REPORTS   = "/var/lib/broodforge/reports"
@@ -986,7 +986,11 @@ def run_server(cfg: DashboardConfig) -> None:
         file=sys.stderr,
     )
     if cfg.action_token:
-        print(f"[dashboard] Action token set — POST endpoints require X-Broodforge-Token header", file=sys.stderr)
+        print(f"[dashboard] Action token set — POST endpoints require X-Broodforge-Token header",
+              file=sys.stderr)
+    else:
+        print("[dashboard] WARNING: No auth token configured — all POST endpoints are unprotected",
+              file=sys.stderr)
 
     try:
         server.serve_forever()

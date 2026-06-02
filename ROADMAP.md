@@ -64,10 +64,20 @@ Architecture: v7.1 (see ARCHITECTURE.md and docs/ARCHITECTURE-REVIEW-v7.md)
       talos-1x-base fixture entries, `_score_talos_config_completeness()` readiness scorer,
       Talos-specific Wave 2.5 template rebuild + Wave 3 VM reconstruction steps.
       57 tests. See `docs/TALOS-ALTERNATIVE.md` for design and prerequisites.
-- [ ] 9.T (migration): Ubuntu↔Talos migration scripts not yet implemented.
-      `migrate-k3s-to-talos.py`, `migrate-k3s-to-ubuntu.py`, `migrate_k3s_lib.py`,
-      pre/post migration validators, migration_history schema, rollback procedure,
-      recovery runbook migration appendix, tests (9.T.9–9.T.17).
+- [x] 9.T (migration): Ubuntu↔Talos migration tier implemented (9.T.9–9.T.11).
+      `migrate_k3s_lib.py` (shared library: preflight, snapshot, drain, rollback, history),
+      `migrate-k3s-to-talos.py` (Ubuntu→Talos 9-step wizard with auto-rollback),
+      `migrate-k3s-to-ubuntu.py` (Talos→Ubuntu reverse wizard),
+      `migration_history` array in bootstrap-state-schema.json,
+      YAML parser fix in generate_talos_config.py, forge_validator.py field name fix.
+      48 new tests. TALOS-ALTERNATIVE.md usage examples updated.
+- [x] **Full-stack audit findings (round 3)** — all MEDIUM and LOW items resolved:
+      S1: secrets.compare_digest in hatchery_receiver; I1: security scan wired into operational;
+      I2: 9.T migration tier (above); S2: no-token startup warning in dashboard;
+      S3: WAN exposure warning in receiver; S4+I4: HTTP request logging + --verbose flag;
+      S5: _local_runner() extracted to collector_utils.py (5 collector modules updated);
+      I3: DASHBOARD_VERSION synced to 7.1.
+      Tests: 3732 passed, 4 skipped.
 
 ---
 

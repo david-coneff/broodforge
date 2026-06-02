@@ -14,14 +14,15 @@ Digital Twin + Federation, and Autonomous Operations (Phase 26 — all sub-phase
 
 ## Next Action
 
-**Phase 9.T foundation complete** (2026-06-02). Talos Linux alternative support foundation tier:
-template builder, config generator, schema additions (os_variant), readiness scorer, phoenix
-playbook Talos steps. Tests: 3634 passed, 37 skipped, 3 pre-existing jsonschema env failures.
+**All audit findings resolved** (2026-06-02 round 3). MEDIUM and LOW findings fixed:
+S1 (timing-safe token), I1 (security scan operational wiring), I2 (9.T migration tier),
+S2/S3 (WAN/token warnings), S4/I4 (--verbose + logging), S5 (collector_utils shared runner),
+I3 (DASHBOARD_VERSION 7.1). Tests: 3732 passed, 4 skipped.
 
-Remaining: 9.T migration tier (9.T.9–9.T.17) — Ubuntu↔Talos migration scripts, shared library,
-migration_history schema, rollback, recovery runbook appendix, tests. See ROADMAP.md.
+**9.T migration tier (9.T.9–9.T.11) implemented**: migrate_k3s_lib.py, migrate-k3s-to-talos.py,
+migrate-k3s-to-ubuntu.py, migration_history schema, 48 tests.
 
-Next after migration tier: **Deploy to hardware** — run `python3 proxmox-bootstrap/forge-planner.py`
+Next: **Deploy to hardware** — run `python3 proxmox-bootstrap/forge-planner.py`
 on a Proxmox host to forge the first cell. See FORGING.md for operator runbook.
 
 ## Completed Milestones

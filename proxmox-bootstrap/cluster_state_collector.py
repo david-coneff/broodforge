@@ -22,6 +22,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Callable, Optional
 
+from collector_utils import local_runner as _local_runner, RunnerFn  # noqa: F401
+
 
 # ---------------------------------------------------------------------------
 # Dataclasses
@@ -81,19 +83,6 @@ class ClusterStateDocument:
     flux_reconciled: Optional[bool]        = None
     etcd_healthy:    Optional[bool]        = None
     collection_errors: list[dict]          = field(default_factory=list)
-
-
-# ---------------------------------------------------------------------------
-# Runner
-# ---------------------------------------------------------------------------
-
-RunnerFn = Callable[[str], str]
-
-
-def _local_runner(cmd: str) -> str:
-    import subprocess
-    result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=30)
-    return result.stdout
 
 
 # ---------------------------------------------------------------------------

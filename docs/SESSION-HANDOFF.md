@@ -4,6 +4,36 @@ Last updated: 2026-06-02 UTC
 
 ## What Was Done This Session
 
+### Audit Findings Round 3 — All MEDIUM and LOW items resolved
+
+**S1** — `hatchery_receiver.py`: replaced `!=` token comparison with `secrets.compare_digest()` for timing-safe auth; added `import secrets`.
+
+**I1** — `doc-gen/engine.py` operational mode: wired `run_security_scan()` call after state loading. Adds proxmox-bootstrap to sys.path, catches all exceptions gracefully so failures don't break report generation. 5 new wiring tests in `test_phase24_continuous_assessment.py`.
+
+**I2** — 9.T migration tier (9.T.9–9.T.11):
+- `proxmox-bootstrap/migrate_k3s_lib.py`: shared library — `PreflightResult`, `StateSnapshot`, `MigrationRecord`, `run_preflight_checks()` (cluster readiness, template, machine config, PBS, node registry), `snapshot_state()`, `drain_node()`, `verify_cluster_health()`, `uncordon_node()`, `update_os_variant()`, `append_migration_history()`, `rollback()`, `make_migration_id()`
+- `proxmox-bootstrap/migrate-k3s-to-talos.py`: Ubuntu→Talos 9-step wizard with auto-rollback on health check failure; `--dry-run`, `--skip-snapshot`, `--node`, `--state`
+- `proxmox-bootstrap/migrate-k3s-to-ubuntu.py`: Talos→Ubuntu reverse wizard (same structure)
+- `data-model/bootstrap-state-schema.json`: added `migration_history` array to `properties`
+- `tests/unit/test_migration_k3s.py`: 48 tests covering lib, both wizards, schema
+- `docs/TALOS-ALTERNATIVE.md`: usage examples updated to match implementation
+- `proxmox-bootstrap/generate_talos_config.py`: fixed YAML parser for multi-key list items and `[]` inline arrays
+- `proxmox-bootstrap/forge_validator.py`: fixed `field` extraction for root-level `required` jsonschema errors
+
+**S2** — `broodforge_dashboard.py:run_server()`: added `WARNING: No auth token configured — all POST endpoints are unprotected` to stderr when `action_token` is empty.
+
+**S3** — `hatchery_receiver.py:run_receiver_server()`: added WAN exposure warning matching the dashboard pattern — reads bootstrap-state.json; warns if `0.0.0.0` + `network_profile=wan`.
+
+**S4 + I4** — `hatchery_receiver.py`: added `verbose: bool = False` to `HatcheryReceiverConfig`; `log_message()` now writes to stderr at INFO level when `verbose=True`; `--verbose` CLI flag added.
+
+**S5** — `proxmox-bootstrap/collector_utils.py`: new shared module exporting `local_runner()` and `RunnerFn`. All 5 state collectors (`hardware_state_collector.py`, `platform_state_collector.py`, `cluster_state_collector.py`, `storage_state_collector.py`, `data_protection_collector.py`) now import from it instead of defining `_local_runner()` locally. `tests/unit/test_collector_utils.py`: 11 tests.
+
+**I3** — `broodforge_dashboard.py`: `DASHBOARD_VERSION` updated from `"1.0.0"` to `"7.1"` (matches ARCHITECTURE.md).
+
+**Tests: 3732 passed, 4 skipped** (up from 3634 / 3577 in prior rounds)
+
+---
+
 ### Phase 9.T Foundation — Talos Linux Alternative Support (complete)
 
 **9.T.1** — `docs/TALOS-ALTERNATIVE.md` already existed; no changes required.
@@ -149,18 +179,12 @@ Last updated: 2026-06-02 UTC
 
 ## Remaining Work
 
-### 9.T migration tier (9.T.9–9.T.17) — not yet started
-- `migrate-k3s-to-talos.py` — drain → snapshot → destroy Ubuntu VM → provision Talos VM → talosctl apply-config → verify → update bootstrap-state.json
-- `migrate-k3s-to-ubuntu.py` — reverse migration
-- `migrate_k3s_lib.py` — shared drain/snapshot/health-check/provenance helpers
-- Pre-migration checklist validator (talos-1x-base exists, machine config generated, PVC backup current)
-- Post-migration verifier (node rejoined, namespaces healthy, Flux reconciled)
-- `migration_history` array in bootstrap-state-schema.json
-- Rollback procedure (restore from pre-migration snapshot, revert os_variant)
-- Recovery runbook "OS Variant Migration" appendix
-- Tests for both migration scripts (~25-30 tests)
+All audit findings (HIGH, MEDIUM, LOW) from three audit rounds are resolved.
+All 9.T milestones through 9.T.11 are complete.
 
-All prior audit findings remain resolved.
+Possible future work:
+- 9.T.12–9.T.17: Recovery runbook "OS Variant Migration" appendix, post-migration Velero PVC backup check, Flux reconciliation check in `verify_cluster_health()`
+- Any new audit findings
 
 ## Previous Sessions
 

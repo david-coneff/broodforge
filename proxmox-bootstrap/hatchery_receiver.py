@@ -40,6 +40,7 @@ class HatcheryReceiverConfig:
     listen_port:    int  = 9321
     max_package_mb: int  = 50
     auth_token:     str  = ""   # if set, require X-Broodforge-Token header on every POST
+    verbose:        bool = False  # if True, log all requests to stderr
 
 
 # ---------------------------------------------------------------------------
@@ -204,7 +205,10 @@ class _ReceiverHandler(BaseHTTPRequestHandler):
             self.send_error(500, str(e))
 
     def log_message(self, fmt: str, *args: object) -> None:
-        pass  # quiet by default
+        if self._config.verbose:
+            import sys as _sys
+            ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+            print(f"[receiver] {ts} {fmt % args}", file=_sys.stderr)
 
 
 def run_receiver_server(config: HatcheryReceiverConfig) -> None:
@@ -223,6 +227,34 @@ def run_receiver_server(config: HatcheryReceiverConfig) -> None:
         f"[receiver] Listening on {config.listen_host}:{config.listen_port} "
         f"— packages stored in {config.storage_dir}"
     )
+
+    # WAN exposure warning: if binding 0.0.0.0 and bootstrap-state indicates wan profile
+    if config.listen_host == "0.0.0.0":
+        _state_candidates = [
+            "/var/lib/broodforge/bootstrap-state.json",
+            os.path.join(os.path.dirname(__file__), "bootstrap-state.json"),
+        ]
+        _profile = None
+        for _p in _state_candidates:
+            if os.path.exists(_p):
+                try:
+                    import sys as _sys
+                    with open(_p) as _f:
+                        _s = json.load(_f)
+                    _profile = (_s.get("network_topology") or {}).get("profile")
+                except Exception:
+                    pass
+                break
+        if _profile == "wan":
+            import sys as _sys
+            print(
+                "\n"
+                "[receiver] WARNING: Receiver is listening on 0.0.0.0 with network_profile=wan.\n"
+                "[receiver] WARNING: This exposes the failure package endpoint to the WAN.\n"
+                "[receiver] WARNING: Set a strong auth_token (--token) or restrict listen_host.\n",
+                file=_sys.stderr,
+            )
+
     try:
         server.serve_forever()
     except KeyboardInterrupt:
@@ -244,12 +276,14 @@ if __name__ == "__main__":
     p.add_argument("--port",    type=int, default=9321)
     p.add_argument("--storage", default="/var/lib/broodforge/failure-packages")
     p.add_argument("--token",   default="", help="Require X-Broodforge-Token header (recommended for WAN)")
+    p.add_argument("--verbose", action="store_true", help="Log all HTTP requests to stderr")
     args = p.parse_args()
 
     if args.serve:
         cfg = HatcheryReceiverConfig(
             storage_dir=args.storage, listen_port=args.port,
             auth_token=getattr(args, "token", ""),
+            verbose=getattr(args, "verbose", False),
         )
         run_receiver_server(cfg)
     elif args.analyze:
