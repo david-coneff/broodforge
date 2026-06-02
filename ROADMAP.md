@@ -1736,12 +1736,192 @@ originating cell's bootstrap-state.json. The federation runbook (Phase 20) gains
 - [ ] 26.6.5: Federation remediation view in Federation Workbook (Phase 20 extension)
 - [ ] 26.6.6: Tests (policy engine: 20+ cases; cross-cell: 10+ cases)
 
+**26.7 — Fully Autonomous Mode** *(optional — must be explicitly enabled by an operator)*
+
+An opt-in execution mode in which the assessment engine detects issues, the
+planner generates proposals, and the executor runs them without waiting for
+per-action approval. The gated model (Phase 26.1–26.6) remains the default and
+is always available regardless of whether this mode is active.
+
+**This mode exists for operators who are comfortable with the bounded action
+list and want the platform to self-maintain without manual intervention on
+routine maintenance tasks.** It is not the right mode for initial deployment,
+unstable environments, or any cell where operator oversight of each change is
+required.
+
+*Autonomous mode never changes which actions are possible — only who initiates
+execution. The bounded action-type list, the hard exclusions, and the full audit
+trail from Phases 26.1–26.6 apply without exception.*
+
 ---
 
-**Gate:** Phase 26 completion adds the autonomous action layer.
-The platform can now detect, propose, and (with human approval) resolve
-operational gaps without requiring the operator to diagnose and execute
-remediation manually.
+**Enabling ceremony — two-step confirmation required**
+
+Autonomous mode cannot be turned on by editing a config file directly. It
+requires a deliberate interactive ceremony so the operator understands exactly
+what they are enabling before it takes effect:
+
+```
+$ python3 proxmox-bootstrap/remediation-cli.py enable-autonomous
+
+Current policy review
+=====================
+Cell:            proxmox-cell-a
+Assessment:      operational (running every 1 hour)
+Pending queue:   3 proposals awaiting approval
+Action types in scope for autonomous execution:
+  restart-service, run-backup, renew-cert, regenerate-phoenix,
+  sync-cert-to-k8s, restart-assessment-timer, schedule-drill
+Maximum severity for autonomous execution: ORANGE
+Execution window: any time (no restriction)
+
+HARD EXCLUSIONS — these are NEVER executed autonomously regardless of policy:
+  ✗ Any action with reversibility: irreversible
+  ✗ RED-severity findings
+  ✗ Actions requiring KeePass gate (those remain per-action gated)
+  ✗ Cross-cell actions (those remain per-cell-operator gated)
+
+What will happen if you continue:
+  Approved: new proposals at or below ORANGE will execute automatically
+            on the next assessment cycle after they are proposed.
+  NOT approved: the 3 existing proposals in the queue still require
+                per-action approval — autonomous mode applies to new proposals
+                generated after this point, not retroactively.
+
+This mode will auto-disable after 30 days (2026-07-02) unless renewed.
+To disable at any time: remediation-cli.py disable-autonomous
+
+Type 'enable autonomous' to confirm, or Ctrl-C to cancel:
+> _
+```
+
+The confirmation phrase must be typed exactly. A mistype aborts with no change.
+After confirmation the mode is recorded in `bootstrap-state.json` with:
+- `enabled_by` — Unix user + hostname at enable time
+- `enabled_at` — UTC timestamp
+- `enabled_via` — `cli` | `dashboard`
+- `expires_at` — UTC timestamp (default 30 days; configurable; null = no expiry)
+- `scope` — the exact policy in effect at enable time (snapshot)
+
+The operator is shown a summary of the enabling record before the prompt
+returns, confirming what was stored.
+
+---
+
+**Hard exclusions — enforced at the executor layer, not by policy**
+
+These restrictions cannot be overridden by any policy setting. They are checked
+inside the executor before any autonomous execution begins:
+
+| Exclusion | Reason |
+|---|---|
+| `reversibility: irreversible` actions | Cannot be undone if the assessment was wrong |
+| RED-severity findings | The system should not self-heal critical failures without a human confirming the diagnosis |
+| KeePass-gated actions | Unattended secrets access requires a separate unlock mechanism not yet implemented; these remain per-action gated in all modes |
+| Actions affecting more than one cell | Cross-cell blast radius requires coordinated approval |
+| Actions on a cell whose last assessment is older than 2× the assessment interval | Stale state means the proposal may be based on outdated information |
+| Actions during an active reconstruction drill | Do not remediate a cell that is deliberately in a degraded state for testing |
+
+---
+
+**Scope constraints — set at enable time**
+
+The operator can restrict autonomous mode to a subset of actions and severity
+levels at enable time. Restrictions are stored in the enabling record and cannot
+be loosened without re-running the enabling ceremony.
+
+| Constraint | Default | Meaning |
+|---|---|---|
+| `autonomous_action_types` | All safe types | List of action types that may execute autonomously; `rotate-join-token` excluded from default |
+| `autonomous_max_severity` | `ORANGE` | Maximum severity level; cannot be set to `RED` |
+| `autonomous_execution_window` | Any time | Cron-style expression restricting when executions may run |
+| `autonomous_max_concurrent` | 1 | How many proposals may execute in parallel |
+| `autonomous_expires_at` | 30 days | UTC timestamp after which mode auto-disables; `null` = no expiry |
+| `autonomous_notify` | `true` | Emit a structured log event for every autonomous execution |
+
+---
+
+**Notifications — what happens without per-action approval**
+
+Because the operator is not involved in each action, the platform must report
+what it did. Every autonomous execution emits a structured notification event
+that the operator can consume via:
+- The dashboard **Remediation History** view (always)
+- The operational report Section 8 "Autonomous Executions" subsection (always)
+- SMTP email (if external SMTP dependency configured in bootstrap-state.json)
+- A structured log entry in the systemd journal (always; can be monitored by any log aggregator)
+
+The notification includes: what issue was detected, what action ran, what changed,
+the outcome (success/failed/resisted), and the next scheduled reassessment time.
+
+If an autonomous execution fails or a remediated issue persists after reassessment
+(`resisted`), the finding is escalated: an immediate notification is sent and the
+specific proposal is moved back to the `gated` approval mode until the operator
+reviews it. Repeated failures disable autonomous mode for that action type
+automatically.
+
+---
+
+**Disabling autonomous mode**
+
+Autonomous mode can be disabled at any time with no confirmation required:
+
+```
+$ python3 proxmox-bootstrap/remediation-cli.py disable-autonomous
+[remediation] Autonomous mode disabled.
+[remediation] Proposals in queue: 2 now require per-action approval.
+[remediation] Disable recorded: 2026-06-15T14:22:00Z by root@hatchery
+```
+
+Or from the dashboard via the "Disable autonomous mode" button (no confirmation
+prompt in the UI — disabling is always safe and immediate).
+
+Auto-disable triggers (without operator action):
+- `expires_at` timestamp reached
+- N consecutive failed executions (configurable; default: 3)
+- N consecutive `resisted` outcomes (configurable; default: 2 for the same issue)
+- Cell readiness drops to RED (the platform self-demotes out of autonomous mode
+  when the cell is in a critical state)
+
+Every auto-disable event is logged with the triggering reason and sent as a
+high-priority notification.
+
+---
+
+**Dashboard integration**
+
+New elements in `broodforge_dashboard.py`:
+- Prominent **autonomous mode status badge** in the topbar: `AUTO` (green) when enabled, `GATED` (muted) when not
+- **Enable/Disable** button in the Remediations section (Enable requires a confirmation modal that mirrors the CLI ceremony; Disable is immediate)
+- **Autonomous executions** subsection in Remediation History — separate from the manual-approval history
+- **Scope display** — shows the exact constraints in effect when autonomous mode is enabled
+- **Auto-disable countdown** — shows time remaining until expiry if `expires_at` is set
+
+---
+
+- [ ] 26.7.1: `autonomous_mode` field group in `bootstrap-state-schema.json` and `RemediationPolicy`
+- [ ] 26.7.2: Enabling ceremony in `remediation-cli.py` — two-step confirmation, scope review, enabling record
+- [ ] 26.7.3: Executor integration — skip approval-wait step for in-scope proposals when autonomous mode is active
+- [ ] 26.7.4: Hard exclusion enforcement in executor — checked independently of policy
+- [ ] 26.7.5: Auto-disable triggers (expiry, consecutive failures, RED cell state)
+- [ ] 26.7.6: Notification events — structured log + SMTP if configured + dashboard update
+- [ ] 26.7.7: Dashboard — autonomous mode badge, enable/disable controls, scope display, auto-disable countdown
+- [ ] 26.7.8: Stale-state guard — refuse autonomous execution if last assessment is older than 2× interval
+- [ ] 26.7.9: Drill guard — refuse autonomous execution while a reconstruction drill is active
+- [ ] 26.7.10: Tests:
+      - Enabling ceremony: confirmation phrase correct/wrong/abort
+      - Hard exclusions: RED, irreversible, KeePass-gated, stale-state, drill-active all blocked
+      - Scope constraints: action type filter, severity cap, execution window
+      - Auto-disable: expiry, consecutive failures, RED cell state
+      - Notification events: structured log fields, SMTP trigger conditions
+      - Re-enable after auto-disable: ceremony required again
+      *(40+ test cases)*
+
+---
+
+**Gate:** Phase 26 completion (including 26.7) adds the full autonomous action layer.
+Phases 26.1–26.6 deliver human-gated remediation. Phase 26.7 adds fully autonomous
+execution as an explicit opt-in on top of that foundation.
 
 **Track 4 begins after Track 3. No Track 4 phase requires any Track 4 prerequisite
 beyond a working Phase 24 (continuous assessment) deployment.**
