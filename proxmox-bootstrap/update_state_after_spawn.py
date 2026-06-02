@@ -11,8 +11,8 @@ Provides:
   update_state_after_spawn(state, spawn_result, hardware_profile) → dict
   build_spawn_result(spawn_plan, hardware_profile, now_fn) → SpawnResult
 
-The updated bootstrap-state.json is then committed to Forgejo, triggering
-the Assessment Engine to reassess the expanded cluster.
+The caller is responsible for writing the updated state dict to disk and
+committing to Forgejo to trigger Assessment Engine reassessment.
 
 Stdlib only.
 """

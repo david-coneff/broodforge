@@ -22,7 +22,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Callable, Optional
 
-from collector_utils import local_runner as _local_runner, RunnerFn  # noqa: F401
+from collector_utils import local_runner, RunnerFn  # noqa: F401
 
 
 # ---------------------------------------------------------------------------
@@ -251,7 +251,7 @@ def collect_cluster_state(
     """
     Collect cluster state from the local Proxmox host.
     """
-    runner = runner_fn or _local_runner
+    runner = runner_fn or local_runner
     now    = (now_fn or (lambda: datetime.now(timezone.utc).isoformat()))()
 
     doc = ClusterStateDocument(cell_id=cell_id, collected_at=now)

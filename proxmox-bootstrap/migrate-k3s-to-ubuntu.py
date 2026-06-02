@@ -117,6 +117,38 @@ def _find_dns_ip(state: dict, vm_name: str) -> str | None:
 
 
 # ---------------------------------------------------------------------------
+# Git commit helper — commit bootstrap-state.json to Forgejo after migration
+# ---------------------------------------------------------------------------
+
+def _commit_migration_record(
+    state_path: str,
+    node_vm_name: str,
+    from_variant: str,
+    to_variant: str,
+    runner=None,
+) -> None:
+    """Commit the updated bootstrap-state.json; non-fatal on failure."""
+    import subprocess
+    repo_dir = os.path.dirname(os.path.abspath(state_path))
+    msg = (f"migrate: {node_vm_name} {from_variant}→{to_variant} "
+           f"— update os_variant + migration_history")
+    try:
+        for cmd in [
+            ["git", "-C", repo_dir, "add", os.path.abspath(state_path)],
+            ["git", "-C", repo_dir, "commit", "-m", msg],
+        ]:
+            r = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+            if r.returncode != 0:
+                print(f"  [migrate] WARNING: git command failed: {' '.join(cmd)}\n"
+                      f"    stderr: {r.stderr.strip()}", flush=True)
+                return
+        print(f"  [migrate] bootstrap-state.json committed to git repo at {repo_dir}")
+        print(f"  [migrate] Push to Forgejo to trigger Assessment Engine reassessment.")
+    except Exception as exc:
+        print(f"  [migrate] WARNING: could not commit to git: {exc}", flush=True)
+
+
+# ---------------------------------------------------------------------------
 # Main migration wizard
 # ---------------------------------------------------------------------------
 
@@ -275,6 +307,7 @@ def migrate_to_ubuntu(
             json.dump(state, f, indent=2)
         print(f"  os_variant updated to 'ubuntu' for '{node_vm_name}'")
         print(f"  Migration record appended to migration_history")
+        _commit_migration_record(state_path, node_vm_name, "talos", "ubuntu", runner)
     else:
         print(f"  [dry-run] Would update os_variant and migration_history")
 

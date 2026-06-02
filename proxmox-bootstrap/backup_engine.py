@@ -290,6 +290,10 @@ class ResticRunner:
     ):
         self._repo = repo
         self._password = password
+        # RESTIC_PASSWORD is the recommended restic authentication mechanism —
+        # safer than --password-command or a file because it avoids disk writes
+        # and CLI history exposure. Visible in /proc/[pid]/environ during the
+        # subprocess's lifetime but only to processes running as the same user.
         self._env = {**os.environ, "RESTIC_PASSWORD": password, **(extra_env or {})}
         self._run = runner_fn or self._default_run
 

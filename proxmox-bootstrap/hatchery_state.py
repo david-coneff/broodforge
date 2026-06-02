@@ -198,13 +198,20 @@ def read_hatchery_state(
     if not proxmox_ip:
         proxmox_ip = hi.get("fqdn") or hi.get("hostname")
 
+    # Receiver URL for /api/spawn-complete (broodling POSTs here after verify)
+    _fqdn = hi.get("fqdn") or hi.get("hostname") or ""
+    _receiver_port = 9321
+    _hatchery_receiver_url = f"http://{_fqdn}:{_receiver_port}" if _fqdn else ""
+
     manifest = {
         "schema_version": SPAWN_MANIFEST_VERSION,
         "cell_id":        cell_id,
         "generated_at":   ts,
+        "hatchery_url":   _hatchery_receiver_url,
+        "receiver_token": "",  # populated by spawn planner if --token was set
         "hatchery": {
             "hostname":                 hi.get("hostname"),
-            "fqdn":                     hi.get("fqdn"),
+            "fqdn":                     _fqdn,
             "proxmox_cluster_address":  proxmox_ip,
             "proxmox_cluster_fingerprint": proxmox_cluster_fingerprint,
             "headscale_url":            nt.get("headscale_url"),

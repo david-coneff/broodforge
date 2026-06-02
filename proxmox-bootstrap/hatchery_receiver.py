@@ -41,6 +41,7 @@ class HatcheryReceiverConfig:
     max_package_mb: int  = 50
     auth_token:     str  = ""   # if set, require X-Broodforge-Token header on every POST
     verbose:        bool = False  # if True, log all requests to stderr
+    state_path:     str  = ""   # path to bootstrap-state.json for /api/spawn-complete
 
 
 # ---------------------------------------------------------------------------
@@ -150,22 +151,30 @@ def analyze_all_unanalyzed(
 # ---------------------------------------------------------------------------
 
 class _ReceiverHandler(BaseHTTPRequestHandler):
-    """Minimal HTTP handler that accepts POST /api/failure-packages."""
+    """HTTP handler for failure packages and spawn completion reports."""
 
     _config: HatcheryReceiverConfig = HatcheryReceiverConfig()
 
-    def do_POST(self) -> None:  # noqa: N802
-        if self.path != "/api/failure-packages":
-            self.send_error(404)
-            return
-
-        # Token authentication — check X-Broodforge-Token if configured
+    def _check_token(self) -> bool:
+        """Return True if the request is authenticated (or auth is disabled)."""
         expected_token = self._config.auth_token
-        if expected_token:
-            provided = self.headers.get("X-Broodforge-Token", "")
-            if not provided or not secrets.compare_digest(provided, expected_token):
-                self.send_error(401, "Unauthorized — missing or invalid X-Broodforge-Token")
-                return
+        if not expected_token:
+            return True
+        provided = self.headers.get("X-Broodforge-Token", "")
+        return bool(provided) and secrets.compare_digest(provided, expected_token)
+
+    def do_POST(self) -> None:  # noqa: N802
+        if self.path == "/api/failure-packages":
+            self._handle_failure_package()
+        elif self.path == "/api/spawn-complete":
+            self._handle_spawn_complete()
+        else:
+            self.send_error(404)
+
+    def _handle_failure_package(self) -> None:
+        if not self._check_token():
+            self.send_error(401, "Unauthorized — missing or invalid X-Broodforge-Token")
+            return
 
         content_length = int(self.headers.get("Content-Length", 0))
         max_bytes = self._config.max_package_mb * 1024 * 1024
@@ -177,7 +186,6 @@ class _ReceiverHandler(BaseHTTPRequestHandler):
         filename = self.headers.get("X-Package-Name") or (
             f"failure-{int(time.time())}.tar.gz"
         )
-        # Sanitise filename
         filename = os.path.basename(filename)
         if not filename.endswith(".tar.gz"):
             filename += ".tar.gz"
@@ -203,6 +211,83 @@ class _ReceiverHandler(BaseHTTPRequestHandler):
             self.wfile.write(response)
         except Exception as e:
             self.send_error(500, str(e))
+
+    def _handle_spawn_complete(self) -> None:
+        """
+        POST /api/spawn-complete — called by phase-06-verify.sh on the broodling.
+
+        Body: JSON with keys:
+          spawn_plan_path   — path to spawn-plan.json on the hatchery (or embedded JSON)
+          hardware_profile  — hardware-profile.json dict (optional; {} if not available)
+          state_path        — path to bootstrap-state.json on the hatchery (optional)
+
+        Updates bootstrap-state.json on the hatchery with the broodling's
+        allocated VMIDs, IPs, hostnames, and cluster role.
+        """
+        if not self._check_token():
+            self.send_error(401, "Unauthorized — missing or invalid X-Broodforge-Token")
+            return
+
+        content_length = int(self.headers.get("Content-Length", 0))
+        if content_length > 1 * 1024 * 1024:  # 1 MB max for JSON payload
+            self.send_error(413, "Payload too large")
+            return
+
+        try:
+            body = json.loads(self.rfile.read(content_length).decode())
+        except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+            self.send_error(400, f"Invalid JSON: {exc}")
+            return
+
+        state_path = body.get("state_path") or self._config.state_path
+        if not state_path or not os.path.exists(state_path):
+            self.send_error(400, "bootstrap-state.json path not found or not configured")
+            return
+
+        try:
+            import sys as _sys
+            _sys.path.insert(0, os.path.dirname(__file__))
+            from update_state_after_spawn import (
+                update_state_after_spawn,
+                build_spawn_result,
+            )
+            from spawn_planner import SpawnPlan
+
+            spawn_plan_raw = body.get("spawn_plan") or {}
+            hardware_profile = body.get("hardware_profile") or {}
+
+            if not spawn_plan_raw:
+                self.send_error(400, "spawn_plan is required in request body")
+                return
+
+            with open(state_path) as f:
+                state = json.load(f)
+
+            spawn_result = build_spawn_result(spawn_plan_raw, hardware_profile)
+            updated_state = update_state_after_spawn(state, spawn_result, hardware_profile)
+
+            with open(state_path, "w") as f:
+                json.dump(updated_state, f, indent=2)
+
+            hostname = spawn_plan_raw.get("target_hostname", "unknown")
+            print(f"[receiver] Spawn complete: bootstrap-state.json updated for {hostname}",
+                  flush=True)
+
+            response = json.dumps({
+                "status":   "updated",
+                "hostname": hostname,
+            }).encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(response)))
+            self.end_headers()
+            self.wfile.write(response)
+
+        except Exception as exc:
+            import traceback as _tb
+            print(f"[receiver] ERROR processing spawn-complete: {exc}", flush=True)
+            _tb.print_exc()
+            self.send_error(500, str(exc))
 
     def log_message(self, fmt: str, *args: object) -> None:
         if self._config.verbose:
@@ -277,6 +362,8 @@ if __name__ == "__main__":
     p.add_argument("--storage", default="/var/lib/broodforge/failure-packages")
     p.add_argument("--token",   default="", help="Require X-Broodforge-Token header (recommended for WAN)")
     p.add_argument("--verbose", action="store_true", help="Log all HTTP requests to stderr")
+    p.add_argument("--state",   default="",
+                   help="Path to bootstrap-state.json (used by /api/spawn-complete)")
     args = p.parse_args()
 
     if args.serve:
@@ -284,6 +371,7 @@ if __name__ == "__main__":
             storage_dir=args.storage, listen_port=args.port,
             auth_token=getattr(args, "token", ""),
             verbose=getattr(args, "verbose", False),
+            state_path=getattr(args, "state", ""),
         )
         run_receiver_server(cfg)
     elif args.analyze:

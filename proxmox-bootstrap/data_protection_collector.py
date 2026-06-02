@@ -24,7 +24,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone, timedelta
 from typing import Any, Callable, Optional
 
-from collector_utils import local_runner as _local_runner, RunnerFn  # noqa: F401
+from collector_utils import local_runner, RunnerFn  # noqa: F401
 
 
 # ---------------------------------------------------------------------------
@@ -311,7 +311,7 @@ def collect_data_protection_state(
     rto_rpo_declarations: operator-declared RTO/RPO targets (from bootstrap-state.json
                           or passed explicitly). If provided, compliance is evaluated.
     """
-    runner = runner_fn or _local_runner
+    runner = runner_fn or local_runner
     now    = (now_fn or (lambda: datetime.now(timezone.utc).isoformat()))()
     now_ts = datetime.fromisoformat(now.replace("Z", "+00:00"))
 

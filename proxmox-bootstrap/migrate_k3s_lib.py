@@ -22,11 +22,13 @@ from typing import Callable, Optional
 
 RunnerFn = Callable[[str], str]
 
-
-def _local_runner(cmd: str) -> str:
-    import subprocess
-    result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=60)
-    return result.stdout
+try:
+    from collector_utils import local_runner as _local_runner
+except ImportError:
+    def _local_runner(cmd: str) -> str:  # type: ignore[misc]
+        import subprocess
+        result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=60)
+        return result.stdout
 
 
 # ---------------------------------------------------------------------------

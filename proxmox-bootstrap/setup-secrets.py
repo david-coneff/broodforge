@@ -432,9 +432,20 @@ def run_wizard(
                     status = f"MANUAL: store private key in KeePass at {kp_path!r}"
                 print(f"    Status:       {status}")
                 if not (cli and db_password):
-                    print(f"    Private key:  (shown below — copy to KeePass before closing terminal)")
-                    print()
-                    print(private_pem)
+                    # Write to /dev/tty to bypass any log redirection (forge.sh
+                    # runs with exec >> forge.log 2>&1, which would capture stdout).
+                    # Same pattern as print_totp_setup_to_tty() in keepass_mfa.py.
+                    import sys as _sys
+                    _key_header = f"    Private key:  (shown below — copy to KeePass before closing terminal)"
+                    try:
+                        with open("/dev/tty", "w") as _tty:
+                            print(_key_header, file=_tty)
+                            print(file=_tty)
+                            print(private_pem, file=_tty)
+                    except (OSError, AttributeError):
+                        print(_key_header, file=_sys.stderr)
+                        print(file=_sys.stderr)
+                        print(private_pem, file=_sys.stderr)
             else:
                 print(f"    Status:       ssh-keygen failed — generate manually")
         else:

@@ -716,6 +716,75 @@ def _score_reconstruction_drill(manifest: dict) -> list:
     return gaps
 
 
+def _score_migration_health(manifest: dict) -> list:
+    """
+    Surface failed or rolled-back OS-variant migrations (9.T.12 / I3 audit fix).
+
+    ORANGE: any migration record with outcome 'failed' — indicates a migration
+            attempt that did not complete; node may be in an inconsistent state.
+    YELLOW: any migration record with outcome 'rolled_back' — migration was
+            attempted but auto-reverted; node is back to its previous variant
+            but the underlying issue that caused the failure is unresolved.
+    """
+    gaps: list[Gap] = []
+    history = manifest.get("migration_history") or []
+    if not history:
+        return gaps
+
+    failed    = [r for r in history if r.get("outcome") == "failed"]
+    rolled    = [r for r in history if r.get("outcome") == "rolled_back"]
+
+    for rec in failed:
+        node  = rec.get("node_vm_name", "?")
+        m_id  = rec.get("migration_id", "?")
+        err   = rec.get("error", "")
+        gaps.append(Gap(
+            component_id=f"migration:{node}",
+            gap_type="MIGRATION_FAILED",
+            severity="ORANGE",
+            description=(
+                f"OS-variant migration FAILED for node '{node}' "
+                f"(migration_id: {m_id})"
+                + (f" — {err}" if err else "")
+            ),
+            remediation=(
+                f"Investigate the failure for node '{node}', resolve the underlying "
+                "cause, then re-run the migration script with --dry-run first. "
+                "See docs/TALOS-ALTERNATIVE.md Rollback Procedure."
+            ),
+            readiness_impact=(
+                f"Node '{node}' may be in an inconsistent OS state; "
+                "cluster integrity is uncertain until the migration is resolved"
+            ),
+        ))
+
+    for rec in rolled:
+        node  = rec.get("node_vm_name", "?")
+        m_id  = rec.get("migration_id", "?")
+        err   = rec.get("error", "")
+        gaps.append(Gap(
+            component_id=f"migration:{node}",
+            gap_type="MIGRATION_ROLLED_BACK",
+            severity="YELLOW",
+            description=(
+                f"OS-variant migration ROLLED BACK for node '{node}' "
+                f"(migration_id: {m_id})"
+                + (f" — {err}" if err else "")
+            ),
+            remediation=(
+                f"Review the error for node '{node}', fix the root cause (e.g., "
+                "missing machine config, PBS unreachable), then retry the migration. "
+                "See docs/TALOS-ALTERNATIVE.md."
+            ),
+            readiness_impact=(
+                f"Node '{node}' was rolled back to its prior OS variant; "
+                "the planned migration is incomplete"
+            ),
+        ))
+
+    return gaps
+
+
 def _score_capacity_model(manifest: dict) -> list:
     """
     Score capacity model completeness and utilization thresholds (Phase 11).
@@ -2074,6 +2143,7 @@ def score_graph(graph, manifest: dict) -> ReadinessReport:
     registry_gaps += _score_reconstruction_drill(manifest)
     registry_gaps += _score_phoenix_playbook_existence(manifest)
     registry_gaps += _score_talos_config_completeness(manifest)
+    registry_gaps += _score_migration_health(manifest)
     # Track 2 — Hardware, Platform, Cluster, Storage, Data Protection, Observability state
     registry_gaps += _score_hardware_state_completeness(manifest)
     registry_gaps += _score_platform_state_completeness(manifest)

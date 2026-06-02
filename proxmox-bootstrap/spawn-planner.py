@@ -132,7 +132,7 @@ def _generate_headscale_auth_key(headscale_url: str) -> str:
         )
         if result.returncode == 0:
             key = result.stdout.strip()
-            print(f"  [headscale] Auth key generated: {key[:12]}...")
+            print("  [headscale] Auth key generated — embedded in spawn package.")
             return key
     except (FileNotFoundError, subprocess.TimeoutExpired):
         pass
