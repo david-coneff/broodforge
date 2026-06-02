@@ -2,7 +2,32 @@
 
 Last updated: 2026-06-02 UTC
 
-## What Was Done This Session
+## What Was Done This Session (current)
+
+### 9.T.12 — Recovery Runbook OS Variant Migration Appendix (complete)
+
+Added **Appendix I — OS Variant Migration History** to both recovery runbook renderers:
+
+- `doc-gen/renderers/recovery_runbook.py`: ODT appendix — renders when `migration_history`
+  is present in the manifest; per-record section (migration_id, node, from→to variant,
+  started/completed timestamps, outcome with status label, snapshot_vmid, error, dry_run flag);
+  manual rollback reference with `qm rollback` commands and TALOS-ALTERNATIVE.md pointer.
+  Absent when `migration_history` is empty or missing.
+
+- `doc-gen/renderers/html_recovery_runbook.py`: HTML equivalent — same content, uses
+  outcome badge coloring (success/warning/danger), `_section_appendix_i_os_migration()`
+  function; wired into `build_recovery_runbook_html()` after Appendix H.
+
+- `tests/unit/test_recovery_runbook_service.py`: 13 new tests in `TestAppendixIOsMigration`
+- `tests/unit/test_html_renderers.py`: 12 new tests in `TestHtmlRecoveryRunbookOsMigration`
+
+ROADMAP.md updated: all 9.T.1–9.T.17 checkboxes now `[x]`. All roadmap milestones complete.
+
+**Tests: 3757 passed, 37 skipped, 3 pre-existing env failures**
+
+---
+
+## Previous Session Work
 
 ### Audit Findings Round 3 — All MEDIUM and LOW items resolved
 
@@ -179,12 +204,8 @@ Last updated: 2026-06-02 UTC
 
 ## Remaining Work
 
-All audit findings (HIGH, MEDIUM, LOW) from three audit rounds are resolved.
-All 9.T milestones through 9.T.11 are complete.
-
-Possible future work:
-- 9.T.12–9.T.17: Recovery runbook "OS Variant Migration" appendix, post-migration Velero PVC backup check, Flux reconciliation check in `verify_cluster_health()`
-- Any new audit findings
+All roadmap milestones complete. All 9.T items (9.T.1–9.T.17) done.
+No remaining implementation items. Next action: deploy to hardware.
 
 ## Previous Sessions
 
