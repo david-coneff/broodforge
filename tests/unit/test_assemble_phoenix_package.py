@@ -217,3 +217,45 @@ class TestWaveScripts(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestPhoenixKeepassGate:
+    def test_keepass_gate_included(self):
+        import tempfile
+        from datetime import datetime, timezone
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pkg = assemble_phoenix_package(
+                playbook=_playbook(n_waves=1),
+                output_dir=Path(tmpdir),
+                now=datetime(2026, 6, 1, 12, 0, 0, tzinfo=timezone.utc),
+            )
+            contents = package_contents(pkg)
+        assert "lib/phoenix-keepass-gate.sh" in contents
+
+    def test_run_all_sh_sources_gate(self):
+        import tempfile, tarfile
+        from datetime import datetime, timezone
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pkg = assemble_phoenix_package(
+                playbook=_playbook(n_waves=1),
+                output_dir=Path(tmpdir),
+                now=datetime(2026, 6, 1, 12, 0, 0, tzinfo=timezone.utc),
+            )
+            with tarfile.open(str(pkg), "r:gz") as tar:
+                content = tar.extractfile("run-all.sh").read().decode()
+        assert "phoenix-keepass-gate.sh" in content
+        assert "phoenix_keepass_gate" in content
+
+
+class TestPhoenixWorkbook:
+    def test_workbook_html_included(self):
+        import tempfile
+        from datetime import datetime, timezone
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pkg = assemble_phoenix_package(
+                playbook=_playbook(n_waves=1),
+                output_dir=Path(tmpdir),
+                now=datetime(2026, 6, 1, 12, 0, 0, tzinfo=timezone.utc),
+            )
+            contents = package_contents(pkg)
+        assert "phoenix-workbook.html" in contents

@@ -1,6 +1,18 @@
-# service-catalog.yaml — Available services for broodling deployment
-# Used by the spawn planner (Phase 12.E.3) for service selection and
-# hardware fit assessment.
+# service-catalog.yaml — Spawn service catalog (proxmox-bootstrap/)
+#
+# PURPOSE: Defines available services for broodling deployment selection.
+# Used by the spawn planner (Phase 12.E.3) for service selection menus
+# and hardware fit assessment when generating spawn packages.
+#
+# DISAMBIGUATION: This file is NOT the same as proxmox-bootstrap/metadata/service-catalog.yaml.
+#   - THIS file (proxmox-bootstrap/service-catalog.yaml): spawn deployment service list
+#     with hardware requirements and disposition flags. Consumed by spawn_planner.py
+#     and spawn_scripts.py to generate service-selection menus.
+#   - metadata/service-catalog.yaml: Tier 1 authoritative intent catalog used by the
+#     Documentation Engine and Assessment Engine for service-map generation and
+#     documentation-coverage drift detection.
+#
+# Original header:
 #
 # Fields per service:
 #   name:         unique identifier (snake_case)

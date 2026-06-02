@@ -33,34 +33,41 @@ Last updated: 2026-06-02 UTC
 **L1 — Dead code branch in security_analyzer.py:581** (fixed opportunistically)
 - Removed `hasattr(f, 'content')` dead branch in `_finding_row()` — `SecurityFinding` only has `line_content`
 
-## Remaining Work (from audit findings)
+### MEDIUM priority audit findings (complete)
 
-### MEDIUM PRIORITY
+**M1 — Security analyzer `watch()` continuous mode**
+- Added `watch(paths, callback, stop_event, poll_interval)` to `security_analyzer.py`
+- Uses inotify on Linux if available; falls back to polling (works on Windows)
+- 4 new tests in TestWatch
 
-**M1 — Security analyzer: implement `watch()` continuous mode**
-- Implement `watch(paths, callback, stop_event)` — inotify/polling tail; emits SecurityFinding to callback
+**M2 — `_find_shell_scripts()` recursive**
+- Changed `os.scandir()` to `os.walk()` — scans all subdirectories including `assessment/tier1/collectors/`
+- Hidden directories skipped. Deduplication via seen set.
+- 4 new tests in TestFindShellScriptsRecursive
 
-**M2 — Make `_find_shell_scripts()` recursive**
-- Change `os.scandir()` to `os.walk()` in security_analyzer.py
-
-**M3 — Fix stale docs**
-- `CURRENT_STATE.md` "Next Milestones" section: update to reflect current state
-- Delete/overwrite `.ai/SESSION-HANDOFF.md` (stale duplicate of docs/SESSION-HANDOFF.md)
-- Fix `--import` flag reference in `SETUP-GUIDE.html` footer
+**M3 — Stale docs**
+- Deleted `.ai/SESSION-HANDOFF.md` (stale duplicate)
+- Fixed `--import` → `--format import` in SETUP-GUIDE.html footer
 
 **M4 — Dashboard WAN exposure warning**
-- `broodforge_dashboard.py`: if `network_profile == "wan"` and `listen_host == "0.0.0.0"`, print WARNING to stderr
+- `broodforge_dashboard.py` `run_server()`: reads bootstrap-state.json; if `network_topology.profile == "wan"` and `listen_host == "0.0.0.0"`, prints WARNING to stderr before starting
 
 **M5 — Phoenix KeePass gate**
-- Add KeePass unlock gate to `phoenix_scripts.py` (run-all.sh preamble), mirroring forge and spawn
+- Added `PHOENIX_KEEPASS_GATE_SH` constant to `phoenix_scripts.py` — `phoenix_keepass_gate()` function mirroring forge/spawn pattern
+- `generate_run_all_sh()` sources the gate before wave execution
+- Assembler bundles `lib/phoenix-keepass-gate.sh`
+- 2 new tests in TestPhoenixKeepassGate
 
 **M6 — Phoenix workbook**
-- Create `proxmox-bootstrap/html_phoenix_workbook.py` — phase-tracking workbook for phoenix restoration
-- Integrate into phoenix assembler
+- Created `proxmox-bootstrap/html_phoenix_workbook.py` — wave-by-wave tracking with pre-flight checklist and final validation section
+- Integrated into `assemble_phoenix_package.py`
+- 1 new test in TestPhoenixWorkbook
 
-**M7 — Two service-catalog.yaml disambiguation**
-- Add header comment to both files explaining purpose
-- Add README.md in `proxmox-bootstrap/metadata/`
+**M7 — service-catalog.yaml disambiguation**
+- Added 10-line disambiguation header to both `proxmox-bootstrap/service-catalog.yaml` and `proxmox-bootstrap/metadata/service-catalog.yaml`
+- `proxmox-bootstrap/metadata/README.md` already exists
+
+## Remaining Work (LOW priority)
 
 ### LOW PRIORITY
 

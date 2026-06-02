@@ -38,6 +38,55 @@ checkpoint_failed() { echo "[checkpoint] FAILED: $1  — check $PHOENIX_LOG"; ex
 is_done() { [ -f "$CHECKPOINT_DIR/$1.done" ]; }
 '''
 
+PHOENIX_KEEPASS_GATE_SH = '''\
+#!/usr/bin/env bash
+# phoenix-keepass-gate.sh — KeePass master password gate for phoenix run-all.sh
+# Source this and call phoenix_keepass_gate() before any secrets are accessed.
+
+PHOENIX_KDBX_PATH=""
+PHOENIX_KDBX_UNLOCKED=0
+
+phoenix_keepass_find_db() {
+  local embedded
+  embedded="$(ls "$SCRIPT_DIR"/kdbx/*.kdbx 2>/dev/null | head -1)"
+  if [ -n "$embedded" ]; then
+    PHOENIX_KDBX_PATH="$embedded"
+    echo "[kdbx] Using embedded database: $PHOENIX_KDBX_PATH"
+    return 0
+  fi
+  read -rp "[kdbx] Path to KeePass database (.kdbx): " PHOENIX_KDBX_PATH
+  [ -f "$PHOENIX_KDBX_PATH" ] || { echo "[kdbx] Not found: $PHOENIX_KDBX_PATH" >&2; return 1; }
+}
+
+phoenix_keepass_gate() {
+  [ "$PHOENIX_KDBX_UNLOCKED" -eq 1 ] && return 0
+  echo "" >/dev/tty
+  echo "=================================================================" >/dev/tty
+  echo " KeePass Unlock Gate — phoenix run-all.sh" >/dev/tty
+  echo " The master password is required once before wave execution." >/dev/tty
+  echo " All subsequent secret lookups are automatic." >/dev/tty
+  echo "=================================================================" >/dev/tty
+  phoenix_keepass_find_db || { echo "[kdbx] Cannot locate database." >&2; exit 1; }
+  read -rsp "[kdbx] Master password: " KEEPASS_MASTER_PASSWORD </dev/tty >/dev/tty
+  echo "" >/dev/tty
+  export PHOENIX_KDBX_PATH
+  PHOENIX_KDBX_UNLOCKED=1
+  echo "[kdbx] Unlocked. Secrets broker active." >/dev/tty
+  echo "" >/dev/tty
+}
+
+kdbx_get() {
+  local path="$1"
+  if command -v keepassxc-cli &>/dev/null; then
+    printf \'%s\\n\' "$KEEPASS_MASTER_PASSWORD" | \\
+      keepassxc-cli show -q -a Password "$PHOENIX_KDBX_PATH" "$path" 2>/dev/null
+  else
+    echo "[kdbx] keepassxc-cli not found — retrieve \'$path\' manually" >&2
+    echo "MANUAL_ENTRY_REQUIRED"
+  fi
+}
+'''
+
 
 def _header(title: str, wave_num, playbook: Optional[dict] = None) -> str:
     hostname  = ""
@@ -186,6 +235,12 @@ def generate_run_all_sh(playbook: dict) -> str:
     lines = [
         _header(f"Phoenix run-all.sh — {hostname}", None, playbook),
         _CHECKPOINT_STUB,
+        f'# ── KeePass unlock gate ──────────────────────────────────────────────',
+        f'if [ -f "$SCRIPT_DIR/lib/phoenix-keepass-gate.sh" ]; then',
+        f'  source "$SCRIPT_DIR/lib/phoenix-keepass-gate.sh"',
+        f'  phoenix_keepass_gate',
+        f'fi',
+        f'',
         f'echo "============================================================="',
         f'echo " Phoenix Restoration: {hostname}"',
         f'echo " Cell:   {cell_id}"',

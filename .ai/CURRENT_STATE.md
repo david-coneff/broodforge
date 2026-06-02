@@ -14,17 +14,14 @@ Digital Twin + Federation, and Autonomous Operations (Phase 26 — all sub-phase
 
 ## Next Action
 
-Full-stack audit findings in progress. HIGH priority items complete. Tests: 3558 (3521 passed, 37 skipped, 3 pre-existing jsonschema env failures).
+Full-stack audit findings in progress. HIGH + MEDIUM complete. Tests: 3569 (3532 passed, 37 skipped, 3 pre-existing jsonschema env failures).
 
-Remaining audit work (see docs/SESSION-HANDOFF.md for full list):
-- **M1** — Security analyzer `watch()` continuous mode
-- **M2** — Make `_find_shell_scripts()` recursive (os.walk)
-- **M3** — Fix stale docs (.ai/SESSION-HANDOFF.md, SETUP-GUIDE.html footer)
-- **M4** — Dashboard WAN exposure warning
-- **M5** — Phoenix KeePass gate in phoenix_scripts.py
-- **M6** — Phoenix workbook (html_phoenix_workbook.py)
-- **M7** — service-catalog.yaml disambiguation comments
-- **L2–L6** — Low priority cleanup items
+Remaining audit work (LOW priority — see docs/SESSION-HANDOFF.md for full list):
+- **L2** — Move docs/CONTAINER-COMPATIBILITY-PLAN.md → deprecated/
+- **L3** — Forge-manifest schema validation in forge_validator.py
+- **L4** — Fix flaky passphrase test (mock RNG)
+- **L5** — Receiver authentication (X-Broodforge-Token in hatchery_receiver.py)
+- **L6** — .ai/context.md update
 - **Setup Guide explainer** — add manifest import documentation to docs/SETUP-GUIDE.html
 - **Passphrase investigation** — keepassxc-cli diceware support + EFF wordlist fallback
 - **HTML manifests** — human-readable package exports for forge/spawn/phoenix

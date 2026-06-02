@@ -589,3 +589,146 @@ class TestWriteSecurityScanResult:
         with open(state_path) as f:
             state = json.load(f)
         assert state["security_scan"]["last_result"]["posture"] == "GREEN"
+
+
+# ===========================================================================
+# watch() — continuous mode
+# ===========================================================================
+
+class TestWatch:
+    def test_watch_emits_finding_for_new_content(self, tmp_path):
+        import threading
+        import time
+        from security_analyzer import watch, SecurityFinding
+
+        log = tmp_path / "service.log"
+        log.write_text("")
+
+        findings = []
+        stop = threading.Event()
+
+        def cb(f: SecurityFinding):
+            findings.append(f)
+            stop.set()
+
+        t = threading.Thread(target=watch, args=([str(log)], cb, stop), kwargs={"poll_interval": 0.05})
+        t.daemon = True
+        t.start()
+
+        # Give watcher time to start
+        time.sleep(0.1)
+        # Write a line matching LOG-001 (TOTP seed pattern)
+        with open(str(log), "a") as f:
+            f.write("TOTP_SECRET=JBSWY3DPEHPK3PXP some text\n")
+
+        t.join(timeout=3.0)
+        assert len(findings) >= 1
+        assert findings[0].category == "log-leak"
+
+    def test_watch_no_emit_for_non_matching(self, tmp_path):
+        import threading
+        import time
+        from security_analyzer import watch
+
+        log = tmp_path / "clean.log"
+        log.write_text("")
+
+        findings = []
+        stop = threading.Event()
+        cb = lambda f: findings.append(f)
+
+        t = threading.Thread(target=watch, args=([str(log)], cb, stop), kwargs={"poll_interval": 0.05})
+        t.daemon = True
+        t.start()
+
+        time.sleep(0.1)
+        with open(str(log), "a") as f:
+            f.write("INFO: everything is fine\n")
+
+        time.sleep(0.3)
+        stop.set()
+        t.join(timeout=2.0)
+        assert findings == []
+
+    def test_watch_stops_on_event(self, tmp_path):
+        import threading
+        import time
+        from security_analyzer import watch
+
+        log = tmp_path / "noop.log"
+        log.write_text("")
+        stop = threading.Event()
+
+        t = threading.Thread(target=watch, args=([str(log)], lambda f: None, stop), kwargs={"poll_interval": 0.05})
+        t.daemon = True
+        t.start()
+
+        time.sleep(0.1)
+        stop.set()
+        t.join(timeout=2.0)
+        assert not t.is_alive()
+
+    def test_watch_handles_missing_file(self, tmp_path):
+        import threading
+        import time
+        from security_analyzer import watch
+
+        stop = threading.Event()
+        t = threading.Thread(
+            target=watch,
+            args=([str(tmp_path / "nonexistent.log")], lambda f: None, stop),
+            kwargs={"poll_interval": 0.05},
+        )
+        t.daemon = True
+        t.start()
+        time.sleep(0.1)
+        stop.set()
+        t.join(timeout=2.0)
+        # Should not crash for missing files
+        assert not t.is_alive()
+
+
+# ===========================================================================
+# _find_shell_scripts — recursive scan
+# ===========================================================================
+
+class TestFindShellScriptsRecursive:
+    def test_finds_scripts_in_subdirectories(self, tmp_path):
+        from security_analyzer import _find_shell_scripts
+
+        # Create nested structure mirroring assessment/tier1/collectors/
+        subdir = tmp_path / "assessment" / "tier1" / "collectors"
+        subdir.mkdir(parents=True)
+        script = subdir / "collect-metrics.sh"
+        script.write_text("#!/bin/bash\necho ok\n")
+
+        results = _find_shell_scripts(str(tmp_path))
+        assert str(script) in results
+
+    def test_finds_scripts_in_proxmox_bootstrap(self, tmp_path):
+        from security_analyzer import _find_shell_scripts
+
+        pb = tmp_path / "proxmox-bootstrap"
+        pb.mkdir()
+        s = pb / "forge.sh"
+        s.write_text("#!/bin/bash\n")
+        results = _find_shell_scripts(str(tmp_path))
+        assert str(s) in results
+
+    def test_skips_hidden_directories(self, tmp_path):
+        from security_analyzer import _find_shell_scripts
+
+        hidden = tmp_path / ".hidden"
+        hidden.mkdir()
+        s = hidden / "secret.sh"
+        s.write_text("#!/bin/bash\n")
+        results = _find_shell_scripts(str(tmp_path))
+        assert str(s) not in results
+
+    def test_no_duplicates(self, tmp_path):
+        from security_analyzer import _find_shell_scripts
+
+        s = tmp_path / "test.sh"
+        s.write_text("#!/bin/bash\n")
+        results = _find_shell_scripts(str(tmp_path))
+        assert len(results) == len(set(results))

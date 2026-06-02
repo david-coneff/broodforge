@@ -451,26 +451,23 @@ def _find_shell_scripts(base_dir: str) -> List[str]:
         base_dir,
         os.path.join(base_dir, "proxmox-bootstrap"),
         os.path.join(base_dir, "scripts"),
-    ]
-    for d in script_dirs:
-        if not os.path.isdir(d):
-            continue
-        for entry in os.scandir(d):
-            if entry.name.endswith(".sh") and entry.is_file():
-                results.append(entry.path)
-    # Also check spawn/forge package outputs
-    pkg_dirs = [
         os.path.join(base_dir, "spawn-packages"),
         os.path.join(base_dir, "forge-package"),
         os.path.join(base_dir, "output"),
     ]
-    for d in pkg_dirs:
+    seen = set()
+    for d in script_dirs:
         if not os.path.isdir(d):
             continue
-        for root, _, files in os.walk(d):
+        for root, dirs, files in os.walk(d):
+            # Skip hidden directories
+            dirs[:] = [x for x in dirs if not x.startswith(".")]
             for fname in files:
                 if fname.endswith(".sh"):
-                    results.append(os.path.join(root, fname))
+                    full = os.path.join(root, fname)
+                    if full not in seen:
+                        seen.add(full)
+                        results.append(full)
     return results
 
 
@@ -795,6 +792,105 @@ def write_security_scan_result(state_path: str, report: "SecurityReport") -> Non
 
     with open(state_path, "w") as fh:
         json.dump(state, fh, indent=2)
+
+
+# ---------------------------------------------------------------------------
+# Continuous watch mode
+# ---------------------------------------------------------------------------
+
+def watch(
+    paths: List[str],
+    callback: Callable[["SecurityFinding"], None],
+    stop_event,  # threading.Event or any object with .is_set()
+    poll_interval: float = 1.0,
+) -> None:
+    """
+    Tail one or more log files in real time, emitting SecurityFinding objects
+    to ``callback`` as new matching lines appear.
+
+    Uses inotify on Linux if available (via the ``inotify`` stdlib-compatible
+    shim); falls back to polling on all other platforms (including Windows).
+
+    Args:
+        paths:         list of file paths to watch
+        callback:      called with each new SecurityFinding
+        stop_event:    polling stops when stop_event.is_set() returns True
+        poll_interval: seconds between poll iterations (fallback mode)
+    """
+    import time
+    import threading
+
+    # Track file positions so we only emit new content
+    positions: Dict[str, int] = {}
+    for p in paths:
+        try:
+            positions[p] = os.path.getsize(p)
+        except OSError:
+            positions[p] = 0
+
+    def _check_file(path: str) -> None:
+        try:
+            size = os.path.getsize(path)
+        except OSError:
+            return
+        prev = positions.get(path, 0)
+        if size <= prev:
+            if size < prev:
+                positions[path] = 0  # file was rotated
+            return
+        try:
+            with open(path, errors="replace") as fh:
+                fh.seek(prev)
+                new_content = fh.read(size - prev)
+        except OSError:
+            return
+        positions[path] = size
+        for lineno_offset, raw_line in enumerate(new_content.splitlines(), 1):
+            line = raw_line.rstrip()
+            stripped = line.lstrip()
+            if stripped.startswith("#"):
+                continue
+            for pat in _LOG_PATTERNS:
+                m = pat["pattern"].search(line)
+                if not m:
+                    continue
+                callback(SecurityFinding(
+                    severity=pat["severity"],
+                    category="log-leak",
+                    rule_id=pat["rule_id"],
+                    file_path=path,
+                    line_number=lineno_offset,
+                    line_content=_sanitise_line(line),
+                    description=pat["description"],
+                    remediation=pat["remediation"],
+                ))
+
+    # Try inotify (Linux only); fall back to polling
+    _use_inotify = False
+    if hasattr(os, "inotify_init"):  # pragma: no cover — Linux only path
+        _use_inotify = True
+
+    if _use_inotify:  # pragma: no cover
+        try:
+            import inotify.adapters  # type: ignore
+            inot = inotify.adapters.Inotify()
+            for p in paths:
+                if os.path.exists(p):
+                    inot.add_watch(p)
+            for event in inot.event_gen(yield_nones=False):
+                if stop_event.is_set():
+                    break
+                (_, type_names, path, _filename) = event
+                if "IN_MODIFY" in type_names or "IN_MOVED_TO" in type_names:
+                    _check_file(path)
+        except Exception:
+            _use_inotify = False
+
+    if not _use_inotify:
+        while not stop_event.is_set():
+            for p in paths:
+                _check_file(p)
+            time.sleep(poll_interval)
 
 
 # ---------------------------------------------------------------------------

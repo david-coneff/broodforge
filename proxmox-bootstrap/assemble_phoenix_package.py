@@ -30,10 +30,16 @@ from pathlib import Path
 from typing import Optional
 
 try:
-    from phoenix_scripts import generate_wave_script, generate_run_all_sh
+    from phoenix_scripts import (
+        generate_wave_script, generate_run_all_sh,
+        PHOENIX_KEEPASS_GATE_SH as _PHOENIX_KEEPASS_GATE_SH,
+    )
     _HAS_SCRIPTS = True
+    _HAS_KEEPASS_GATE = True
 except ImportError:
     _HAS_SCRIPTS = False
+    _HAS_KEEPASS_GATE = False
+    _PHOENIX_KEEPASS_GATE_SH = None  # type: ignore
 
 try:
     from html_package_manifest import build_phoenix_manifest_html as _build_phoenix_manifest_html
@@ -139,6 +145,10 @@ def assemble_phoenix_package(
 
         # Checkpoint library
         _add_str("lib/checkpoint.sh", _CHECKPOINT_SH)
+
+        # KeePass gate
+        if _HAS_KEEPASS_GATE and _PHOENIX_KEEPASS_GATE_SH:
+            _add_str("lib/phoenix-keepass-gate.sh", _PHOENIX_KEEPASS_GATE_SH)
 
         # Human-readable manifest (mandatory per architecture)
         if _HAS_PKG_MANIFEST and _build_phoenix_manifest_html is not None:

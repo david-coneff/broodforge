@@ -1,5 +1,18 @@
-# service-catalog.yaml — Service Catalog
+# service-catalog.yaml — Tier 1 Service Catalog (proxmox-bootstrap/metadata/)
 # Tier 1: Authoritative intent.
+#
+# PURPOSE: Authoritative catalog of every service running on the platform.
+# Consumed by the Documentation Engine (service-map.md, dependency graph) and
+# Assessment Engine (documentation coverage, drift detection).
+#
+# DISAMBIGUATION: This file is NOT the same as proxmox-bootstrap/service-catalog.yaml.
+#   - THIS file (metadata/service-catalog.yaml): platform intent catalog — declares
+#     every service's purpose, dependencies, and owning metadata. Undocumented services
+#     are flagged as Documentation Coverage gaps by the Assessment Engine.
+#   - proxmox-bootstrap/service-catalog.yaml: spawn deployment service list with
+#     hardware requirements, used by spawn_planner.py for service-selection menus.
+#
+# Original header:
 #
 # Declares every service running on the platform, its purpose, dependencies,
 # and which metadata created it. Used by: Documentation Engine (service-map.md,

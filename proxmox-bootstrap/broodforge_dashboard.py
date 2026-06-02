@@ -963,6 +963,20 @@ def run_server(cfg: DashboardConfig) -> None:
     else:
         proto = "http"
 
+    # WAN exposure warning: if network_profile is "wan" and listening on all interfaces
+    if cfg.listen_host == "0.0.0.0":
+        state = _read_json(cfg.state_path) or {}
+        nt = state.get("network_topology") or {}
+        if nt.get("profile") == "wan":
+            print(
+                "\n"
+                "[dashboard] WARNING: Dashboard is listening on 0.0.0.0 with network_profile=wan.\n"
+                "[dashboard] WARNING: This exposes the dashboard to the WAN interface.\n"
+                "[dashboard] WARNING: Restrict listen_host to 127.0.0.1 or a LAN IP unless\n"
+                "[dashboard] WARNING: TLS and a strong action_token are configured.\n",
+                file=sys.stderr,
+            )
+
     print(
         f"[dashboard] Broodforge Dashboard v{DASHBOARD_VERSION}\n"
         f"[dashboard] {proto}://{cfg.listen_host}:{cfg.listen_port}/\n"
