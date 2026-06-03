@@ -205,6 +205,33 @@ class TestSpawnCompleteRouting(unittest.TestCase):
         handler.do_POST()
         self.assertTrue(any(r[1] in (400, 500) for r in responses))
 
+    def test_spawn_complete_ignores_state_path_in_body(self):
+        """Security: state_path in body must NOT be used (path traversal prevention)."""
+        import hatchery_receiver as hr
+        # No state_path configured on the server → should 400 even if body has one
+        data = json.dumps({"spawn_plan": {}, "state_path": "/etc/passwd"}).encode()
+        cfg = hr.HatcheryReceiverConfig()  # state_path = ""
+
+        class _Handler(hr._ReceiverHandler):
+            _config = cfg
+
+        handler = _Handler.__new__(_Handler)
+        handler.path = "/api/spawn-complete"
+        handler.headers = {"Content-Length": str(len(data))}
+        handler.rfile = io.BytesIO(data)
+        handler.client_address = ("127.0.0.1", 9999)
+
+        responses = []
+        handler.send_error = lambda code, msg="": responses.append(("error", code, msg))
+        handler.send_response = lambda code: responses.append(("ok", code))
+        handler.send_header = MagicMock()
+        handler.end_headers = MagicMock()
+        handler.wfile = io.BytesIO()
+        handler.log_message = lambda *a: None
+        handler.do_POST()
+        # Must return 400 (no configured state_path), NOT 200 (path from body ignored)
+        self.assertTrue(any(r[1] == 400 for r in responses))
+
     def test_spawn_complete_with_state_updates_file(self):
         import hatchery_receiver as hr
         state = {
@@ -229,7 +256,9 @@ class TestSpawnCompleteRouting(unittest.TestCase):
                 "disposition": {"services": [], "execution_mode": "autonomous"},
                 "vms": [],
             }
-            body = {"spawn_plan": spawn_plan, "state_path": state_path}
+            # state_path must NOT be in the body (path traversal fix) —
+            # the server only uses self._config.state_path
+            body = {"spawn_plan": spawn_plan}
             data = json.dumps(body).encode()
 
             cfg = hr.HatcheryReceiverConfig(state_path=state_path)

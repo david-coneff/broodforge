@@ -239,9 +239,11 @@ class _ReceiverHandler(BaseHTTPRequestHandler):
             self.send_error(400, f"Invalid JSON: {exc}")
             return
 
-        state_path = body.get("state_path") or self._config.state_path
+        # Never accept state_path from the request body — use only the configured
+        # server-side path to prevent path traversal / arbitrary file write.
+        state_path = self._config.state_path
         if not state_path or not os.path.exists(state_path):
-            self.send_error(400, "bootstrap-state.json path not found or not configured")
+            self.send_error(400, "bootstrap-state.json not configured on server (use --state)")
             return
 
         try:
@@ -251,7 +253,6 @@ class _ReceiverHandler(BaseHTTPRequestHandler):
                 update_state_after_spawn,
                 build_spawn_result,
             )
-            from spawn_planner import SpawnPlan
 
             spawn_plan_raw = body.get("spawn_plan") or {}
             hardware_profile = body.get("hardware_profile") or {}
