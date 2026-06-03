@@ -188,6 +188,26 @@
                               "description": "True if this was a dry-run (no actual changes)" }
         }
       }
+    },
+
+    "security_scan": {
+      "type": "object",
+      "description": "Most recent security scan result written by security_analyzer.write_security_scan_result() during engine operational assessment.",
+      "properties": {
+        "last_result": {
+          "type": "object",
+          "properties": {
+            "scanned_at":    { "type": "string", "format": "date-time" },
+            "cell_id":       { "type": "string" },
+            "files_scanned": { "type": "integer" },
+            "posture":       { "type": "string", "enum": ["GREEN", "YELLOW", "ORANGE", "RED"] },
+            "red_count":     { "type": "integer" },
+            "orange_count":  { "type": "integer" },
+            "yellow_count":  { "type": "integer" },
+            "findings":      { "type": "array", "items": { "type": "object" } }
+          }
+        }
+      }
     }
   },
 

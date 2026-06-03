@@ -1,6 +1,6 @@
 # Current State
 
-Last updated: 2026-06-03 UTC (audit round 10 — cycle 1: 5 subprocess timeouts, 1 stale doc ref)
+Last updated: 2026-06-03 UTC (audit round 10 — cycles 1+2: timeouts, schema gap, doc/code mismatch)
 
 ## Active Architecture: v7.1
 

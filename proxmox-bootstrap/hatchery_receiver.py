@@ -141,8 +141,9 @@ def analyze_all_unanalyzed(
                 with open(out, "w") as f:
                     f.write(diagnosis.to_markdown())
             results.append(diagnosis)
-        except Exception:
-            pass
+        except Exception as _exc:
+            import sys as _sys
+            print(f"[hatchery] analyze_failure_package failed for {path}: {_exc}", file=_sys.stderr)
     return results
 
 

@@ -2016,7 +2016,7 @@ def _score_security_posture(manifest: dict) -> list:
     in bootstrap-state.json for readiness scoring.
 
     Scoring:
-      RED:    any confirmed secret leaks (red_count > 0) or last scan overdue
+      RED:    any confirmed secret leaks (red_count > 0)
       ORANGE: unsafe script patterns (orange_count > 0)
       YELLOW: suspicious patterns only (yellow_count > 0) or no scan yet run
       GREEN:  scan current with no findings

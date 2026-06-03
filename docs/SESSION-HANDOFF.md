@@ -4,6 +4,33 @@ Last updated: 2026-06-03 UTC
 
 ## What Was Done This Session (current)
 
+### Audit round 10 — Cycle 2: schema gap, silent exception, doc/code mismatch
+
+**I1 — bootstrap-state-schema.json missing `security_scan` property:**
+Added `security_scan` to `data-model/bootstrap-state-schema.json` (written by
+`security_analyzer.write_security_scan_result()` but previously undocumented in schema).
+Fields: `last_result` with `scanned_at`, `cell_id`, `files_scanned`, `posture`, counts, `findings`.
+
+**S1 — Silent exception swallowing in `analyze_all_unanalyzed()`:**
+`hatchery_receiver.py:144` — bare `except Exception: pass` now prints warning to stderr
+when an individual failure package analysis fails. (Other bare-except patterns are
+appropriate optional-feature skips.)
+
+**D1 — Docstring/code mismatch in `_score_security_posture()`:**
+`doc-gen/readiness.py` docstring claimed "RED: last scan overdue" but code never
+checks staleness. Removed "last scan overdue" from docstring to match actual behavior.
+
+**D2 — RECONSTRUCTION-DRILL.md CLI examples use non-existent flags:**
+`docs/RECONSTRUCTION-DRILL.md` pre-drill checklist showed `python3 phoenix_playbook.py --state ...`
+(no such CLI) and drill commands showed `--mode live`, `--mode tabletop`, `--record-manual`,
+`--actual-minutes`, `--gaps`, `--remediated` (none of which exist). Replaced all with
+correct subcommand interface: `start`, `complete`, `last`, `report`.
+Pre-drill playbook generation: now shows correct Python one-liner using `build_phoenix_playbook()`.
+
+**Tests: 3779 passed, 6 skipped** (no change — schema/doc fixes only)
+
+---
+
 ### Audit round 10 — Cycle 1: subprocess timeouts + stale doc refs
 
 **S1 — Missing subprocess timeouts (5 fixes):**
