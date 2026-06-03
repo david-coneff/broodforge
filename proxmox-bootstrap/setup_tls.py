@@ -244,10 +244,10 @@ def render_sync_cert_sh(config: TlsConfig) -> str:
 # Called by acme.sh --reloadcmd and as a weekly k8s CronJob.
 set -euo pipefail
 
-CERT="{config.cert_path}"
-KEY="{config.key_path}"
-SECRET_NAME="broodforge-tls"
-NAMESPACES="{ns_loop}"
+CERT='{config.cert_path}'
+KEY='{config.key_path}'
+SECRET_NAME='broodforge-tls'
+NAMESPACES='{ns_loop}'
 
 for ns in $NAMESPACES; do
   kubectl create secret tls "$SECRET_NAME" \\

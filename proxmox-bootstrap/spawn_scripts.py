@@ -395,12 +395,12 @@ def generate_tailscale_join_sh(plan: dict) -> str:
     headscale_url  = (plan.get("hatchery") or {}).get("headscale_url", "")
 
     auth_key_line = (
-        f'AUTH_KEY="{auth_key}"' if auth_key
-        else 'AUTH_KEY=""  # populate before running — embed key in spawn-manifest.json'
+        f"AUTH_KEY='{auth_key}'" if auth_key
+        else "AUTH_KEY=''  # populate before running — embed key in spawn-manifest.json"
     )
     server_line = (
-        f'HEADSCALE_URL="{headscale_url}"' if headscale_url
-        else 'HEADSCALE_URL=""  # populate with your Headscale server URL'
+        f"HEADSCALE_URL='{headscale_url}'" if headscale_url
+        else "HEADSCALE_URL=''  # populate with your Headscale server URL"
     )
 
     return (

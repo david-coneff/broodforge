@@ -594,7 +594,7 @@ def generate_phase_08_sh(manifest: dict) -> str:
     cell_id = manifest.get("cell_id") or "pve01-cell"
     return _phase_header("phase-08-verify", "Verify cluster health and commit state") + f"""\
 
-CELL_ID="{cell_id}"
+CELL_ID='{cell_id}'
 
 step="phase08_k3s_health"
 if is_done "$step"; then checkpoint_skip "$step"; else
