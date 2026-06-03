@@ -178,6 +178,9 @@ class _ReceiverHandler(BaseHTTPRequestHandler):
             return
 
         content_length = int(self.headers.get("Content-Length", 0))
+        if content_length < 0:
+            self.send_error(400, "Invalid Content-Length")
+            return
         max_bytes = self._config.max_package_mb * 1024 * 1024
         if content_length > max_bytes:
             self.send_error(413, "Package too large")
@@ -232,6 +235,9 @@ class _ReceiverHandler(BaseHTTPRequestHandler):
             return
 
         content_length = int(self.headers.get("Content-Length", 0))
+        if content_length < 0:
+            self.send_error(400, "Invalid Content-Length")
+            return
         if content_length > 1 * 1024 * 1024:  # 1 MB max for JSON payload
             self.send_error(413, "Payload too large")
             return

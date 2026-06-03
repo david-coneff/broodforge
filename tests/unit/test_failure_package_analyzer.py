@@ -506,3 +506,57 @@ class TestHatcheryReceiverConfigAuth:
 
             handler.do_POST()
             assert any(r == ("ok", 200) for r in responses)
+
+    def test_negative_content_length_rejected(self):
+        """Negative Content-Length must be rejected with 400 to prevent unbounded read."""
+        import io
+        from unittest.mock import MagicMock
+
+        cfg = _hr.HatcheryReceiverConfig(auth_token="")
+
+        class _Handler(_hr._ReceiverHandler):
+            _config = cfg
+
+        handler = _Handler.__new__(_Handler)
+        handler.headers = {"Content-Length": "-1"}
+        handler.path = "/api/failure-packages"
+        handler.client_address = ("127.0.0.1", 1234)
+        handler.rfile = io.BytesIO(b"")
+
+        sent_errors = []
+        handler.send_error = lambda code, msg="": sent_errors.append(code)
+        handler.send_response = MagicMock()
+        handler.send_header = MagicMock()
+        handler.end_headers = MagicMock()
+        handler.wfile = io.BytesIO()
+        handler.log_message = lambda *a: None
+
+        handler._handle_failure_package()
+        assert 400 in sent_errors
+
+    def test_negative_content_length_spawn_complete_rejected(self):
+        """Negative Content-Length on /api/spawn-complete must be rejected with 400."""
+        import io
+        from unittest.mock import MagicMock
+
+        cfg = _hr.HatcheryReceiverConfig(auth_token="")
+
+        class _Handler(_hr._ReceiverHandler):
+            _config = cfg
+
+        handler = _Handler.__new__(_Handler)
+        handler.headers = {"Content-Length": "-1"}
+        handler.path = "/api/spawn-complete"
+        handler.client_address = ("127.0.0.1", 1234)
+        handler.rfile = io.BytesIO(b"")
+
+        sent_errors = []
+        handler.send_error = lambda code, msg="": sent_errors.append(code)
+        handler.send_response = MagicMock()
+        handler.send_header = MagicMock()
+        handler.end_headers = MagicMock()
+        handler.wfile = io.BytesIO()
+        handler.log_message = lambda *a: None
+
+        handler._handle_spawn_complete()
+        assert 400 in sent_errors

@@ -255,6 +255,7 @@ spawn-package-cell-alpha-pve02-2026-06-01_12_00_00.tar.gz
 ├── spawn-manifest.json        hatchery reservation snapshot
 ├── spawn-plan.json            broodling-specific plan
 ├── spawn.sh                   orchestrated entry point
+├── [tailscale-join.sh]        WAN mode only: Headscale/Tailscale join (phase-00a)
 ├── phase-00-preflight.sh      hardware pre-flight verification
 ├── phase-00-host.sh           hostname + bridges + ZFS + datastore
 ├── phase-01-proxmox.sh        pvecm join
