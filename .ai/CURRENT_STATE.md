@@ -1,6 +1,6 @@
 # Current State
 
-Last updated: 2026-06-03 UTC (audit round 10 — cycles 1–4: timeouts, schema gap, doc/code mismatch, drill outcome bugs)
+Last updated: 2026-06-03 UTC (audit round 11 — cycles 1–5: spawn workflow, FORGING.md stale refs, WAN mode)
 
 ## Active Architecture: v7.1
 
@@ -14,10 +14,12 @@ Digital Twin + Federation, and Autonomous Operations (Phase 26 — all sub-phase
 
 ## Next Action
 
-**All audit findings resolved through round 11 cycle 1** (2026-06-03).
-Audit rounds 3–11 complete. Latest fixes: FORGING.md forge-pack.sh → assemble-forge-package.py,
-forge_scripts.py heredoc subprocess timeouts, ROADMAP/CURRENT_STATE sync.
-Tests: 3909 passed, 37 skipped (including all pre-existing env failures as expected).
+**All audit findings resolved through round 11 cycle 5** (2026-06-03).
+Audit rounds 3–11 complete. Latest fixes: spawn package self-assembly (internal script
+generation, no pre-generated artifacts required), WAN mode spawn scripts, FORGING.md
+stale CLI refs (forge-pack.sh → assemble-forge-package.py), NODE-SPAWNING.md wrong
+flags, update_state_after_spawn.py CLI, bootstrap-state→spawn-manifest conversion.
+AD-056 added. Tests: 3925 passed, 37 skipped.
 
 All roadmap items complete. Next: **Deploy to hardware** — run `python3 proxmox-bootstrap/forge-planner.py`
 on a Proxmox host to forge the first cell. See FORGING.md for operator runbook.

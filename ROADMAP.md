@@ -1,7 +1,7 @@
 # Broodforge — Roadmap
 
 Version: 7.1
-Last updated: 2026-06-03 (audit round 10: subprocess timeouts, drill outcome bugs, schema gap, doc mismatches)
+Last updated: 2026-06-03 (audit round 11: spawn workflow, FORGING.md stale refs, WAN mode)
 Architecture: v7.1 (see ARCHITECTURE.md and docs/ARCHITECTURE-REVIEW-v7.md)
 
 ---
@@ -142,6 +142,19 @@ Architecture: v7.1 (see ARCHITECTURE.md and docs/ARCHITECTURE-REVIEW-v7.md)
           B2: reconstruction-drill.py complete outcome choices fixed (success/partial/failed/aborted);
           B3: partial outcome now correctly scored as ORANGE.
       Tests: 3780 passed, 6 skipped.
+- [x] **Full-stack audit findings (round 11)** — 9 fixes (Cycles 1–5):
+      Cycle 1 — D1: FORGING.md forge-pack.sh→assemble-forge-package.py (wrong script ref);
+          S1: forge_scripts.py heredoc subprocess timeout=300/30; D2: ROADMAP/CURRENT_STATE sync.
+      Cycle 2 — I1: spawn package self-assembly (no pre-generated artifacts required);
+          D1: assemble-spawn-package.py --artifacts optional, --state alias added;
+          D2: spawn-planner.py next-steps complete command; D3: NODE-SPAWNING.md wrong flags;
+          I2: update_state_after_spawn.py gains __main__ CLI block.
+      Cycle 3 — S1: assemble_spawn_package is_ha logic bug (used non-existent promote_ha);
+          D1: FORGING.md engine.py --state→--manifest; I1: bootstrap-state→spawn-manifest
+          conversion in CLI (ensures hatchery_url in package).
+      Cycle 4 — S1: WAN mode spawn scripts missing (include_wan_phase not passed).
+      Cycle 5 — AD-056 added to ARCHITECTURE.md; docs synced.
+      Tests: 3925 passed, 37 skipped (+16 new tests).
 - [x] **Full-stack audit findings (round 3)** — all MEDIUM and LOW items resolved:
       S1: secrets.compare_digest in hatchery_receiver; I1: security scan wired into operational;
       I2: 9.T migration tier (above); S2: no-token startup warning in dashboard;

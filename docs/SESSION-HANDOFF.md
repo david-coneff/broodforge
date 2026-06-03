@@ -4,6 +4,56 @@ Last updated: 2026-06-03 UTC
 
 ## What Was Done This Session (current)
 
+### Audit round 11 — Cycles 1–5 (completed)
+
+**Cycle 1 — Stale CLI docs + missing timeouts:**
+- D1: `FORGING.md` Step 2 referenced non-existent `bash forge-pack.sh`; replaced with
+  correct `python3 proxmox-bootstrap/assemble-forge-package.py`. Wrong `--embed-kdbx`
+  flag replaced with `--kdbx`. Output path `dist/` replaced with `.`.
+- S1: `forge_scripts.py` phase-03 heredoc `subprocess.run` calls lacked timeout;
+  added `timeout=300` (zpool create) and `timeout=30` (pvesm add).
+- D2: `ROADMAP.md` updated with round 10 cycles 1-4 content; `.ai/CURRENT_STATE.md`
+  updated with correct "Last updated" and "Next Action" text.
+- **Tests: 3909 passed, 37 skipped** (no new tests, doc-only fixes)
+
+**Cycle 2 — Broken spawn workflow + doc fixes:**
+- I1: `assemble_spawn_package.py` required `--artifacts` (pre-generated scripts dir) but
+  nothing in the operator workflow generated those scripts. Fixed by generating all
+  phase scripts and IaC internally from the spawn plan (mirrors forge assembler pattern).
+  `artifacts_dir` becomes an optional override.
+- D1: `assemble-spawn-package.py` CLI: `--artifacts` optional, `--manifest` renamed
+  to `--state` (accepts `bootstrap-state.json` directly).
+- D2: `spawn-planner.py` next-steps output updated to show correct complete command.
+- D3: `NODE-SPAWNING.md` Step 3 wrong flags fixed (`--state/--hardware/--embed-kdbx`
+  → `--state/--kdbx`). Step 6 corrected: state update is automatic via hatchery
+  receiver; manual fallback uses correct CLI path.
+- I2: `update_state_after_spawn.py` gains `__main__` CLI block (`--state`, `--plan`,
+  `--hardware`, `--spawned-at`) to support the manual fallback path.
+- **Tests: 3922 passed, 37 skipped** (+13: TestInternalScriptGeneration 11, TestCLI 2)
+
+**Cycle 3 — spawn manifest generation + FORGING.md flag:**
+- S1: `assemble_spawn_package.py` `is_ha` logic used non-existent `promote_ha` field;
+  fixed to mirror `spawn_scripts.py`: `role==server AND has VMs`.
+- D1: `FORGING.md` Step 6 `engine.py` used `--state` instead of `--manifest` (wrong flag).
+- I1: `assemble-spawn-package.py` CLI now calls `read_hatchery_state()` when `--state`
+  is a `bootstrap-state.json`, ensuring `spawn-manifest.json` in the package has
+  `hatchery_url` and `receiver_token` fields that `phase-06-verify.sh` needs.
+- **Tests: 3924 passed, 37 skipped** (+2: TestCLISpawnManifestGeneration, ha server test)
+
+**Cycle 4 — WAN mode spawn scripts:**
+- S1: `assemble_spawn_package.py` internal generation always called
+  `generate_spawn_sh(plan)` without `include_wan_phase=True`, even for WAN-mode spawn
+  plans (`disposition.network_mode='wan'`). Fixed: detect WAN mode and pass
+  `include_wan_phase=True`. Added `test_wan_mode_spawn_sh_includes_tailscale_join`.
+- **Tests: 3925 passed, 37 skipped** (+1)
+
+**Cycle 5 — Architecture doc + final sync:**
+- AD-056 added to `ARCHITECTURE.md` documenting spawn package self-assembly design.
+- `docs/SESSION-HANDOFF.md`, `ROADMAP.md`, `.ai/CURRENT_STATE.md` updated.
+- **Tests: 3925 passed, 37 skipped** (no change)
+
+---
+
 ### Audit round 10 — Cycle 4: drill outcome bugs
 
 **B1 — `_score_reconstruction_drill()` didn't handle `in_progress` drills:**
