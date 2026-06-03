@@ -637,8 +637,9 @@ def _score_reconstruction_drill(manifest: dict) -> list:
     Check reconstruction drill history (Phase 12).
 
     YELLOW: no drill has ever been performed — recoverability is unvalidated.
+    YELLOW: last drill outcome is in_progress — was started but never completed.
     YELLOW: last drill is > 90 days ago — procedure may be stale.
-    ORANGE: last drill outcome was failed or aborted — known failure mode unresolved.
+    ORANGE: last drill outcome was failed, aborted, or partial — recovery not fully validated.
     """
     from datetime import datetime, timezone, timedelta
     gaps: list[Gap] = []
@@ -669,8 +670,25 @@ def _score_reconstruction_drill(manifest: dict) -> list:
     outcome    = last.get("outcome", "unknown")
     started_at = last.get("started_at")
 
+    # In-progress drill is never a completed validation
+    if outcome == "in_progress":
+        gaps.append(Gap(
+            component_id="infrastructure:reconstruction-drill",
+            gap_type="RECONSTRUCTION_DRILL_INCOMPLETE",
+            severity="YELLOW",
+            description=(
+                f"Last reconstruction drill is still in-progress "
+                f"(drill: {last.get('drill_id', '?')}) — run 'complete' to record outcome"
+            ),
+            remediation=(
+                "Complete the drill with: reconstruction-drill.py complete "
+                "--state bootstrap-state.json --outcome success"
+            ),
+        ))
+        return gaps
+
     # Check outcome
-    if outcome in ("failed", "aborted"):
+    if outcome in ("failed", "aborted", "partial"):
         gaps.append(Gap(
             component_id="infrastructure:reconstruction-drill",
             gap_type="RECONSTRUCTION_DRILL_FAILED",

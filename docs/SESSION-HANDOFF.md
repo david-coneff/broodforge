@@ -4,6 +4,26 @@ Last updated: 2026-06-03 UTC
 
 ## What Was Done This Session (current)
 
+### Audit round 10 — Cycle 4: drill outcome bugs
+
+**B1 — `_score_reconstruction_drill()` didn't handle `in_progress` drills:**
+An unfinished drill (started but never completed) silently passed the readiness
+check as "recent". Added `RECONSTRUCTION_DRILL_INCOMPLETE` YELLOW gap for
+`outcome == "in_progress"`. New test: `test_in_progress_drill_is_yellow`.
+
+**B2 — `reconstruction-drill.py complete` used wrong outcome values:**
+CLI `--outcome` choices were `[completed, failed, aborted]` but library uses
+`[success, partial, failed, aborted]`. Fixed to match library. Default changed
+from "completed" → "success". Added "partial" choice.
+
+**B3 — `_score_reconstruction_drill()` didn't handle `partial` outcome:**
+"partial" was supposed to drop to ORANGE (per RECONSTRUCTION-DRILL.md) but
+wasn't in the scorer's failure list. Added "partial" to the ORANGE check.
+
+**Tests: 3780 passed, 6 skipped** (+1 for in_progress test)
+
+---
+
 ### Audit round 10 — Cycle 3: implementation gap, RECONSTRUCTION-DRILL.md
 
 **I1 — `reconstruction-drill.py complete` missing `--gaps` argument:**

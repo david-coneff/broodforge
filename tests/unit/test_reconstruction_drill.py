@@ -279,6 +279,17 @@ class TestScoreReconstructionDrill(unittest.TestCase):
         gaps = _score_reconstruction_drill(state)
         self.assertEqual(gaps[0].severity, "ORANGE")
 
+    def test_in_progress_drill_is_yellow(self):
+        rec = start_drill(PLAYBOOK, now_fn=_fixed_now)
+        # outcome stays "in_progress" — drill never completed
+        rec.outcome = "in_progress"
+        state = {}
+        save_drill_record(state, rec)
+        gaps = _score_reconstruction_drill(state)
+        self.assertEqual(len(gaps), 1)
+        self.assertEqual(gaps[0].severity, "YELLOW")
+        self.assertIn("INCOMPLETE", gaps[0].gap_type)
+
     def test_stale_drill_is_yellow(self):
         rec = start_drill(PLAYBOOK, now_fn=_past_now(95))
         rec.complete("success")

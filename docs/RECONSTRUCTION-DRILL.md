@@ -83,12 +83,12 @@ When finished, record the outcome and generate a report:
 ```bash
 python3 proxmox-bootstrap/reconstruction-drill.py complete \
   --state proxmox-bootstrap/bootstrap-state.json \
-  --outcome completed \
+  --outcome success \
   --gaps "Bridge vmbr1 pre-flight step was unclear" "Wave 3 restore took 2× longer than estimated" \
   --output drill-report.md
 ```
 
-`--outcome` choices: `completed`, `failed`, `aborted`  
+`--outcome` choices: `success` (default), `partial`, `failed`, `aborted`  
 `--gaps` (optional): one or more gap descriptions appended to `gaps_found` in the drill record
 
 ---

@@ -85,7 +85,7 @@ def cmd_complete(args: argparse.Namespace) -> None:
         sys.exit(1)
 
     drill_id = last.get("drill_id", "?")
-    outcome  = args.outcome or "completed"
+    outcome  = args.outcome or "success"
     last["outcome"]      = outcome
     last["completed_at"] = last.get("completed_at") or \
         __import__("datetime").datetime.now(
@@ -172,8 +172,8 @@ def main() -> None:
     # complete
     pc = sub.add_parser("complete", help="Mark the latest drill completed and write report")
     pc.add_argument("--state",  required=True, help="Path to bootstrap-state.json")
-    pc.add_argument("--outcome", default="completed",
-                    choices=["completed", "failed", "aborted"],
+    pc.add_argument("--outcome", default="success",
+                    choices=["success", "partial", "failed", "aborted"],
                     help="Final drill outcome")
     pc.add_argument("--gaps", nargs="*", metavar="GAP",
                     help="Gap(s) found during the drill (repeatable strings)")
