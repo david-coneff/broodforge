@@ -115,6 +115,12 @@ Architecture: v7.1 (see ARCHITECTURE.md and docs/ARCHITECTURE-REVIEW-v7.md)
       I1: html_forge_workbook.py + html_phoenix_workbook.py had zero test coverage;
           TestHtmlForgeWorkbook + TestHtmlPhoenixWorkbook added (8 tests total).
       Tests: 3654 passed, 37 skipped.
+- [x] **Full-stack audit findings (round 8)** — comprehensive scan, all findings fixed:
+      D: spawn_workbook.py + forge_workbook.py moved to proxmox-bootstrap/deprecated/;
+         tests migrated to HTML (56 tests); html_forge_workbook.py findings rendering bug
+         fixed (RED/YELLOW severity handling for ForgeValidationFinding dataclasses);
+         setup_warnings now rendered in Overview section.
+      Tests: 3720 passed, 37 skipped.
 - [x] **Full-stack audit findings (round 3)** — all MEDIUM and LOW items resolved:
       S1: secrets.compare_digest in hatchery_receiver; I1: security scan wired into operational;
       I2: 9.T migration tier (above); S2: no-token startup warning in dashboard;

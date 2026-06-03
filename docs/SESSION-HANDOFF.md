@@ -4,6 +4,25 @@ Last updated: 2026-06-02 UTC
 
 ## What Was Done This Session (current)
 
+### Comprehensive audit round (final) — 4 findings fixed
+
+**D1 (HIGH bug fix):** `html_forge_workbook.py:_section_validation()` called
+`f.get("severity")` on `ForgeValidationFinding` dataclasses (no `.get()`) AND
+used wrong severity values ("ERROR"/"WARNING" vs actual "RED"/"YELLOW"). Fixed:
+use `getattr()` with "ERROR"/"WARNING"/"RED"/"YELLOW" all mapped correctly.
+
+**D2:** `setup_warnings` not rendered in HTML forge workbook — added callout
+rendering in `_section_overview()`.
+
+**D3/D4:** `proxmox-bootstrap/spawn_workbook.py` and `forge_workbook.py` (ODS)
+missed in earlier deprecation sweeps — moved to `proxmox-bootstrap/deprecated/`
+with README. `test_spawn_workbook.py` + `test_forge_workbook.py` (96 ODS tests)
+fully rewritten as HTML tests (56 tests); net -40.
+
+**Tests: 3720 passed, 37 skipped**
+
+---
+
 ### Audit rounds 7 + 8 — clean cycle
 
 **Round 7:** `html_forge_workbook.py` and `html_phoenix_workbook.py` had zero test coverage;

@@ -97,7 +97,7 @@ on a Proxmox host to forge the first cell. See FORGING.md for operator runbook.
 | 9.T migration + 9.T.12 | migrate_k3s_lib.py, migrate-k3s-to-talos.py, migrate-k3s-to-ubuntu.py, migration_history schema; recovery runbook Appendix I (OS Variant Migration History) in ODT + HTML renderers; 48+25 tests | Complete |
 | Round 4 audit fixes | 13 findings: S1 (key→/dev/tty), S3 (auth key), D1/I4 (reconstruction-drill.py CLI), D2 (docstring), I1 (/api/spawn-complete endpoint + spawn verify POST), I2 (migration git commit), I3 (_score_migration_health), I5 (collector_utils), A2 (import aliases); 35 tests | Complete |
 
-**Tests: 3654 (3654 passed, 37 skipped, 3 pre-existing env failures) — round 7 audit: forge/phoenix workbook tests added**
+**Tests: 3720 (3720 passed, 37 skipped, 3 pre-existing env failures) — round 8: ODS workbooks fully deprecated, forge findings bug fixed**
 
 ## Next Milestones
 
