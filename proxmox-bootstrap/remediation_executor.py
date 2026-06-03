@@ -30,6 +30,7 @@ Stdlib only.
 
 import json
 import os
+import shlex
 import subprocess
 import sys
 from dataclasses import dataclass, field
@@ -181,9 +182,10 @@ def _exec_restart_service(
     if not vm_ip:
         vm_ip = "<service-ip>"
 
+    svc_q = shlex.quote(svc)  # prevent shell injection on remote host
     step1 = ExecutionStep("check", f"Check service status for {svc}")
     rc, out, err = executor._run(
-        ["ssh", f"ubuntu@{vm_ip}", f"sudo systemctl is-active {svc}"]
+        ["ssh", f"ubuntu@{vm_ip}", f"sudo systemctl is-active {svc_q}"]
     )
     step1.completed = True
     step1.output = out.strip()
@@ -191,7 +193,7 @@ def _exec_restart_service(
 
     step2 = ExecutionStep("restart", f"Restart {svc}")
     rc, out, err = executor._run(
-        ["ssh", f"ubuntu@{vm_ip}", f"sudo systemctl restart {svc}"]
+        ["ssh", f"ubuntu@{vm_ip}", f"sudo systemctl restart {svc_q}"]
     )
     step2.completed = (rc == 0)
     step2.output = out
@@ -203,7 +205,7 @@ def _exec_restart_service(
 
     step3 = ExecutionStep("verify", f"Verify {svc} is running")
     rc2, out2, _ = executor._run(
-        ["ssh", f"ubuntu@{vm_ip}", f"sudo systemctl is-active {svc}"]
+        ["ssh", f"ubuntu@{vm_ip}", f"sudo systemctl is-active {svc_q}"]
     )
     step3.completed = (rc2 == 0)
     step3.output = out2.strip()

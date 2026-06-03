@@ -60,6 +60,7 @@ except ImportError:
 try:
     from spawn_scripts import (
         generate_spawn_sh,
+        generate_tailscale_join_sh,
         generate_phase_00_preflight,
         generate_phase_00_host,
         generate_phase_01_proxmox,
@@ -274,6 +275,8 @@ def assemble_spawn_package(
             is_ha     = k3s_role == "server" and bool(plan.get("vms"))
             is_wan    = (plan.get("disposition") or {}).get("network_mode") == "wan"
             _add_str("spawn.sh",              generate_spawn_sh(plan, include_wan_phase=is_wan), mode=0o755)
+            if is_wan:
+                _add_str("tailscale-join.sh", generate_tailscale_join_sh(plan),    mode=0o755)
             _add_str("phase-00-preflight.sh", generate_phase_00_preflight(plan),   mode=0o755)
             _add_str("phase-00-host.sh",      generate_phase_00_host(plan),        mode=0o755)
             _add_str("phase-01-proxmox.sh",   generate_phase_01_proxmox(plan),     mode=0o755)

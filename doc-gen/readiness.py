@@ -2196,8 +2196,11 @@ def score_graph(graph, manifest: dict) -> ReadinessReport:
             overall_reason = f"{sc['ORANGE']} component(s) with significant gaps"
     elif sc.get("YELLOW", 0) or any(g.severity == "YELLOW" for g in registry_gaps):
         overall_reason = f"{sc.get('YELLOW', 0)} component(s) with minor gaps"
-        if any(g.severity == "YELLOW" for g in registry_gaps):
+        if any(g.gap_type == "MISSING_DNS_REGISTRY" for g in registry_gaps):
             overall_reason += "; DNS registry missing"
+        elif any(g.severity == "YELLOW" for g in registry_gaps):
+            yellow_infra = [g for g in registry_gaps if g.severity == "YELLOW"]
+            overall_reason += f"; {len(yellow_infra)} infrastructure gap(s)"
     else:
         overall_reason = "All components GREEN"
 

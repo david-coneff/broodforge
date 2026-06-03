@@ -386,6 +386,25 @@ class TestInternalScriptGeneration(unittest.TestCase):
                 spawn_sh = tar.extractfile("spawn.sh").read().decode()
         self.assertIn("tailscale-join", spawn_sh)
 
+    def test_wan_mode_package_contains_tailscale_join_sh(self):
+        """WAN package must contain tailscale-join.sh (not just reference it in spawn.sh)."""
+        import tempfile
+        wan_plan = dict(PLAN_WITH_VMS, disposition={"execution_mode": "autonomous",
+                                                     "network_mode": "wan"})
+        with tempfile.TemporaryDirectory() as tmp:
+            pkg = assemble_spawn_package(wan_plan, MANIFEST, artifacts_dir=None,
+                                         output_dir=Path(tmp) / "out", now=_NOW)
+            contents = package_contents(pkg)
+        self.assertIn("tailscale-join.sh", contents)
+
+    def test_lan_mode_package_excludes_tailscale_join_sh(self):
+        """LAN package must NOT contain tailscale-join.sh."""
+        with tempfile.TemporaryDirectory() as tmp:
+            pkg = assemble_spawn_package(PLAN_WITH_VMS, MANIFEST, artifacts_dir=None,
+                                         output_dir=Path(tmp) / "out", now=_NOW)
+            contents = package_contents(pkg)
+        self.assertNotIn("tailscale-join.sh", contents)
+
 
 class TestCLISpawnManifestGeneration(unittest.TestCase):
     """CLI converts bootstrap-state.json to a proper spawn manifest with hatchery_url.

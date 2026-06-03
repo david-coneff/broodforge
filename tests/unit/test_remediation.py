@@ -601,6 +601,53 @@ class TestRemediationExecutor:
         for atype in _rp.ALLOWED_ACTION_TYPES:
             assert atype in _re._HANDLERS, f"Missing handler for {atype}"
 
+    def test_restart_service_uses_shell_quoted_name(self):
+        """Service name must be shell-quoted in SSH command to prevent injection."""
+        captured_cmds = []
+
+        def capturing_runner(cmd, cwd):
+            captured_cmds.append(cmd)
+            return (0, "active\n", "")
+
+        p = self._approved_proposal("restart-service")
+        p.target = "my-service"
+        ex = _re.RemediationExecutor(
+            cell_id="pve01-cell",
+            state_path="/tmp/test-state.json",
+            runner_fn=capturing_runner,
+            keepass_unlocked=False,
+        )
+        from remediation_executor import _exec_restart_service
+        _exec_restart_service(p, ex, _state())
+        for cmd in captured_cmds:
+            if len(cmd) >= 3:
+                remote_cmd = cmd[-1]
+                assert "my-service" in remote_cmd
+
+    def test_restart_service_shell_quoting_for_special_chars(self):
+        """Service name with shell metacharacters must not appear unquoted in SSH command."""
+        captured_cmds = []
+
+        def capturing_runner(cmd, cwd):
+            captured_cmds.append(cmd)
+            return (0, "active\n", "")
+
+        p = self._approved_proposal("restart-service")
+        p.target = "svc; echo pwned"
+        ex = _re.RemediationExecutor(
+            cell_id="pve01-cell",
+            state_path="/tmp/test-state.json",
+            runner_fn=capturing_runner,
+            keepass_unlocked=False,
+        )
+        from remediation_executor import _exec_restart_service
+        _exec_restart_service(p, ex, _state())
+        for cmd in captured_cmds:
+            if len(cmd) >= 3:
+                remote_cmd = cmd[-1]
+                # shlex.quote wraps in single-quotes so '; echo pwned' can't escape
+                assert "echo pwned" not in remote_cmd or "'" in remote_cmd
+
 
 # ===========================================================================
 # 26.4 — Dashboard

@@ -8,7 +8,8 @@ REPO_ROOT = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(REPO_ROOT / "proxmox-bootstrap"))
 
 from spawn_scripts import (
-    generate_spawn_sh, generate_phase_00_preflight, generate_phase_00_host,
+    generate_spawn_sh, generate_tailscale_join_sh,
+    generate_phase_00_preflight, generate_phase_00_host,
     generate_phase_01_proxmox, generate_phase_02_vms, generate_phase_03_cloudinit,
     generate_phase_04_k3s, generate_phase_05_ha, generate_phase_06_verify,
     write_all_scripts,
@@ -123,6 +124,52 @@ class TestPhase06Verify(unittest.TestCase):
     def test_reads_hatchery_url(self): self.assertIn("HATCHERY_URL", self.s)
 
 
+WAN_PLAN = {
+    **PLAN,
+    "disposition": {"execution_mode": "autonomous", "network_mode": "wan",
+                    "wan_auth_key": "tskey-auth-test-abc123"},
+    "hatchery": {**PLAN.get("hatchery", {}), "headscale_url": "https://headscale.example.com"},
+}
+
+
+class TestTailscaleJoinSh(unittest.TestCase):
+    def setUp(self): self.s = generate_tailscale_join_sh(WAN_PLAN)
+
+    def test_shebang(self):
+        self.assertTrue(self.s.startswith("#!/usr/bin/env bash"))
+
+    def test_embeds_auth_key(self):
+        self.assertIn("tskey-auth-test-abc123", self.s)
+
+    def test_embeds_headscale_url(self):
+        self.assertIn("headscale.example.com", self.s)
+
+    def test_runs_tailscale_up(self):
+        self.assertIn("tailscale up", self.s)
+
+    def test_login_server_flag(self):
+        self.assertIn("--login-server", self.s)
+
+    def test_exits_on_empty_key(self):
+        self.assertIn("AUTH_KEY is empty", self.s)
+
+    def test_installs_tailscale_if_missing(self):
+        self.assertIn("tailscale.com/install.sh", self.s)
+
+    def test_checkpoint_used(self):
+        self.assertIn("tailscale-join", self.s)
+
+    def test_empty_auth_key_placeholder(self):
+        plan_no_key = {**WAN_PLAN, "disposition": {"network_mode": "wan"}}
+        s = generate_tailscale_join_sh(plan_no_key)
+        self.assertIn("AUTH_KEY", s)
+
+    def test_empty_headscale_url_placeholder(self):
+        plan_no_url = {**WAN_PLAN, "hatchery": {}}
+        s = generate_tailscale_join_sh(plan_no_url)
+        self.assertIn("HEADSCALE_URL", s)
+
+
 class TestWriteAllScripts(unittest.TestCase):
     def test_writes_core_scripts(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -138,6 +185,17 @@ class TestWriteAllScripts(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             written = write_all_scripts(PLAN, Path(tmp), include_ha=True)
             self.assertIn("phase-05-ha.sh", written)
+
+    def test_wan_script_written_when_wan_enabled(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            written = write_all_scripts(WAN_PLAN, Path(tmp), include_wan_phase=True)
+            self.assertIn("tailscale-join.sh", written)
+            self.assertTrue(written["tailscale-join.sh"].exists())
+
+    def test_wan_script_absent_for_lan(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            written = write_all_scripts(PLAN, Path(tmp), include_wan_phase=False)
+            self.assertNotIn("tailscale-join.sh", written)
 
     def test_scripts_are_bash(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -13,6 +13,7 @@ Provides:
   generate_phase_02_vms(plan)       — tofu apply
   generate_phase_03_cloudinit(plan) — cloud-init snippets + VM start
   generate_phase_04_k3s(plan)       — ansible k3s role
+  generate_tailscale_join_sh(plan)  — WAN mode: tailscale/headscale join
   generate_phase_05_ha(plan)        — conditional HA promotion
   generate_phase_06_verify(plan)    — post-spawn health check
   write_all_scripts(plan, output_dir) — write everything to disk
@@ -361,6 +362,66 @@ def generate_phase_04_k3s(plan: dict) -> str:
 
 
 # ---------------------------------------------------------------------------
+# tailscale-join.sh — WAN mode: join Headscale control plane via Tailscale
+# ---------------------------------------------------------------------------
+
+def generate_tailscale_join_sh(plan: dict) -> str:
+    """Generate the tailscale join script for WAN-mode spawn packages.
+
+    Reads the auth key and headscale URL from the spawn plan (embedded at
+    package assembly time). Installs tailscale if missing, then runs
+    `tailscale up --login-server <url> --authkey <key>`.
+    """
+    disposition    = plan.get("disposition") or {}
+    auth_key       = disposition.get("wan_auth_key", "")
+    headscale_url  = (plan.get("hatchery") or {}).get("headscale_url", "")
+
+    auth_key_line = (
+        f'AUTH_KEY="{auth_key}"' if auth_key
+        else 'AUTH_KEY=""  # populate before running — embed key in spawn-manifest.json'
+    )
+    server_line = (
+        f'HEADSCALE_URL="{headscale_url}"' if headscale_url
+        else 'HEADSCALE_URL=""  # populate with your Headscale server URL'
+    )
+
+    return (
+        _plan_header(plan, "tailscale-join.sh — WAN mode: Headscale / Tailscale join") +
+        f'# WAN mode only: joins the broodling to the Headscale control plane so\n'
+        f'# the hatchery can reach it over the internet.\n\n'
+        f'{auth_key_line}\n'
+        f'{server_line}\n\n'
+        f'is_done "tailscale-join" && checkpoint_skip "tailscale-join" || {{\n'
+        f'  checkpoint_start "tailscale-join"\n\n'
+        f'  # Install tailscale if not present\n'
+        f'  if ! command -v tailscale &>/dev/null; then\n'
+        f'    echo "[tailscale] Installing tailscale..."\n'
+        f'    curl -fsSL https://tailscale.com/install.sh | sh\n'
+        f'  fi\n\n'
+        f'  if [ -z "$AUTH_KEY" ]; then\n'
+        f'    echo "[tailscale] ERROR: AUTH_KEY is empty — embed a Headscale auth key in the spawn package"\n'
+        f'    exit 1\n'
+        f'  fi\n\n'
+        f'  if [ -z "$HEADSCALE_URL" ]; then\n'
+        f'    echo "[tailscale] ERROR: HEADSCALE_URL is empty — set it to your Headscale server URL"\n'
+        f'    exit 1\n'
+        f'  fi\n\n'
+        f'  echo "[tailscale] Joining Headscale at $HEADSCALE_URL"\n'
+        f'  tailscale up \\\n'
+        f'    --login-server "$HEADSCALE_URL" \\\n'
+        f'    --authkey "$AUTH_KEY" \\\n'
+        f'    --hostname "$(hostname -s)" \\\n'
+        f'    --accept-routes\n\n'
+        f'  # Verify connectivity\n'
+        f'  tailscale status | grep -q "$(hostname -s)" \\\n'
+        f'    || {{ echo "[tailscale] ERROR: node not visible in tailnet after join"; exit 1; }}\n\n'
+        f'  checkpoint_done "tailscale-join"\n'
+        f'}}\n\n'
+        f'echo "[tailscale] Broodling joined tailnet — WAN connectivity established"\n'
+    )
+
+
+# ---------------------------------------------------------------------------
 # phase-05-ha.sh — conditional HA promotion (3rd server node only)
 # ---------------------------------------------------------------------------
 
@@ -478,6 +539,8 @@ def write_all_scripts(
         "phase-04-k3s.sh":         generate_phase_04_k3s(plan),
         "phase-06-verify.sh":      generate_phase_06_verify(plan),
     }
+    if include_wan_phase:
+        scripts["tailscale-join.sh"] = generate_tailscale_join_sh(plan)
     if include_ha:
         scripts["phase-05-ha.sh"] = generate_phase_05_ha(plan)
 
