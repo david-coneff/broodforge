@@ -273,7 +273,7 @@ class _ReceiverHandler(BaseHTTPRequestHandler):
             with open(state_path, "w") as f:
                 json.dump(updated_state, f, indent=2)
 
-            hostname = spawn_plan_raw.get("target_hostname", "unknown")
+            hostname = spawn_plan_raw.get("hostname", "unknown")
             print(f"[receiver] Spawn complete: bootstrap-state.json updated for {hostname}",
                   flush=True)
 

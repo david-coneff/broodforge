@@ -287,23 +287,35 @@ def build_spawn_manifest_html(
     cell_id = manifest.get("cell_id") or "unknown-cell"
     plan    = plan or {}
 
-    hostname     = plan.get("target_hostname") or manifest.get("target_hostname") or "unknown"
-    exec_mode    = plan.get("execution_mode") or "autonomous"
-    network_mode = plan.get("network_mode") or "lan"
-    services     = plan.get("disposition", {}).get("services") or []
-    excluded     = plan.get("disposition", {}).get("excluded") or []
+    # Support both current spawn plan format (hostname, disposition.*)
+    # and legacy test format (target_hostname, top-level execution_mode/network_mode)
+    disposition  = plan.get("disposition") or {}
+    hostname     = plan.get("hostname") or plan.get("target_hostname") or "unknown"
+    exec_mode    = disposition.get("execution_mode") or plan.get("execution_mode") or "autonomous"
+    network_mode = disposition.get("network_mode") or plan.get("network_mode") or "lan"
+    services     = disposition.get("services") or []
+    excluded     = disposition.get("excluded") or []
 
-    # Allocated resources
-    vmid_block   = plan.get("vmid_block") or {}
-    vm_start     = vmid_block.get("start") or ""
-    vm_end       = vmid_block.get("end") or ""
+    # Allocated resources — current plan uses vms[] list; legacy used vmid_block dict
+    vms       = plan.get("vms") or []
+    vmid_list = [str(v.get("vmid", "?")) for v in vms if v.get("vmid")]
+    vmid_str  = ", ".join(vmid_list) if vmid_list else ""
+    if not vmid_str:
+        # Fallback: legacy vmid_block dict format
+        vmid_block = plan.get("vmid_block") or {}
+        if isinstance(vmid_block, dict):
+            vm_start = vmid_block.get("start") or ""
+            vm_end   = vmid_block.get("end") or ""
+            vmid_str = f"{vm_start}–{vm_end}" if vm_start else ""
+        elif isinstance(vmid_block, list):
+            vmid_str = ", ".join(str(v) for v in vmid_block)
     ip_block     = plan.get("ip_block") or []
-    zfs_topo     = plan.get("zfs_topology") or ""
+    zfs_topo     = (plan.get("storage") or {}).get("topology") or plan.get("zfs_topology") or ""
 
-    # k3s
-    k3s_mode     = plan.get("k3s_role") or "worker"
-    k3s_server   = manifest.get("k3s_server_address") or ""
-    prox_addr    = manifest.get("proxmox_join_address") or ""
+    # k3s — current plan uses k3s.role; legacy used top-level k3s_role
+    k3s_mode     = (plan.get("k3s") or {}).get("role") or plan.get("k3s_role") or "worker"
+    k3s_server   = (plan.get("k3s") or {}).get("server_url") or manifest.get("k3s_server_address") or ""
+    prox_addr    = (plan.get("hatchery") or {}).get("proxmox_cluster_address") or manifest.get("proxmox_join_address") or ""
 
     body = ""
 
@@ -315,7 +327,7 @@ def build_spawn_manifest_html(
         ("Target hostname",  hostname),
         ("Execution mode",   exec_mode),
         ("Network mode",     network_mode),
-        ("VMID block",       f"{vm_start}–{vm_end}" if vm_start else "auto-assigned"),
+        ("VMID block",       vmid_str if vmid_str else "auto-assigned"),
         ("ZFS topology",     zfs_topo),
         ("k3s role",         k3s_mode),
         ("Proxmox join",     prox_addr),

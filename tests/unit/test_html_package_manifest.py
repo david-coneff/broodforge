@@ -301,6 +301,54 @@ class TestPhoenixManifestHtml:
 # Architecture pattern: AD-047 integration
 # ===========================================================================
 
+def _current_spawn_plan():
+    """Spawn plan in the format actually produced by spawn_planner.py (current format)."""
+    return {
+        "cell_id": "cell-alpha",
+        "hostname": "pve02",
+        "domain": "home.example.com",
+        "lan_ip": "192.168.1.15",
+        "disposition": {
+            "execution_mode": "autonomous",
+            "network_mode": "lan",
+            "services": ["k3s-worker", "longhorn"],
+            "excluded": [],
+        },
+        "storage": {"pool_name": "rpool", "topology": "mirror", "disk_ids": ["/dev/sda", "/dev/sdb"]},
+        "vms": [
+            {"name": "k3s-worker-01", "vmid": 200, "ip": "192.168.1.50"},
+            {"name": "k3s-worker-02", "vmid": 201, "ip": "192.168.1.51"},
+        ],
+        "k3s": {"role": "worker", "server_url": "https://192.168.1.102:6443"},
+        "k3s_role": "worker",
+        "hatchery": {"proxmox_cluster_address": "192.168.1.10"},
+    }
+
+
+class TestSpawnManifestCurrentPlanFormat:
+    """Verify build_spawn_manifest_html handles the current spawn_planner.py output format."""
+
+    def test_hostname_from_current_plan(self):
+        html = _hpm.build_spawn_manifest_html(_spawn_manifest(), _current_spawn_plan(), now_fn=_now)
+        assert "pve02" in html
+
+    def test_exec_mode_from_disposition(self):
+        html = _hpm.build_spawn_manifest_html(_spawn_manifest(), _current_spawn_plan(), now_fn=_now)
+        assert "autonomous" in html
+
+    def test_vmids_from_vms_list(self):
+        html = _hpm.build_spawn_manifest_html(_spawn_manifest(), _current_spawn_plan(), now_fn=_now)
+        assert "200" in html and "201" in html
+
+    def test_k3s_role_from_nested_k3s(self):
+        html = _hpm.build_spawn_manifest_html(_spawn_manifest(), _current_spawn_plan(), now_fn=_now)
+        assert "worker" in html.lower()
+
+    def test_zfs_topology_from_storage(self):
+        html = _hpm.build_spawn_manifest_html(_spawn_manifest(), _current_spawn_plan(), now_fn=_now)
+        assert "mirror" in html
+
+
 class TestAD047ArchitecturePattern:
 
     def test_forge_package_contents_includes_html_manifest(self):
