@@ -216,6 +216,14 @@ class TestBuildSpawnResult(unittest.TestCase):
         result = build_spawn_result(self._plan())
         self.assertEqual(result.allocated_vmids, [200, 201])
 
+    def test_vmids_derived_from_vms_list_when_no_vmid_block(self):
+        """Current spawn_planner.py doesn't include vmid_block; VMIDs come from vms[]."""
+        plan = self._plan(vmid_block=None)  # Remove vmid_block
+        plan["vms"] = [{"vmid": 200, "name": "vm01"}, {"vmid": 201, "name": "vm02"}]
+        result = build_spawn_result(plan)
+        self.assertIn(200, result.allocated_vmids)
+        self.assertIn(201, result.allocated_vmids)
+
     def test_spawn_timestamp_auto_set(self):
         result = build_spawn_result(self._plan())
         self.assertIsNotNone(result.spawned_at)

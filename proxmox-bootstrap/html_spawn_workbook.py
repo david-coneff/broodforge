@@ -37,7 +37,7 @@ def _section_overview(plan: dict, manifest: dict, hw: dict) -> str:
         ("Cell ID",         manifest.get("cell_id") or plan.get("cell_id") or "?"),
         ("Broodling Host",  plan.get("hostname") or "?"),
         ("Execution Mode",  (plan.get("disposition") or {}).get("execution_mode") or "autonomous"),
-        ("Network Mode",    plan.get("network_mode") or "lan"),
+        ("Network Mode",    (plan.get("disposition") or {}).get("network_mode") or plan.get("network_mode") or "lan"),
         ("Generated",       plan.get("generated_at") or "?"),
     ]
     if hw:

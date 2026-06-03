@@ -171,8 +171,10 @@ def build_spawn_result(
         broodling_fqdn=fqdn,
         broodling_lan_ip=spawn_plan.get("lan_ip"),
         broodling_tailnet_ip=spawn_plan.get("tailnet_ip"),
-        allocated_vmids=spawn_plan.get("vmid_block") or [],
-        allocated_ips=spawn_plan.get("ip_block") or [],
+        allocated_vmids=(spawn_plan.get("vmid_block")
+                         or [v.get("vmid") for v in (spawn_plan.get("vms") or []) if v.get("vmid")]),
+        allocated_ips=(spawn_plan.get("ip_block")
+                       or [v.get("ip") for v in (spawn_plan.get("vms") or []) if v.get("ip")]),
         disposition_services=disposition.get("services") or [],
         disposition_excluded=disposition.get("excluded") or [],
         execution_mode=disposition.get("execution_mode", "autonomous"),
