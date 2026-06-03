@@ -408,6 +408,13 @@ _HANDLERS: Dict[str, Callable] = {
     "flag-manual":              _exec_flag_manual,
 }
 
+# Fail fast at import time if ALLOWED_ACTION_TYPES and _HANDLERS diverge
+assert set(ALLOWED_ACTION_TYPES) == set(_HANDLERS.keys()), (
+    f"Handler/action-type mismatch — "
+    f"no handler for: {set(ALLOWED_ACTION_TYPES) - set(_HANDLERS.keys())}; "
+    f"unregistered in ALLOWED_ACTION_TYPES: {set(_HANDLERS.keys()) - set(ALLOWED_ACTION_TYPES)}"
+)
+
 
 # ---------------------------------------------------------------------------
 # Main executor

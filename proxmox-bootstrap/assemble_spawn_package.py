@@ -123,7 +123,9 @@ keepass_unlock_gate() {
   keepass_find_db || { echo "[kdbx] Cannot locate database — aborting"; exit 1; }
   read -rsp "[kdbx] Master password: " KDBX_MASTER_PASSWORD
   echo ""
-  export KDBX_PATH KDBX_MASTER_PASSWORD
+  # Export only the database path; keep the password as a shell-local variable
+  # so child processes do not inherit it via their environment
+  export KDBX_PATH
   KDBX_UNLOCKED=1
   echo "[kdbx] Database unlocked. Secrets broker active."
   echo ""

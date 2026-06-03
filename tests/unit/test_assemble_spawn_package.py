@@ -209,8 +209,10 @@ class TestKeePassGateContent(unittest.TestCase):
     def test_keepassxc_cli_used(self):
         self.assertIn("keepassxc-cli", KEEPASS_GATE_SH)
 
-    def test_export_credentials(self):
-        self.assertIn("export KDBX_PATH KDBX_MASTER_PASSWORD", KEEPASS_GATE_SH)
+    def test_export_path_only(self):
+        # Password must NOT be exported so child processes cannot inherit it (S-01)
+        self.assertIn("export KDBX_PATH", KEEPASS_GATE_SH)
+        self.assertNotIn("export KDBX_PATH KDBX_MASTER_PASSWORD", KEEPASS_GATE_SH)
 
     def test_no_secret_echoed_to_stdout(self):
         # Master password read must use -s (silent) flag

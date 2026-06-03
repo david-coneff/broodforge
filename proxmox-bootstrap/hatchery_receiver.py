@@ -19,6 +19,7 @@ Stdlib only.
 import json
 import os
 import secrets
+import sys
 import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -27,6 +28,14 @@ from pathlib import Path
 from typing import Optional
 
 from failure_package_analyzer import analyze_failure_package, FailureDiagnosis
+
+# Ensure co-located modules are importable when invoked from a different cwd
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+try:
+    from update_state_after_spawn import update_state_after_spawn, build_spawn_result
+    _HAS_STATE_UPDATER = True
+except ImportError:
+    _HAS_STATE_UPDATER = False
 
 
 # ---------------------------------------------------------------------------
@@ -213,8 +222,9 @@ class _ReceiverHandler(BaseHTTPRequestHandler):
             self.send_header("Content-Length", str(len(response)))
             self.end_headers()
             self.wfile.write(response)
-        except Exception as e:
-            self.send_error(500, str(e))
+        except Exception as exc:
+            print(f"[receiver] ERROR storing failure package: {exc}", file=sys.stderr)
+            self.send_error(500, "Internal server error")
 
     def _handle_spawn_complete(self) -> None:
         """
@@ -256,13 +266,6 @@ class _ReceiverHandler(BaseHTTPRequestHandler):
             return
 
         try:
-            import sys as _sys
-            _sys.path.insert(0, os.path.dirname(__file__))
-            from update_state_after_spawn import (
-                update_state_after_spawn,
-                build_spawn_result,
-            )
-
             spawn_plan_raw = body.get("spawn_plan") or {}
             hardware_profile = body.get("hardware_profile") or {}
 
@@ -295,15 +298,14 @@ class _ReceiverHandler(BaseHTTPRequestHandler):
 
         except Exception as exc:
             import traceback as _tb
-            print(f"[receiver] ERROR processing spawn-complete: {exc}", flush=True)
-            _tb.print_exc()
-            self.send_error(500, str(exc))
+            print(f"[receiver] ERROR processing spawn-complete: {exc}", file=sys.stderr, flush=True)
+            _tb.print_exc(file=sys.stderr)
+            self.send_error(500, "Internal server error")
 
     def log_message(self, fmt: str, *args: object) -> None:
         if self._config.verbose:
-            import sys as _sys
             ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
-            print(f"[receiver] {ts} {fmt % args}", file=_sys.stderr)
+            print(f"[receiver] {ts} {fmt % args}", file=sys.stderr)
 
 
 def run_receiver_server(config: HatcheryReceiverConfig) -> None:
@@ -323,6 +325,16 @@ def run_receiver_server(config: HatcheryReceiverConfig) -> None:
         f"— packages stored in {config.storage_dir}"
     )
 
+    # No-token warning: all POST requests are accepted without authentication
+    if not config.auth_token:
+        print(
+            "\n"
+            "[receiver] WARNING: No auth token configured (--token not set).\n"
+            "[receiver] WARNING: All POST requests will be accepted without authentication.\n"
+            "[receiver] WARNING: Set --token for production use.\n",
+            file=sys.stderr,
+        )
+
     # WAN exposure warning: if binding 0.0.0.0 and bootstrap-state indicates wan profile
     if config.listen_host == "0.0.0.0":
         _state_candidates = [
@@ -333,7 +345,6 @@ def run_receiver_server(config: HatcheryReceiverConfig) -> None:
         for _p in _state_candidates:
             if os.path.exists(_p):
                 try:
-                    import sys as _sys
                     with open(_p) as _f:
                         _s = json.load(_f)
                     _profile = (_s.get("network_topology") or {}).get("profile")
@@ -341,13 +352,12 @@ def run_receiver_server(config: HatcheryReceiverConfig) -> None:
                     pass
                 break
         if _profile == "wan":
-            import sys as _sys
             print(
                 "\n"
                 "[receiver] WARNING: Receiver is listening on 0.0.0.0 with network_profile=wan.\n"
                 "[receiver] WARNING: This exposes the failure package endpoint to the WAN.\n"
                 "[receiver] WARNING: Set a strong auth_token (--token) or restrict listen_host.\n",
-                file=_sys.stderr,
+                file=sys.stderr,
             )
 
     try:

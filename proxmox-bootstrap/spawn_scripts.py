@@ -22,6 +22,7 @@ All generators return strings. write_all_scripts() writes to disk.
 Stdlib only.
 """
 
+import shlex
 from pathlib import Path
 from typing import Optional
 
@@ -59,7 +60,7 @@ def _plan_header(plan: dict, script_name: str) -> str:
 def generate_spawn_sh(plan: dict, include_wan_phase: bool = False) -> str:
     hostname   = plan.get("hostname", "unknown")
     vms        = plan.get("vms") or []
-    k3s_role   = plan.get("k3s_role", "worker")
+    k3s_role   = (plan.get("k3s") or {}).get("role", "worker")
     exec_mode  = plan.get("disposition", {}).get("execution_mode", "autonomous")
     has_ha     = k3s_role == "server" and len(vms) > 0
 
@@ -194,38 +195,48 @@ def generate_phase_00_host(plan: dict) -> str:
     disk_ids = storage.get("disk_ids") or []
     bridge   = network.get("bridge", "vmbr0")
     domain   = plan.get("domain", "internal")
-    disks_str = " ".join(disk_ids)
+    disks_str = " ".join(shlex.quote(d) for d in disk_ids)
     ds_name  = storage.get("datastore_name", f"local-{pool}")
+
+    # Shell-quote plan values before embedding them in generated bash
+    h   = shlex.quote(hostname)
+    l   = shlex.quote(lan_ip)
+    dom = shlex.quote(domain)
+    br  = shlex.quote(bridge)
+    p   = shlex.quote(pool)
+    topo = shlex.quote(topology)
+    ds  = shlex.quote(ds_name)
+    hosts_entry = shlex.quote(f"{lan_ip}  {hostname}.{domain} {hostname}")
 
     return (
         _plan_header(plan, "phase-00-host.sh — host configuration") +
         f'# ── Hostname ────────────────────────────────────────────────────\n'
         f'is_done "hostname" && checkpoint_skip "hostname" || {{\n'
         f'  checkpoint_start "hostname"\n'
-        f'  hostnamectl set-hostname {hostname}\n'
+        f'  hostnamectl set-hostname {h}\n'
         f'  # Fix /etc/hosts (pvecm add fails if hostname resolves to 127.0.0.1)\n'
         f'  sed -i "/127.0.1.1/d" /etc/hosts\n'
-        f'  echo "{lan_ip}  {hostname}.{domain} {hostname}" >> /etc/hosts\n'
+        f'  echo {hosts_entry} >> /etc/hosts\n'
         f'  checkpoint_done "hostname"\n'
         f'}}\n\n'
         f'# ── Network bridge ──────────────────────────────────────────────\n'
         f'is_done "bridge" && checkpoint_skip "bridge" || {{\n'
         f'  checkpoint_start "bridge"\n'
         f'  # Write bridge config from spawn plan to /etc/network/interfaces\n'
-        f'  cat "$SCRIPT_DIR/network/interfaces.d/{bridge}" >> /etc/network/interfaces.d/{bridge}\n'
+        f'  cat "$SCRIPT_DIR/network/interfaces.d/{br}" >> /etc/network/interfaces.d/{br}\n'
         f'  ifreload -a\n'
         f'  checkpoint_done "bridge"\n'
         f'}}\n\n'
         f'# ── ZFS pool ────────────────────────────────────────────────────\n'
         f'is_done "zpool" && checkpoint_skip "zpool" || {{\n'
         f'  checkpoint_start "zpool"\n'
-        f'  zpool create {pool} {topology} {disks_str}\n'
+        f'  zpool create {p} {topo} {disks_str}\n'
         f'  checkpoint_done "zpool"\n'
         f'}}\n\n'
         f'# ── Register datastore with Proxmox ─────────────────────────────\n'
         f'is_done "pvesm" && checkpoint_skip "pvesm" || {{\n'
         f'  checkpoint_start "pvesm"\n'
-        f'  pvesm add zfspool {ds_name} --pool {pool} --sparse 1\n'
+        f'  pvesm add zfspool {ds} --pool {p} --sparse 1\n'
         f'  checkpoint_done "pvesm"\n'
         f'}}\n\n'
         f'# ── apt repos ───────────────────────────────────────────────────\n'
@@ -296,7 +307,7 @@ def generate_phase_02_vms(plan: dict) -> str:
 # ---------------------------------------------------------------------------
 
 def generate_phase_03_cloudinit(plan: dict) -> str:
-    snippets_store = (plan.get("storage") or {}).get("snippets", "local:snippets")
+    snippets_store = shlex.quote((plan.get("storage") or {}).get("snippets", "local:snippets"))
     vms = plan.get("vms") or []
     vm_waits = "\n".join(
         f'wait_ssh "{v.get("ip","")}" "{v.get("name","vm")}"'
@@ -346,7 +357,7 @@ def generate_phase_03_cloudinit(plan: dict) -> str:
 # ---------------------------------------------------------------------------
 
 def generate_phase_04_k3s(plan: dict) -> str:
-    k3s_role = plan.get("k3s_role", "worker")
+    k3s_role = (plan.get("k3s") or {}).get("role", "worker")
     return (
         _plan_header(plan, f"phase-04-k3s.sh — k3s {k3s_role} join via Ansible") +
         f'is_done "k3s-join" && checkpoint_skip "k3s-join" || {{\n'
@@ -427,6 +438,7 @@ def generate_tailscale_join_sh(plan: dict) -> str:
 
 def generate_phase_05_ha(plan: dict) -> str:
     server_url = (plan.get("k3s") or {}).get("server_url", "")
+    server_host = shlex.quote(server_url.replace("https://", "").split(":")[0])
     return (
         _plan_header(plan, "phase-05-ha.sh — SQLite → etcd HA promotion (3rd server)") +
         f'# This phase only runs when this is the 3rd k3s server node.\n'
@@ -437,7 +449,7 @@ def generate_phase_05_ha(plan: dict) -> str:
         f'  # This procedure quiesces the existing cluster, promotes etcd,\n'
         f'  # and distributes the control plane across all 3 server nodes.\n'
         f'  # Run against the hatchery k3s server:\n'
-        f'  ssh ubuntu@{server_url.replace("https://","").split(":")[0]} \\\n'
+        f'  ssh ubuntu@{server_host} \\\n'
         f'    "sudo k3s etcd-snapshot save && sudo systemctl restart k3s"\n'
         f'  checkpoint_done "ha-promote"\n'
         f'}}\n\n'

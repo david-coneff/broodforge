@@ -499,7 +499,12 @@ After each successful spawn, `bootstrap-state.json` records:
       "disposition_services": ["k3s-worker", "longhorn"],
       "disposition_excluded": [{"service": "pbs-datastore", "reason": "..."}],
       "k3s_role": "worker",
-      "spawned_at": "2026-06-01T13:45:00+00:00"
+      "spawned_at": "2026-06-01T13:45:00+00:00",
+      "vmids_allocated": [200, 201],
+      "ips_allocated": ["192.168.1.15", "192.168.1.50", "192.168.1.51"],
+      "broodling_lan_ip": "192.168.1.15",
+      "broodling_tailnet_ip": "100.64.0.5",
+      "hardware_profile": {"cpu_cores": 8, "ram_gb": 32, "disk_count": 2}
     }
   ]
 }

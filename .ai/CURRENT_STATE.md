@@ -1,6 +1,6 @@
 # Current State
 
-Last updated: 2026-06-03 UTC (audit round 13 — cycles 1–5: tailscale-join.sh, shell quoting, schema, security)
+Last updated: 2026-06-03 UTC (audit round 14: security hardening, HTML escaping, quoting, handler parity)
 
 ## Active Architecture: v7.1
 
@@ -14,18 +14,23 @@ Digital Twin + Federation, and Autonomous Operations (Phase 26 — all sub-phase
 
 ## Next Action
 
-**All audit findings resolved through round 13 cycle 5** (2026-06-03).
-Audit rounds 3–13 complete. Round 13 fixes (5 cycles):
-- I1: generate_tailscale_join_sh() added to spawn_scripts.py; WAN packages now include tailscale-join.sh
-- S1: shlex.quote() in remediation_executor._exec_restart_service() SSH commands
-- D1: readiness.py overall_reason no longer says "DNS registry missing" for non-DNS YELLOW gaps
-- I2: spawn_history added to bootstrap-state-schema.json
-- D2: WAN scenario test used wrong field name headscale_auth_key→wan_auth_key
-- D3: NODE-SPAWNING.md package listing now shows [tailscale-join.sh] for WAN mode
-- S2/S3: negative Content-Length rejected in hatchery_receiver and dashboard
-- B1: PBS last-run-endtime Unix epoch converted to ISO string in continuous_assessment
-- S4: broodforge_dashboard HTML-escapes node/failure/remediation fields via _e()
-Tests: 3791 passed, 37 skipped.
+**All audit findings resolved through round 14** (2026-06-03).
+Audit rounds 3–14 complete. Round 14 fixes:
+- S-01: spawn KEEPASS_GATE_SH no longer exports KDBX_MASTER_PASSWORD; path only
+- S-02: hatchery_receiver warns to stderr at startup when no auth token configured
+- S-03: _remediation_history_row() escapes action_type/target/outcome via _e()
+- S-04: backup provider/path escaped via _e() in dashboard
+- S-05: _score_badge() escapes abbr and level via _e()
+- S-06: hatchery_receiver 500 errors return generic message; full exception logged to stderr
+- S-07: spawn_scripts.py uses shlex.quote() for lan_ip/hostname/domain/bridge/pool/ds_name/snippets_store/server_url
+- D-01: NODE-SPAWNING.md spawn_history schema now includes all 5 previously missing fields
+- I-01: sync-cert-to-k8s.sh stub created (registered action type now has a real script)
+- I-02: spawn_scripts.py unified to use k3s.role nested path (was k3s_role top-level)
+- A-01: sys.path.insert moved to module level in broodforge_dashboard.py and hatchery_receiver.py
+- A-03: assert set(ALLOWED_ACTION_TYPES)==set(_HANDLERS.keys()) added at module load
+- A-04: confusing `and` idiom replaced with explicit if in continuous_assessment.py
+- A-05: html_base.py sync comment strengthened; test_html_base_sync.py added
+Tests: 3957 passed, 37 skipped.
 
 All roadmap items complete. Next: **Deploy to hardware** — run `python3 proxmox-bootstrap/forge-planner.py`
 on a Proxmox host to forge the first cell. See FORGING.md for operator runbook.

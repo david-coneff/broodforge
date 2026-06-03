@@ -44,9 +44,17 @@ class TestSpawnSh(unittest.TestCase):
     def test_phase_06_referenced(self): self.assertIn("phase-06-verify", self.s)
     def test_no_ha_phase_for_worker(self): self.assertNotIn("phase-05-ha", self.s)
     def test_ha_phase_included_for_server(self):
-        plan = {**PLAN, "k3s_role": "server"}
+        plan = {**PLAN, "k3s": {**PLAN["k3s"], "role": "server"}}
         s = generate_spawn_sh(plan)
         self.assertIn("phase-05-ha", s)
+    def test_k3s_role_reads_nested_path(self):
+        """k3s.role (nested) is the authoritative source for the k3s role."""
+        plan_nested = {**PLAN, "k3s": {**PLAN["k3s"], "role": "server"}}
+        s = generate_spawn_sh(plan_nested)
+        self.assertIn("phase-05-ha", s)
+        plan_worker = {**PLAN, "k3s": {**PLAN["k3s"], "role": "worker"}}
+        s_worker = generate_spawn_sh(plan_worker)
+        self.assertNotIn("phase-05-ha", s_worker)
     def test_wan_phase_optional(self):
         s_wan = generate_spawn_sh(PLAN, include_wan_phase=True)
         self.assertIn("tailscale", s_wan.lower())

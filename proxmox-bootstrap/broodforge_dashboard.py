@@ -47,6 +47,18 @@ from pathlib import Path
 from typing import Optional
 from urllib.parse import urlparse
 
+# Ensure co-located modules are importable when invoked from a different cwd
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+try:
+    from remediation_queue import (
+        load_queue, save_queue,
+        approve_proposal, reject_proposal, batch_approve,
+    )
+    _HAS_REMEDIATION_QUEUE = True
+except ImportError:
+    _HAS_REMEDIATION_QUEUE = False
+
+
 def _e(text: object) -> str:
     """HTML-escape a value from bootstrap-state or external data."""
     return _html.escape(str(text) if text is not None else "")
@@ -301,8 +313,8 @@ def _score_badge(abbr: str, level: str) -> str:
     label  = _SCORE_LABELS.get(abbr, abbr)
     return (
         f'<div class="score-card" style="background:{bg};border-color:{fg}">'
-        f'<div class="score-abbr" style="color:{fg}">{abbr}</div>'
-        f'<div class="score-level" style="color:{fg}">{level}</div>'
+        f'<div class="score-abbr" style="color:{fg}">{_e(abbr)}</div>'
+        f'<div class="score-level" style="color:{fg}">{_e(level)}</div>'
         f'<div class="score-name">{label}</div>'
         f'</div>'
     )
@@ -401,14 +413,14 @@ def _remediation_history_row(p: dict) -> str:
     sev_c  = {"RED": "var(--red)", "ORANGE": "var(--orange)", "YELLOW": "var(--yellow)"}.get(sev, "var(--muted)")
     sc     = {"resolved": "var(--green)", "rejected": "var(--muted)", "failed": "var(--red)"}.get(status, "var(--muted)")
     ts     = (p.get("resolved_at") or p.get("proposed_at") or "")[:16]
-    outcome= (p.get("outcome") or "")[:80]
+    outcome= _e((p.get("outcome") or "")[:80])
     resisted = "⚠ resisted" if p.get("resisted") else ""
     return f"""
 <tr>
   <td><span style="color:{sc}">{status}</span></td>
   <td><span style="color:{sev_c}">{sev}</span></td>
-  <td>{p.get("action_type","")}</td>
-  <td><code>{p.get("target","")}</code></td>
+  <td>{_e(p.get("action_type",""))}</td>
+  <td><code>{_e(p.get("target",""))}</code></td>
   <td style="font-size:.82em;color:var(--muted)">{ts}</td>
   <td style="font-size:.82em">{outcome} <span style="color:var(--orange)">{resisted}</span></td>
 </tr>"""
@@ -622,7 +634,7 @@ def generate_dashboard_html(
       <div class="stat"><div class="stat-val" style="font-size:.9em;color:var(--muted)">{str(bkp_last)[:16] if bkp_last != "Never" else "Never"}</div><div class="stat-label">Last run at</div></div>
     </div>
     {'<div class="tip">No backup destinations configured. Run <code>python3 proxmox-bootstrap/setup-backup.py</code> to configure.</div>' if not bkp_dests else ''}
-    {''.join(f'<div style="margin:3px 0;font-size:.85em"><span style="color:var(--muted)">{i+1}.</span> <code>{d.get("provider","?")}</code> · {d.get("bucket") or d.get("path","")}</div>' for i, d in enumerate(bkp_dests))}
+    {''.join(f'<div style="margin:3px 0;font-size:.85em"><span style="color:var(--muted)">{i+1}.</span> <code>{_e(d.get("provider","?"))}</code> · {_e(d.get("bucket") or d.get("path",""))}</div>' for i, d in enumerate(bkp_dests))}
   </div>
 
   <!-- ── Security ── -->
@@ -812,17 +824,13 @@ class _DashboardHandler(http.server.BaseHTTPRequestHandler):
         body  = self._read_post_body()
         state = _read_bootstrap_state(self._cfg)
         try:
-            import sys as _sys
-            _sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-            from remediation_queue import load_queue, save_queue, approve_proposal
             queue = load_queue(state)
             ok    = approve_proposal(queue, pid, "dashboard", "dashboard",
                                      note=body.get("note"))
             if ok:
-                import json as _json
                 updated = save_queue(queue, state)
                 with open(self._cfg.state_path, "w") as f:
-                    _json.dump(updated, f, indent=2)
+                    json.dump(updated, f, indent=2)
                 self._serve_json({"approved": pid})
             else:
                 self.send_error(HTTPStatus.CONFLICT, "Cannot approve proposal in current state")
@@ -834,17 +842,13 @@ class _DashboardHandler(http.server.BaseHTTPRequestHandler):
         body  = self._read_post_body()
         state = _read_bootstrap_state(self._cfg)
         try:
-            import sys as _sys
-            _sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-            from remediation_queue import load_queue, save_queue, reject_proposal
             queue = load_queue(state)
             ok    = reject_proposal(queue, pid, reason=body.get("reason", "rejected via dashboard"),
                                     rejected_by="dashboard")
             if ok:
-                import json as _json
                 updated = save_queue(queue, state)
                 with open(self._cfg.state_path, "w") as f:
-                    _json.dump(updated, f, indent=2)
+                    json.dump(updated, f, indent=2)
                 self._serve_json({"rejected": pid})
             else:
                 self.send_error(HTTPStatus.CONFLICT, "Cannot reject proposal in current state")
@@ -856,15 +860,11 @@ class _DashboardHandler(http.server.BaseHTTPRequestHandler):
         severity = body.get("max_severity", "YELLOW").upper()
         state    = _read_bootstrap_state(self._cfg)
         try:
-            import sys as _sys
-            _sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-            from remediation_queue import load_queue, save_queue, batch_approve
             queue   = load_queue(state)
             count   = batch_approve(queue, severity, "dashboard", "dashboard")
-            import json as _json
             updated = save_queue(queue, state)
             with open(self._cfg.state_path, "w") as f:
-                _json.dump(updated, f, indent=2)
+                json.dump(updated, f, indent=2)
             self._serve_json({"approved": count, "max_severity": severity})
         except Exception as e:
             self.send_error(HTTPStatus.INTERNAL_SERVER_ERROR, str(e))

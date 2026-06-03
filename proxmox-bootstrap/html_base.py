@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-# COPY of doc-gen/renderers/html_base.py — keep in sync when editing either file.
+# SYNC REQUIRED: This file is a copy of doc-gen/renderers/html_base.py.
+# ALWAYS edit BOTH files together. Run tests/unit/test_html_base_sync.py to
+# verify they are identical (comment lines excluded). CI will catch drift.
 """
 html_base.py — Shared HTML rendering infrastructure for broodforge documents.
 

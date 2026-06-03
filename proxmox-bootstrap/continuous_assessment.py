@@ -431,7 +431,11 @@ def collect_pbs_state_update(
     for job in (pbs_api_response.get("data") or []):
         job_id = job.get("id") or job.get("job-id") or "unknown"
         # PBS API returns last-run-endtime as a Unix epoch integer; convert to ISO string
-        _endtime = job.get("last-run-upid") and job.get("last-run-endtime")
+        # Only use last-run-endtime if last-run-upid is present (job actually ran)
+        if job.get("last-run-upid"):
+            _endtime = job.get("last-run-endtime")
+        else:
+            _endtime = None
         if isinstance(_endtime, (int, float)) and _endtime:
             _last_run_at: Optional[str] = datetime.fromtimestamp(
                 _endtime, tz=timezone.utc

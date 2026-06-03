@@ -4,6 +4,48 @@ Last updated: 2026-06-03 UTC
 
 ## What Was Done This Session (current)
 
+### Audit round 14 (completed)
+
+All 14 findings fixed in a single pass:
+
+- **S-01**: `assemble_spawn_package.py` KEEPASS_GATE_SH `export KDBX_PATH KDBX_MASTER_PASSWORD`
+  → `export KDBX_PATH` only. Password stays shell-local. Matches forge/phoenix gate pattern.
+  Test `test_export_path_only` replaces old `test_export_credentials`.
+- **S-02**: `hatchery_receiver.run_receiver_server()` now prints a stderr warning at startup
+  when `config.auth_token` is empty (all POST requests accepted without auth).
+- **S-03**: `broodforge_dashboard._remediation_history_row()`: applied `_e()` to
+  `action_type`, `target`, `outcome`.
+- **S-04**: backup provider/path list in dashboard now uses `_e()` on provider and
+  bucket/path values.
+- **S-05**: `_score_badge()` now applies `_e()` to `abbr` and `level`.
+- **S-06**: `hatchery_receiver` HTTP 500 errors return generic "Internal server error";
+  full exception logged to stderr. Fixed in both `_handle_failure_package` and
+  `_handle_spawn_complete`.
+- **S-07**: `spawn_scripts.py` now imports `shlex` and applies `shlex.quote()` to all
+  plan values embedded in generated bash: `hostname`, `lan_ip`, `domain`, `bridge`,
+  `pool`, `ds_name`, `snippets_store`, `server_url`.
+- **D-01**: `NODE-SPAWNING.md` spawn_history schema example now includes all 5 missing
+  fields: `vmids_allocated`, `ips_allocated`, `broodling_lan_ip`, `broodling_tailnet_ip`,
+  `hardware_profile`.
+- **I-01**: `proxmox-bootstrap/sync-cert-to-k8s.sh` stub created — exits 0 with a
+  "not yet implemented" message. Registered action type now has a real script.
+- **I-02**: `spawn_scripts.py` `generate_spawn_sh()` and `generate_phase_04_k3s()` both
+  now use `(plan.get("k3s") or {}).get("role", "worker")`. `assemble_spawn_package.py`
+  already used nested path. Added `test_k3s_role_reads_nested_path` test.
+- **A-01**: `broodforge_dashboard.py` and `hatchery_receiver.py` — `sys.path.insert` and
+  `from remediation_queue / update_state_after_spawn import` moved to module level with
+  try/except. In-handler lazy imports removed.
+- **A-03**: `remediation_executor.py` — assertion at module load time verifies
+  `set(ALLOWED_ACTION_TYPES) == set(_HANDLERS.keys())`. Fails fast on divergence.
+- **A-04**: `continuous_assessment.py:434` — `_endtime = job.get("last-run-upid") and ...`
+  replaced with explicit `if job.get("last-run-upid"): _endtime = ...`.
+- **A-05**: `proxmox-bootstrap/html_base.py` sync comment strengthened. New test
+  `tests/unit/test_html_base_sync.py` asserts both copies are identical (comments excluded).
+
+**Tests: 3957 passed, 37 skipped** (+166 vs round 13).
+
+---
+
 ### Audit round 13 — Cycles 1–5 (completed)
 
 **Cycle 1 — Missing tailscale-join.sh + shell injection + YELLOW reason:**
