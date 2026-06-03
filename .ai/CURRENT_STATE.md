@@ -1,6 +1,6 @@
 # Current State
 
-Last updated: 2026-06-03 UTC (audit round 11 — cycles 1–5: spawn workflow, FORGING.md stale refs, WAN mode)
+Last updated: 2026-06-03 UTC (audit round 12 — cycles 1–3: spawn field name bugs, html manifest, hatchery)
 
 ## Active Architecture: v7.1
 
@@ -14,12 +14,11 @@ Digital Twin + Federation, and Autonomous Operations (Phase 26 — all sub-phase
 
 ## Next Action
 
-**All audit findings resolved through round 11 cycle 5** (2026-06-03).
-Audit rounds 3–11 complete. Latest fixes: spawn package self-assembly (internal script
-generation, no pre-generated artifacts required), WAN mode spawn scripts, FORGING.md
-stale CLI refs (forge-pack.sh → assemble-forge-package.py), NODE-SPAWNING.md wrong
-flags, update_state_after_spawn.py CLI, bootstrap-state→spawn-manifest conversion.
-AD-056 added. Tests: 3925 passed, 37 skipped.
+**All audit findings resolved through round 12 cycle 3** (2026-06-03).
+Audit rounds 3–12 complete. Latest fixes: spawn field name bugs across html_package_manifest,
+html_spawn_workbook, update_state_after_spawn (vmid_block→vms[], network_mode→disposition.*,
+target_hostname→hostname); spawn manifest detection schema_version fix; hatchery receiver
+hostname log fix. AD-056 added. Tests: 3932 passed, 37 skipped.
 
 All roadmap items complete. Next: **Deploy to hardware** — run `python3 proxmox-bootstrap/forge-planner.py`
 on a Proxmox host to forge the first cell. See FORGING.md for operator runbook.

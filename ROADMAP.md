@@ -1,7 +1,7 @@
 # Broodforge — Roadmap
 
 Version: 7.1
-Last updated: 2026-06-03 (audit round 11: spawn workflow, FORGING.md stale refs, WAN mode)
+Last updated: 2026-06-03 (audit round 12: spawn field name bugs, html manifest, hatchery receiver)
 Architecture: v7.1 (see ARCHITECTURE.md and docs/ARCHITECTURE-REVIEW-v7.md)
 
 ---
@@ -155,6 +155,15 @@ Architecture: v7.1 (see ARCHITECTURE.md and docs/ARCHITECTURE-REVIEW-v7.md)
       Cycle 4 — S1: WAN mode spawn scripts missing (include_wan_phase not passed).
       Cycle 5 — AD-056 added to ARCHITECTURE.md; docs synced.
       Tests: 3925 passed, 37 skipped (+16 new tests).
+- [x] **Full-stack audit findings (round 12)** — 7 fixes (Cycles 1–3):
+      Cycle 1 — schema_version check bug in assemble-spawn-package.py CLI fixed;
+          phase-06-verify.sh error fallback message improved.
+      Cycle 2 — hatchery_receiver target_hostname→hostname; html_package_manifest stale
+          field names fixed (target_hostname→hostname, vmid_block dict→vms[] list,
+          top-level execution_mode/network_mode→disposition.*).
+      Cycle 3 — html_spawn_workbook network_mode from disposition; update_state_after_spawn
+          vmid_block fallback to vms[].vmid (spawn history was empty).
+      Tests: 3932 passed, 37 skipped (+7 new tests).
 - [x] **Full-stack audit findings (round 3)** — all MEDIUM and LOW items resolved:
       S1: secrets.compare_digest in hatchery_receiver; I1: security scan wired into operational;
       I2: 9.T migration tier (above); S2: no-token startup warning in dashboard;

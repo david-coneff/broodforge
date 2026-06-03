@@ -54,6 +54,38 @@ Last updated: 2026-06-03 UTC
 
 ---
 
+### Audit round 12 — Cycles 1–3 (completed)
+
+**Cycle 1 — spawn manifest detection + fallback message:**
+- B1: `assemble-spawn-package.py` used `schema_version` to distinguish bootstrap-state
+  from spawn-manifest but both use `"1.0"`. Fixed: use `"host_identity"` presence
+  (bootstrap-state) vs `"hatchery_url"` at top level (spawn-manifest).
+  Added `test_cli_uses_pregenerated_spawn_manifest_as_is`.
+- D1: `phase-06-verify.sh` error fallback message improved to include `--state/--plan`
+  arguments in the manual update command hint.
+- **Tests: 3926 passed, 37 skipped** (+1)
+
+**Cycle 2 — html_package_manifest + hatchery hostname:**
+- B1: `hatchery_receiver.py:276` read `target_hostname` from spawn plan; spawn plans
+  use `hostname`. Log always printed "unknown". Fixed.
+- B2: `html_package_manifest.build_spawn_manifest_html()` used stale field names
+  (`target_hostname`, `vmid_block.start/end`, top-level `execution_mode/network_mode`)
+  from an old spawn plan format. Current format uses `hostname`, `disposition.execution_mode`,
+  `vms[].vmid`, `k3s.role`, `storage.topology`. Fixed with fallback for legacy tests.
+  Added `TestSpawnManifestCurrentPlanFormat` (5 tests).
+- **Tests: 3931 passed, 37 skipped** (+5)
+
+**Cycle 3 — spawn workbook + state updater field names:**
+- B1: `html_spawn_workbook.py` read `network_mode` at plan top level; should be
+  `disposition.network_mode`. Fixed with fallback.
+- B2: `update_state_after_spawn.build_spawn_result()` read `vmid_block`/`ip_block`
+  which spawn_planner.py doesn't set (VMIDs are in `vms[].vmid`). `spawn_history[].vmids_allocated`
+  was always empty. Fixed: derive from `vms[]` when these keys are absent.
+  Added `test_vmids_derived_from_vms_list_when_no_vmid_block`.
+- **Tests: 3932 passed, 37 skipped** (+1)
+
+---
+
 ### Audit round 10 — Cycle 4: drill outcome bugs
 
 **B1 — `_score_reconstruction_drill()` didn't handle `in_progress` drills:**
