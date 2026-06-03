@@ -16,6 +16,7 @@ Stdlib only.
 """
 
 import os
+import shlex
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
@@ -133,11 +134,11 @@ def generate_cloudinit_user_data(vm: dict, plan: dict) -> str:
         f"# Cloud-Init user-data — {name}\n"
         f"# Auto-generated for spawn package: {plan.get('package_id', '?')}\n"
         f"#cloud-config\n\n"
-        f"hostname: {hostname}\n"
-        f"fqdn: {hostname}.{domain}\n"
+        f"hostname: '{hostname}'\n"
+        f"fqdn: '{hostname}.{domain}'\n"
         f"manage_etc_hosts: true\n\n"
         f"users:\n"
-        f"  - name: {ci_user}\n"
+        f"  - name: '{ci_user}'\n"
         f"    groups: [sudo]\n"
         f"    shell: /bin/bash\n"
         f"    sudo: ALL=(ALL) NOPASSWD:ALL\n"
@@ -145,7 +146,7 @@ def generate_cloudinit_user_data(vm: dict, plan: dict) -> str:
         f"    # SSH key injected by Proxmox from KeePass ref: {ssh_ref or '(none)'}\n\n"
         f"{pkg_section}"
         f"runcmd:\n"
-        f"  - mkdir -p {workspace}\n"
+        f"  - mkdir -p {shlex.quote(workspace)}\n"
         f"  - systemctl enable --now qemu-guest-agent\n\n"
         f"final_message: |\n"
         f"  Cloud-Init complete on {hostname}. Ready for Ansible.\n"
