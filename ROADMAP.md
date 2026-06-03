@@ -88,6 +88,13 @@ Architecture: v7.1 (see ARCHITECTURE.md and docs/ARCHITECTURE-REVIEW-v7.md)
       A2: 5 state collector import aliases removed (local_runner not _local_runner);
       A3: same as S1. A1 (sys.path coupling) deferred — requires package restructure.
       35 new tests. Tests: 3792 passed, 37 skipped, 3 pre-existing.
+- [x] **ODT/ODS renderer deprecation** — all ODT/ODS renderers (recovery_runbook.py,
+      runbook.py, operational_report.py, workbook.py) moved to renderers/deprecated/.
+      HTML renderers improved during migration: Appendix C (DNS Registry) added to
+      html_recovery_runbook.py; service contract blocks now wire correctly in restore
+      waves; _health_check_cmds()/_service_restart_cmds() unified; html_operational_report
+      gains backup failure actions + inline cert expiry computation. 9 test files migrated.
+      Tests: 3745 passed, 37 skipped, 3 pre-existing.
 - [x] **Full-stack audit findings (round 3)** — all MEDIUM and LOW items resolved:
       S1: secrets.compare_digest in hatchery_receiver; I1: security scan wired into operational;
       I2: 9.T migration tier (above); S2: no-token startup warning in dashboard;

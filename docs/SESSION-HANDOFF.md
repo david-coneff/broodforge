@@ -4,6 +4,30 @@ Last updated: 2026-06-02 UTC
 
 ## What Was Done This Session (current)
 
+### ODT/ODS renderer deprecation + HTML migration
+
+**Deprecated:** `recovery_runbook.py`, `runbook.py`, `operational_report.py`, `workbook.py`
+moved to `doc-gen/renderers/deprecated/` with README. Engine generates HTML only.
+
+**HTML renderer improvements during migration:**
+- `html_recovery_runbook.py`: `_health_check_cmds()`, `_service_restart_cmds()` added
+  (superior logic from ODT); `_service_contract_block()` uses them; `_get_contract()`
+  strips `(VM NNN)` suffix so restore waves find service contracts; Appendix C (DNS
+  Registry) added; Appendix G renders failover+notes, TLS Certificate heading, "Expires
+  at", inline `_days_remaining` from `expires_at`; Appendix H fully rendered (layer
+  details, restore commands, KeePass note, fail warnings); Wave 0 renders bridge IP from
+  both `ip` and `address` fields; drift_details shown in Wave 0 callout
+- `html_operational_report.py`: `_cert_days_remaining()` helper; backup failure
+  actions shown in Time-Sensitive Actions; `_section_external_dependencies` uses
+  `_cert_days_remaining` for inline computation
+
+**9 test files migrated to HTML:** assertions aligned with HTML output; ODT-specific
+tests replaced with HTML equivalents.
+
+**Tests: 3745 passed, 37 skipped, 3 pre-existing env failures**
+
+---
+
 ### Full-stack audit round 4 — all 13 findings resolved
 
 **S1/A3** — `proxmox-bootstrap/setup-secrets.py:434–444`: SSH private key PEM now
