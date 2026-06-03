@@ -101,6 +101,10 @@ Architecture: v7.1 (see ARCHITECTURE.md and docs/ARCHITECTURE-REVIEW-v7.md)
       D1–D4: stale .ods/.odt refs in README, ROADMAP, NODE-SPAWNING.md updated to HTML.
       A2 (sys.path coupling) and A3 (deprecated ODS import in test) deferred.
       Tests: 3647 passed, 37 skipped, 3 pre-existing.
+- [x] **Security fix: /api/spawn-complete path traversal** — hatchery_receiver.py was
+      accepting state_path from POST body, allowing any filesystem path to be
+      read+written. Fixed: body state_path now ignored; only server-configured --state
+      path is used. 1 new test. Tests: 3648 passed.
 - [x] **Full-stack audit findings (round 3)** — all MEDIUM and LOW items resolved:
       S1: secrets.compare_digest in hatchery_receiver; I1: security scan wired into operational;
       I2: 9.T migration tier (above); S2: no-token startup warning in dashboard;

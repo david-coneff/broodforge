@@ -4,6 +4,17 @@ Last updated: 2026-06-02 UTC
 
 ## What Was Done This Session (current)
 
+### Security fix — /api/spawn-complete path traversal
+
+`proxmox-bootstrap/hatchery_receiver.py:_handle_spawn_complete()`: removed
+acceptance of `state_path` from the POST request body. An authenticated caller
+could supply any path on the hatchery filesystem (e.g. `/etc/passwd`) and trigger
+a read-then-write of arbitrary JSON. Fix: endpoint now ignores `state_path` in
+the body entirely; only `self._config.state_path` (server-configured via `--state`)
+is used. New test: `test_spawn_complete_ignores_state_path_in_body`.
+
+---
+
 ### Audit round 5 — 10 findings, all resolved
 
 **A1/I2** — `doc-gen/renderers/recovery_workbook.py` was missed in the ODT deprecation
