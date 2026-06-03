@@ -217,9 +217,11 @@ class _ReceiverHandler(BaseHTTPRequestHandler):
         POST /api/spawn-complete — called by phase-06-verify.sh on the broodling.
 
         Body: JSON with keys:
-          spawn_plan_path   — path to spawn-plan.json on the hatchery (or embedded JSON)
-          hardware_profile  — hardware-profile.json dict (optional; {} if not available)
-          state_path        — path to bootstrap-state.json on the hatchery (optional)
+          spawn_plan       — spawn-plan.json dict (required)
+          hardware_profile — hardware-profile.json dict (optional; {} if not available)
+
+        Note: the bootstrap-state.json path is NOT accepted from the body (path
+        traversal prevention). The server uses its configured --state path only.
 
         Updates bootstrap-state.json on the hatchery with the broodling's
         allocated VMIDs, IPs, hostnames, and cluster role.
