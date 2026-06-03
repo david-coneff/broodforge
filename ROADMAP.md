@@ -121,16 +121,13 @@ Architecture: v7.1 (see ARCHITECTURE.md and docs/ARCHITECTURE-REVIEW-v7.md)
          fixed (RED/YELLOW severity handling for ForgeValidationFinding dataclasses);
          setup_warnings now rendered in Overview section.
       Tests: 3720 passed, 37 skipped.
-- [x] **Full-stack audit findings (round 9)** — 4 concrete fixes applied:
-      A1: html_base.py copied to proxmox-bootstrap/; sys.path.insert blocks removed from
-          html_forge_workbook.py, html_phoenix_workbook.py, html_spawn_workbook.py,
-          federation_docs.py (4 modules now import html_base directly without path manipulation);
-      I1: test_hatchery_receiver_wiring.py added (16 tests) covering update_state_after_spawn
-          round-trip, receiver route binding to /api/spawn-complete, and phase-06-verify.sh
-          HATCHERY_URL + api/spawn-complete wiring;
-      I3: TestScoreMigrationHealth (6 tests) added to test_readiness.py covering
-          empty/failed/rolled_back/completed/mixed/multiple outcomes;
-      D2: update_state_after_spawn.py docstring corrected (removed false Forgejo commit claim).
+- [x] **Full-stack audit findings (round 9)** — 7 fixes (Round 1 + Round 2):
+      Round 1 — A1: html_base.py copied to proxmox-bootstrap/; sys.path.insert removed from 4
+          workbook modules; I1: test_hatchery_receiver_wiring.py (16 tests); I3:
+          TestScoreMigrationHealth (6 tests) to test_readiness.py; D2: docstring corrected.
+      Round 2 (full-stack audit) — 3 HIGH subprocess timeout fixes:
+          collect_tier2.py SSH timeout=30, remediation_executor.py timeout=300,
+          setup_ddns.py lexicon timeout=30.
       Tests: 3781 passed, 4 skipped.
 - [x] **Full-stack audit findings (round 3)** — all MEDIUM and LOW items resolved:
       S1: secrets.compare_digest in hatchery_receiver; I1: security scan wired into operational;

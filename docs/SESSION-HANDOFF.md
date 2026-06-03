@@ -4,7 +4,7 @@ Last updated: 2026-06-03 UTC
 
 ## What Was Done This Session (current)
 
-### Audit round 9 — Round 1 fixes complete, Round 2 in progress
+### Audit round 9 — Rounds 1 + 2 complete
 
 **Already-done (verified):** S1 (tty print), S2 (RESTIC_PASSWORD scope), S3 (auth key not printed),
 D1/I4 (reconstruction-drill.py CLI), I2 (migration git commit), I5 (collector_utils import),
@@ -29,7 +29,33 @@ rolled_back→YELLOW, completed→[], mixed→both, multiple-failed→multiple O
 **D2:** Updated `update_state_after_spawn.py` docstring (line 14–16) to remove false claim
 that the caller commits to Forgejo. Now correctly describes the responsibility split.
 
-**Tests: 3781 passed, 4 skipped** (commit: 9ec1c3d)
+**Round 1 tests: 3781 passed, 4 skipped** (commit: 9ec1c3d)
+
+---
+
+### Audit round 9 — Round 2 full-stack audit findings (all fixed)
+
+Round 2 audit found 5 genuine issues (0 docs-sync, 0 implementation gaps, 0 circular imports):
+
+**HIGH — Missing subprocess timeouts (3 fixes):**
+
+- `collect_tier2.py:76` — SSH `subprocess.run()` had no timeout. Added `timeout=30`.
+  Prevents indefinite hang if SSH connection stalls during tier-2 state collection.
+
+- `remediation_executor.py:103` — `_run()` `subprocess.run()` had no timeout.
+  Added `timeout=300`. Autonomous remediation commands can take minutes; ensures termination.
+
+- `setup_ddns.py:252` — lexicon `subprocess.run()` had no timeout. Added `timeout=30`.
+
+**MEDIUM — Duplicate html_base.py (informational, addressed with comment):**
+`proxmox-bootstrap/html_base.py` is a copy of `doc-gen/renderers/html_base.py`.
+Added "COPY of doc-gen/renderers" comment at top of proxmox-bootstrap copy so editors know
+to keep both in sync. (Full resolution would require importlib shim — deferred as low priority.)
+
+**LOW — assessment/tier1/analyze.py:731 CELL_ID global env var (skipped):**
+CLI tool that sets env for current process only. No downstream subprocess risk. No fix needed.
+
+**Tests: 3781 passed, 4 skipped** (commit: 0443668)
 
 ---
 
