@@ -91,6 +91,11 @@ def cmd_complete(args: argparse.Namespace) -> None:
         __import__("datetime").datetime.now(
             __import__("datetime").timezone.utc).isoformat()
 
+    # Record gaps if provided via --gaps
+    if getattr(args, "gaps", None):
+        existing = last.get("gaps_found") or []
+        last["gaps_found"] = existing + args.gaps
+
     # Write back
     drills = state.setdefault("reconstruction_drills", [])
     drills[0] = last
@@ -170,6 +175,8 @@ def main() -> None:
     pc.add_argument("--outcome", default="completed",
                     choices=["completed", "failed", "aborted"],
                     help="Final drill outcome")
+    pc.add_argument("--gaps", nargs="*", metavar="GAP",
+                    help="Gap(s) found during the drill (repeatable strings)")
     pc.add_argument("--output", default="", help="Output Markdown report path")
 
     # last

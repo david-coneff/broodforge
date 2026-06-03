@@ -4,6 +4,17 @@ Last updated: 2026-06-03 UTC
 
 ## What Was Done This Session (current)
 
+### Audit round 10 — Cycle 3: implementation gap, RECONSTRUCTION-DRILL.md
+
+**I1 — `reconstruction-drill.py complete` missing `--gaps` argument:**
+The `complete` subcommand had no way to record gaps found during the drill.
+Added `--gaps GAP [GAP ...]` argument (nargs="*"); values are appended to
+`gaps_found` in the drill record. Updated RECONSTRUCTION-DRILL.md example to show `--gaps`.
+
+**Tests: 3779 passed, 6 skipped** (no change)
+
+---
+
 ### Audit round 10 — Cycle 2: schema gap, silent exception, doc/code mismatch
 
 **I1 — bootstrap-state-schema.json missing `security_scan` property:**
