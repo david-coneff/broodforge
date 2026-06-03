@@ -4,6 +4,54 @@ Last updated: 2026-06-03 UTC
 
 ## What Was Done This Session (current)
 
+### Audit rounds 16–18 (completed)
+
+**Round 16 Cycle 1 — Error info-leakage + severity input validation:**
+- `broodforge_dashboard.py`: 4 error handlers now return generic "Internal server error"
+  and log detail to stderr (was `str(e)` exposed in HTTP response).
+- `broodforge_dashboard._handle_remediation_approve_batch()`: validates `max_severity`
+  param against `_VALID_SEVERITIES = {"RED","ORANGE","YELLOW","GREEN","BLOCKED"}` before use.
+- `hatchery_receiver._handle_spawn_complete()`: JSON decode error now returns generic message.
+- Network-config YAML snippets: timestamp refresh.
+
+**Round 16 Cycle 2 — Shell injection in generated bash scripts:**
+- `spawn_scripts.generate_phase_00_preflight`: shell-quote `pool`, `bridge` in
+  `zpool`/`ip` commands; shell-quote disk IDs; single-quote FAILS messages.
+- `spawn_scripts.generate_phase_02_vms`: single-quote `-var-file` value to prevent
+  `$(...)` expansion in the generated OpenTofu command.
+- `spawn_scripts.generate_phase_06_verify`: `shlex.quote(hostname)` for kubectl;
+  `shlex.quote(gateway)` for ping; single-quoted FAILS messages.
+- `spawn_scripts.generate_spawn_sh`: single-quote all echo lines embedding plan values.
+- `forge_scripts.generate_forge_sh`: single-quote echo lines with `cell_id`/`hostname`.
+- `forge_scripts.generate_phase_03_sh`: single-quote HOSTNAME/DOMAIN/FQDN/NETWORK_PROFILE
+  bash variable assignments (prevents `$(cmd)` execution at script runtime).
+- `tests/unit/test_forge_assembler.py`: updated NETWORK_PROFILE assertion for new format.
+
+**Round 17 Cycle 1 — YAML injection in cloud-init user-data:**
+- `spawn_iac_generator.generate_cloudinit_user_data`: added `import shlex`; single-quote
+  `hostname`, `fqdn`, `ci_user` YAML scalars; `shlex.quote(workspace)` in runcmd entry
+  to prevent newline-based YAML injection and shell metachar injection.
+
+**Round 17 Cycle 2 — Remaining bash variable assignment quoting:**
+- `forge_scripts.generate_phase_08_sh`: single-quote `CELL_ID='{cell_id}'`.
+- `spawn_scripts.generate_tailscale_join_sh`: single-quote `AUTH_KEY` and `HEADSCALE_URL`.
+- `generators/flux-bootstrap-gen.py`: single-quote all 9 bash variable assignments
+  (CELL_ID, FORGEJO_URL, FORGEJO_IP, PLATFORM_CONFIG_REPO, CLUSTER_NAME, FLUX_NAMESPACE,
+  FLUX_BRANCH, CLUSTER_PATH, K3S_SERVER_IP).
+- `setup_tls.py`: single-quote CERT, KEY, SECRET_NAME, NAMESPACES assignments.
+
+**Round 18 — Final broad scan:**
+- Zero remaining double-quoted bash variable assignments with unescaped manifest data.
+- Zero `send_error` calls leaking exception strings.
+- All HTML renderers verified to use `_e()` for user-controlled data.
+- Cloud-init network config and Ansible inventory: verified safe (IPs/domains are safe types).
+- `html_package_manifest.py`, `html_forge_workbook.py`: verified pre-escaped HTML pattern
+  is applied correctly throughout.
+
+**Tests: 3958 passed, 37 skipped** (no change from round 15 baseline).
+
+---
+
 ### Audit round 14 (completed)
 
 All 14 findings fixed in a single pass:
