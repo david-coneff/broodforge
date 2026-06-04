@@ -132,11 +132,11 @@ Expected: no error output, Cloudflare A record updates to your current WAN IP.
 
 ### Step 2.3 — Configure via broodforge wizard
 
-During forging, `forge.sh` runs `setup-ddns.py` which handles the configuration.
+During forging, `forge.sh` runs `setup_ddns.py` which handles the configuration.
 If you need to configure it manually afterwards:
 
 ```bash
-python3 proxmox-bootstrap/setup-ddns.py \
+python3 proxmox-bootstrap/setup_ddns.py \
   --state proxmox-bootstrap/bootstrap-state.json
 ```
 

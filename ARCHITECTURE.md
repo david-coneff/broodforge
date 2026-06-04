@@ -163,7 +163,7 @@ HATCHERY PROCESS — PRE-PACKAGE (on the hatchery)
    format) before the operator installs Proxmox. The operator uses that password during
    installation; the hatchery connects automatically with it after install completes.
    Discovery runs from the hatchery using that temporary password:
-     python3 discover-hardware/network/storage.py root@{broodling-ip} (password-based)
+     python3 spawn_hardware_discovery.py --host {broodling-ip} --user root --password-prompt (password-based via sshpass)
      → hardware-profile-{hostname}.json
    Temporary password is valid only until the spawn package's Cloud-Init phase
    replaces it with a KeePass-managed credential.

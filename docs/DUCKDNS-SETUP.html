@@ -104,8 +104,8 @@ curl -s "https://www.duckdns.org/update?domains=myhatchery&amp;token=YOUR-TOKEN&
 <p>Expected response: <code>OK</code></p>
 <p>If you see <code>KO</code>, your token is wrong or the subdomain doesn't exist in your account.</p>
 <h3>Step 1.3 — Configure via broodforge wizard</h3>
-<p>During forging, <code>forge.sh</code> runs <code>setup-ddns.py</code> which handles configuration. To configure manually afterwards:</p>
-<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>python3 proxmox-bootstrap/setup-ddns.py \
+<p>During forging, <code>forge.sh</code> runs <code>setup_ddns.py</code> which handles configuration. To configure manually afterwards:</p>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>python3 proxmox-bootstrap/setup_ddns.py \
   --state proxmox-bootstrap/bootstrap-state.json</code></pre></div>
 <p>Select <strong>DuckDNS</strong>, enter your subdomain name and the KeePass path for your token. The wizard tests the connection before saving.</p>
 <h3>Step 1.4 — How broodforge runs the auto-update</h3>
@@ -231,7 +231,7 @@ spec:
 <p>When acme.sh renews the cert, <code>sync-cert-to-k8s.sh</code> updates the secret, and Kubernetes serves the new cert on the next request (no Ingress restart needed).</p>
 <hr>
 <h2>Part 3 — Configuration in bootstrap-state.json</h2>
-<p>After <code>setup-ddns.py</code> completes, these fields are set in bootstrap-state.json:</p>
+<p>After <code>setup_ddns.py</code> completes, these fields are set in bootstrap-state.json:</p>
 <div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>"network_topology": {
   "ddns_provider":              "duckdns",
   "ddns_zone":                  "duckdns.org",

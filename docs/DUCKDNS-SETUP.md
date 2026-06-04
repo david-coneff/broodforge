@@ -57,11 +57,11 @@ If you see `KO`, your token is wrong or the subdomain doesn't exist in your acco
 
 ### Step 1.3 — Configure via broodforge wizard
 
-During forging, `forge.sh` runs `setup-ddns.py` which handles configuration.
+During forging, `forge.sh` runs `setup_ddns.py` which handles configuration.
 To configure manually afterwards:
 
 ```bash
-python3 proxmox-bootstrap/setup-ddns.py \
+python3 proxmox-bootstrap/setup_ddns.py \
   --state proxmox-bootstrap/bootstrap-state.json
 ```
 
@@ -281,7 +281,7 @@ Kubernetes serves the new cert on the next request (no Ingress restart needed).
 
 ## Part 3 — Configuration in bootstrap-state.json
 
-After `setup-ddns.py` completes, these fields are set in bootstrap-state.json:
+After `setup_ddns.py` completes, these fields are set in bootstrap-state.json:
 
 ```json
 "network_topology": {

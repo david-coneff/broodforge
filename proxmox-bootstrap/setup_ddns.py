@@ -328,3 +328,117 @@ def config_to_dict(config: DdnsConfig) -> dict:
         "cache_file":              config.cache_file,
         "wan_ip_services":         list(config.wan_ip_services),
     }
+
+
+# ---------------------------------------------------------------------------
+# CLI — used by forge phase-03 (`--manifest … --run`) and the manual setup docs
+# (`--state bootstrap-state.json`). See docs/CLOUDFLARE-SETUP.md / DUCKDNS-SETUP.md.
+# ---------------------------------------------------------------------------
+
+def _cli_main() -> None:
+    import argparse
+    import json
+    import os
+    import sys
+
+    ap = argparse.ArgumentParser(
+        description="Configure dynamic DNS (DDNS) for the hatchery WAN address.",
+    )
+    src = ap.add_mutually_exclusive_group(required=True)
+    src.add_argument("--state", help="Path to bootstrap-state.json to read/update")
+    src.add_argument("--manifest", help="Path to forge-manifest.json to read/update")
+    ap.add_argument("--provider", choices=["cloudflare", "duckdns", "none"],
+                    help="DDNS provider (else taken from the file, else prompted)")
+    ap.add_argument("--zone", help="DNS zone, e.g. example.com")
+    ap.add_argument("--record", help="Record to update, e.g. hatchery")
+    ap.add_argument("--credential-path", dest="credential_path",
+                    help="KeePass path for the provider API token/key")
+    ap.add_argument("--duckdns-subdomain", dest="duckdns_subdomain",
+                    help="DuckDNS subdomain (DuckDNS only)")
+    ap.add_argument("--output-dir", default=".",
+                    help="Where to write the generated update script + systemd units "
+                         "with --run (default: current dir)")
+    ap.add_argument("--run", action="store_true",
+                    help="Also render the update script + systemd timer/service files")
+    args = ap.parse_args()
+
+    path = args.state or args.manifest
+    if not os.path.exists(path):
+        print(f"[setup-ddns] file not found: {path}", file=sys.stderr)
+        sys.exit(1)
+    with open(path) as f:
+        doc = json.load(f)
+
+    nt = doc.setdefault("network_topology", {})
+    wan = nt.setdefault("wan_config", {})
+    hi = doc.get("host_identity") or {}
+
+    # Resolve provider: flag → file → interactive prompt (only on a TTY).
+    provider = args.provider or wan.get("ddns_provider") or nt.get("ddns_provider")
+    if not provider and sys.stdin.isatty():
+        print("\nDDNS provider:\n  1. cloudflare\n  2. duckdns\n  3. none")
+        provider = {"1": "cloudflare", "2": "duckdns", "3": "none"}.get(
+            input("Selection [3]: ").strip(), "none")
+    provider = provider or "none"
+
+    if provider == "none":
+        print("[setup-ddns] provider 'none' — DDNS not configured (WAN profile may not "
+              "need it, or set --provider).")
+        wan["ddns_provider"] = "none"
+        nt["ddns_provider"] = "none"
+        with open(path, "w") as f:
+            json.dump(doc, f, indent=2)
+        return
+
+    def _ask(flag, cur, label, default=""):
+        if flag:
+            return flag
+        if cur:
+            return cur
+        if sys.stdin.isatty():
+            return input(f"{label} [{default}]: ").strip() or default
+        return default
+
+    wan["ddns_provider"] = provider
+    wan["ddns_zone"] = _ask(args.zone, wan.get("ddns_zone"), "DNS zone",
+                            hi.get("domain", ""))
+    wan["ddns_record"] = _ask(args.record, wan.get("ddns_record"), "Record name",
+                              hi.get("hostname", "hatchery"))
+    wan["ddns_credential_reference"] = _ask(
+        args.credential_path, wan.get("ddns_credential_reference"),
+        "KeePass path for the API token", "Infrastructure/ddns/token")
+    if provider == "duckdns":
+        wan["ddns_record"] = args.duckdns_subdomain or wan["ddns_record"]
+
+    config = generate_ddns_config(nt, hi)
+
+    # Mirror the resolved values to the documented top-level fields as well.
+    nt["ddns_provider"] = config.provider
+    nt["ddns_zone"] = config.zone
+    nt["ddns_record"] = config.record
+    nt["ddns_credential_reference"] = config.credential_keepass_path
+
+    with open(path, "w") as f:
+        json.dump(doc, f, indent=2)
+    print(f"[setup-ddns] configured {config.provider}: "
+          f"{config.record}.{config.zone} (cred ref: {config.credential_keepass_path})")
+    print(f"[setup-ddns] written to {path}")
+
+    if args.run:
+        out = args.output_dir
+        os.makedirs(out, exist_ok=True)
+        rendered = {
+            "broodforge-update-dns.py": render_update_script(config),
+            "broodforge-ddns.timer":    render_systemd_timer(config),
+            "broodforge-ddns.service":  render_systemd_service(config),
+        }
+        for fname, content in rendered.items():
+            with open(os.path.join(out, fname), "w", encoding="utf-8") as fh:
+                fh.write(content)
+        print(f"[setup-ddns] update script + systemd units written to {out}/ "
+              "(install to /usr/local/bin and /etc/systemd/system, then "
+              "`systemctl enable --now broodforge-ddns.timer`).")
+
+
+if __name__ == "__main__":
+    _cli_main()

@@ -391,7 +391,7 @@ artifact an operator downloads and runs on bare Proxmox to forge the first hatch
           4. Skip — I will manage DNS records manually
 
       **Implementation:**
-        `proxmox-bootstrap/setup-ddns.py` — interactive configuration wizard:
+        `proxmox-bootstrap/setup_ddns.py` — interactive configuration wizard:
           Walks operator through provider selection, credential entry, and
           writes config to /etc/broodforge/ddns.conf.
           Credentials stored in KeePass; references stored in bootstrap-state.json.
@@ -1292,7 +1292,7 @@ never needs to ask the operator what is already taken.
         passphrase format, e.g. `Ready.to.spawn.7`) at Step 0 selection time.
         The operator uses this password during Proxmox installation.
         The hatchery holds the password in session memory and SSHes directly:
-          `python3 discover-hardware.py --host {broodling-lan-ip} --password-prompt`
+          `python3 spawn_hardware_discovery.py --host {broodling-lan-ip} --password-prompt`
           (password retrieved from session, not re-entered by the operator)
           → `hardware-profile-{hostname}.json`
         If the operator used a different password, they enter it when prompted.
@@ -1309,7 +1309,7 @@ never needs to ask the operator what is already taken.
           `tailscale up --authkey {key} --login-server {headscale_url}`
         Broodling appears on the tailnet → hatchery SSHes to its tailnet IP exactly
         as in LAN mode (temporary root password, same mechanism):
-          `python3 discover-hardware.py --host {tailnet-ip} --password-prompt`
+          `python3 spawn_hardware_discovery.py --host {tailnet-ip} --password-prompt`
         No port forwarding required. The WireGuard tunnel is the transport;
         the temporary root password is still the authentication.
         After spawn completes, Tailscale remains — the broodling is a permanent

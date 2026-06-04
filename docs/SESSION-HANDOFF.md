@@ -138,6 +138,26 @@ Verified: --help, sshpass guard, and a mocked-runner discovery (correct profile)
 
 Tests: 4000 passed, 1 skipped.
 
+### Audit cycle 6 — systematic doc-command sweep; setup_ddns.py had no CLI (fixed)
+
+Swept **every** `python3 …py` command in all operator docs and verified each script
+resolves. Found two classes of broken references:
+
+1. **`setup_ddns.py` was a library with no CLI** (both `__main__` blocks are inside
+   generated-script string templates), yet forge phase-03 invoked it as
+   `setup_ddns.py --manifest … --run` AND the setup guides documented
+   `setup-ddns.py --state …` (also the wrong, hyphenated filename). So DDNS
+   configuration was a no-op via every path. Added a real CLI accepting both forms
+   (`--state` | `--manifest`, provider/zone/record/credential flags with interactive
+   fallback, `--run` writes the update script + systemd units; UTF-8 file writes).
+   Verified both forms end-to-end.
+2. **Filename/shorthand drift**: `setup-ddns.py` → `setup_ddns.py` (CLOUDFLARE-SETUP,
+   DUCKDNS-SETUP, ROADMAP); the `discover-hardware*.py` shorthand → the real
+   `spawn_hardware_discovery.py` (ARCHITECTURE, ROADMAP).
+
+Re-ran the sweep: **all documented python3 commands now resolve to real files.**
+Regenerated CLOUDFLARE/DUCKDNS/ROADMAP HTML. Tests: 4000 passed, 1 skipped.
+
 ---
 
 ### Audit rounds 16–18 (completed)

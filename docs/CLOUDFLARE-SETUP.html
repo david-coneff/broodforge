@@ -162,8 +162,8 @@ dig NS home.example.com +short</code></pre></div>
   --name hatchery --content "$(curl -s ifconfig.me)"</code></pre></div>
 <p>Expected: no error output, Cloudflare A record updates to your current WAN IP.</p>
 <h3>Step 2.3 — Configure via broodforge wizard</h3>
-<p>During forging, <code>forge.sh</code> runs <code>setup-ddns.py</code> which handles the configuration. If you need to configure it manually afterwards:</p>
-<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>python3 proxmox-bootstrap/setup-ddns.py \
+<p>During forging, <code>forge.sh</code> runs <code>setup_ddns.py</code> which handles the configuration. If you need to configure it manually afterwards:</p>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>python3 proxmox-bootstrap/setup_ddns.py \
   --state proxmox-bootstrap/bootstrap-state.json</code></pre></div>
 <p>Select <strong>Cloudflare</strong>, enter your domain zone, record name, and the KeePass path for the API token. The wizard tests the connection before saving.</p>
 <h3>Step 2.4 — Monitor the timer</h3>
