@@ -82,9 +82,11 @@ def generate_headscale_config(
     fqdn    = host_identity.get("fqdn") or "hatchery.home.example.com"
     profile = network_topology.get("profile") or "lan"
 
-    # Prefer explicit headscale_url from wan_config
+    # Prefer explicit headscale_url (wan_config or top-level; setup_network writes
+    # it at the top level), else derive from the FQDN.
     wan     = network_topology.get("wan_config") or {}
-    server_url = wan.get("headscale_url") or f"https://{fqdn}:8080"
+    server_url = (wan.get("headscale_url") or network_topology.get("headscale_url")
+                  or f"https://{fqdn}:8080")
 
     # TLS paths depend on the TLS provider selected in 1.F.8d
     # Default to None (self-signed / configured later)

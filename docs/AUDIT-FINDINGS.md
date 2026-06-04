@@ -97,6 +97,37 @@ the original problem:
 
 ---
 
+## Audit cycle — 2026-06-04_13_07_34 UTC
+
+### Method
+
+Systematic **field-location** cross-reference: which `network_topology` keys
+`setup_network.py` *writes* vs. which keys each `generate_*_config()` *reads*. (The
+F6/G1/G3 bugs were all writer-puts-here / reader-looks-there mismatches.)
+
+### Findings
+
+| # | Area | Finding | Status |
+|---|---|---|---|
+| G4 | DDNS | `setup_network.wan_config_to_state()` writes `ddns_provider`/`ddns_zone`/`ddns_record`/`ddns_credential_reference` at the **top level** of `network_topology`, but `generate_ddns_config()` read only `wan_config.ddns_*` → produced **`provider: none`** (DDNS silently not configured) even when the operator selected Cloudflare/DuckDNS. | **[FIXED]** — read ddns_* from `wan_config` *or* top level |
+| G5 | Headscale | `generate_headscale_config()` read `wan_config.headscale_url`, but `setup_network` writes `headscale_url` at the top level → fell back to the FQDN-derived URL (same value here, but ignored the stored one). | **[FIXED]** — read `headscale_url` from `wan_config` *or* top level |
+
+### Fix attempt + re-audit result
+
+**Attempt 1 — both resolved; no second round.** Fed `setup_network.wan_config_to_state()`
+output (cloudflare WAN) straight into the generators:
+- **G4** — `generate_ddns_config` now returns `provider: cloudflare` (was `none`).
+- **G5** — `generate_headscale_config` now uses the stored `headscale_url`.
+
+122 ddns/headscale/network tests pass; full suite **4000 passed, 1 skipped**.
+
+> Lower-impact, left as-is (graceful fallback, not broken): `setup_tls` reads
+> `wan_config.cloudflare_token_keepass_path` while `setup_network` stores the credential
+> as `dns_provider_credential_reference` — the rendered certbot command takes the token
+> from `$CLOUDFLARE_API_TOKEN` (env) regardless, so cert issuance is unaffected.
+
+---
+
 ## Trailing history of fixes (cycles 1–7, this session)
 
 All verified by re-audit and the pytest suite (4000 passed, 1 skipped) at the time.

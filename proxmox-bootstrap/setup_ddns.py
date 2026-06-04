@@ -95,14 +95,20 @@ def generate_ddns_config(
     """
     Build DdnsConfig from network_topology and host_identity dicts.
 
-    Uses network_topology.wan_config keys:
-      ddns_provider, ddns_zone, ddns_record, ddns_credential_reference
+    Reads ddns_* keys from either network_topology.wan_config OR the top level —
+    setup_network.py writes them at the top level, while the setup_ddns CLI mirrors
+    them into wan_config. Accepting both avoids a silent "provider: none" config.
     """
-    wan      = network_topology.get("wan_config") or {}
-    provider = wan.get("ddns_provider") or DdnsProvider.NONE
-    zone     = wan.get("ddns_zone")     or (host_identity.get("domain") or "")
-    record   = wan.get("ddns_record")   or (host_identity.get("hostname") or "hatchery")
-    cred_ref = wan.get("ddns_credential_reference") or ""
+    wan = network_topology.get("wan_config") or {}
+
+    def _g(key):
+        v = wan.get(key)
+        return v if v not in (None, "") else network_topology.get(key)
+
+    provider = _g("ddns_provider") or DdnsProvider.NONE
+    zone     = _g("ddns_zone")     or (host_identity.get("domain") or "")
+    record   = _g("ddns_record")   or (host_identity.get("hostname") or "hatchery")
+    cred_ref = _g("ddns_credential_reference") or ""
 
     duckdns_sub = None
     if provider == DdnsProvider.DUCKDNS:
