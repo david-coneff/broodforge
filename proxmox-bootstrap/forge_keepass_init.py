@@ -23,6 +23,7 @@ Provides:
 Stdlib only.
 """
 
+import shlex
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -251,12 +252,13 @@ def render_init_commands(config: KeePassInitConfig) -> list[str]:
     KEEPASS_MASTER_PASSWORD must be set in the calling shell's environment.
     """
     db = config.db_path
+    db_q = shlex.quote(db)  # shell-quote for safe use in bash -c commands
     cmds = [
         "# Phase 1.F.6 — KeePass database initialisation",
         "apt-get install -y keepassxc 2>/dev/null || true",
         f"install -d -m 700 /etc/broodforge",
         # Pipe master password via stdin; --set-password reads '-' as stdin in keepassxc-cli ≥2.6
-        f"printf '%s\\n' \"$KEEPASS_MASTER_PASSWORD\" | keepassxc-cli db-create --set-password - {db}",
+        f"printf '%s\\n' \"$KEEPASS_MASTER_PASSWORD\" | keepassxc-cli db-create --set-password - {db_q}",
         "",
     ]
 
@@ -264,18 +266,18 @@ def render_init_commands(config: KeePassInitConfig) -> list[str]:
         group = "/".join(entry.path.split("/")[:-1])
         cmds.append(
             f"printf '%s\\n' \"$KEEPASS_MASTER_PASSWORD\" | "
-            f"keepassxc-cli mkdir --password - {db} "
+            f"keepassxc-cli mkdir --password - {db_q} "
             f"'/{group}' 2>/dev/null || true"
         )
         cmds.append(
             f"printf '%s\\n' \"$KEEPASS_MASTER_PASSWORD\" | "
-            f"keepassxc-cli add --password - {db} "
+            f"keepassxc-cli add --password - {db_q} "
             f"--no-password '/{entry.path}' "
             f"--notes '{entry.description} [PLACEHOLDER — set during service deploy]'"
         )
 
     cmds.append("")
-    cmds.append(f"echo '[keepass] Database initialised at {db}'")
+    cmds.append(f"echo '[keepass] Database initialised at {db_q}'")
     if config.embed_in_packages:
         cmds.append(f"echo '[keepass] Database will be embedded in spawn/phoenix packages.'")
     else:

@@ -263,9 +263,9 @@ def generate_ansible_k3s_vars(plan: dict) -> str:
         f"# Auto-generated for spawn package: {plan.get('package_id', '?')}\n"
         f"# Source: spawn-manifest.json k3s section\n\n"
         f"k3s_role: {role}\n"
-        f"k3s_server_url: \"{server_url}\"\n"
-        f"k3s_token: \"{token}\"\n"
-        f"k3s_node_name: \"{plan.get('hostname', 'broodling')}\"\n"
+        f"k3s_server_url: '{server_url}'\n"
+        f"k3s_token: '{token}'\n"
+        f"k3s_node_name: '{plan.get('hostname', 'broodling')}'\n"
     )
 
 
