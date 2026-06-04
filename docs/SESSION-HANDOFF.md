@@ -158,6 +158,22 @@ resolves. Found two classes of broken references:
 Re-ran the sweep: **all documented python3 commands now resolve to real files.**
 Regenerated CLOUDFLARE/DUCKDNS/ROADMAP HTML. Tests: 4000 passed, 1 skipped.
 
+### Walkthrough export/attachments feature (md_to_html.py)
+
+Added a universal export capability to walkthrough HTML docs: a file-**Attachments**
+area + an **Export** button (top-right) that bundles the parameters, all note fields,
+the session notes, and any attached files into a downloadable **store-only ZIP**
+(`notes.md` + `record.json` + `attachments/…`), with an auto-suggested filename
+`Title_YYYY_MM_DD_HH_MM_SS.zip` (24-hour local time). Implemented a dependency-free
+CRC32 + ZIP builder in JS; validated the byte layout by porting it to Python and
+confirming `zipfile` reads/CRC-checks the output.
+
+Gating: the feature renders only on **walkthroughs** (docs with live `{{params}}` or
+`@field`/`@area` note markers) — FORGING, NODE-SPAWNING, PHOENIX, RECONSTRUCTION-DRILL.
+Added record/note blocks to FORGING.md + NODE-SPAWNING.md so they qualify. Reference
+docs (README, ROADMAP, setup guides) keep theme-toggle + copy only. Regenerated all
+generated HTML.
+
 ---
 
 ### Audit rounds 16–18 (completed)

@@ -41,10 +41,20 @@
   tr:last-child td{border-bottom:none}
   .doc-meta{color:var(--muted);font-size:.8em;margin:4px 0 20px}
   /* theme toggle */
-  #bf-theme-btn{position:fixed;top:14px;right:16px;z-index:50;background:var(--btn-bg);color:var(--text);
-    border:1px solid var(--border);border-radius:var(--radius);padding:5px 12px;cursor:pointer;
-    font-size:.8em;font-family:inherit}
-  #bf-theme-btn:hover{border-color:var(--accent);color:var(--accent)}
+  #bf-toolbar{position:fixed;top:14px;right:16px;z-index:50;display:flex;gap:8px}
+  #bf-toolbar button{background:var(--btn-bg);color:var(--text);border:1px solid var(--border);
+    border-radius:var(--radius);padding:5px 12px;cursor:pointer;font-size:.8em;font-family:inherit}
+  #bf-toolbar button:hover{border-color:var(--accent);color:var(--accent)}
+  /* attachments */
+  .attachments{margin-top:30px;border-top:1px solid var(--border);padding-top:14px}
+  .attachments input[type=file]{color:var(--muted);font-size:.85em;margin-top:6px}
+  .attach-list{list-style:none;margin:10px 0 0;padding:0}
+  .attach-list li{display:flex;align-items:center;gap:10px;background:var(--bg2);border:1px solid var(--border);
+    border-radius:var(--radius);padding:5px 10px;margin:4px 0;font-size:.85em}
+  .attach-list .sz{color:var(--muted);font-size:.9em}
+  .attach-list button{margin-left:auto;background:none;border:1px solid var(--border);color:var(--muted);
+    border-radius:4px;cursor:pointer;padding:1px 8px;font-size:.85em}
+  .attach-list button:hover{border-color:var(--red);color:var(--red)}
   /* code block + copy */
   .codewrap{position:relative;margin:10px 0}
   .copy-btn{position:absolute;top:6px;right:6px;background:var(--btn-bg);color:var(--muted);
@@ -75,7 +85,7 @@
 </style>
 </head>
 <body data-doc="broodforge">
-<button id="bf-theme-btn" type="button">☀ Light</button>
+<div id="bf-toolbar"><button id="bf-theme-btn" type="button">☀ Light</button></div>
 <div class="doc-meta">Generated from <code>README.md</code> — self-contained · print-friendly · values saved in your browser</div>
 
 <h1>Broodforge</h1>
@@ -942,6 +952,7 @@ Phase 7   Monitoring ────────────────  GATE 4: p
 <li><strong>Forging, spawning, and resurrection are all first-class operations.</strong> Each</li>
 </ol>
 <p>produces a self-contained, auditable, checkpoint-resumable package. Forging builds the first hatchery from scratch. Spawning extends it with broodlings. Resurrection reconstitutes any node through the stargate. The result is the same class of auditable, checkpoint-based deployment artifact as the initial bootstrap.</p>
+
 <div class="session-notes"><h2>Session Notes</h2><p style="color:var(--muted);font-size:.85em">Anything unexpected, or that did not fit the steps above. Saved in your browser.</p><textarea id="bf-session-notes" placeholder="notes…"></textarea></div>
 <script>
 (function(){
@@ -994,6 +1005,95 @@ Phase 7   Monitoring ────────────────  GATE 4: p
         var ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta);
         ta.select(); try{document.execCommand('copy');}catch(e){} document.body.removeChild(ta); done();
       }
+    });
+  }
+  // ---- attachments + export package (walkthrough docs only) ----
+  var atts = [];  // {name, type, bytes:Uint8Array}
+  var fileInput = document.getElementById('bf-attach-input');
+  var attList = document.getElementById('bf-attach-list');
+  function fmtSize(n){ return n<1024?n+' B':(n<1048576?(n/1024).toFixed(1)+' KB':(n/1048576).toFixed(1)+' MB'); }
+  function renderAtts(){
+    if(!attList) return;
+    attList.innerHTML='';
+    atts.forEach(function(a, idx){
+      var li=document.createElement('li');
+      var nm=document.createElement('span'); nm.textContent=a.name;
+      var sz=document.createElement('span'); sz.className='sz'; sz.textContent=fmtSize(a.bytes.length);
+      var rm=document.createElement('button'); rm.type='button'; rm.textContent='remove';
+      rm.addEventListener('click', function(){ atts.splice(idx,1); renderAtts(); });
+      li.appendChild(nm); li.appendChild(sz); li.appendChild(rm); attList.appendChild(li);
+    });
+  }
+  if(fileInput){
+    fileInput.addEventListener('change', function(){
+      var files=Array.prototype.slice.call(fileInput.files||[]);
+      var pending=files.length; if(!pending) return;
+      files.forEach(function(f){
+        var rd=new FileReader();
+        rd.onload=function(){ atts.push({name:f.name, type:f.type||'application/octet-stream', bytes:new Uint8Array(rd.result)});
+          if(--pending===0) renderAtts(); };
+        rd.readAsArrayBuffer(f);
+      });
+      fileInput.value='';
+    });
+  }
+  var crcTable=(function(){ var t=[],c,n,k; for(n=0;n<256;n++){ c=n; for(k=0;k<8;k++){ c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1); } t[n]=c>>>0; } return t; })();
+  function crc32(buf){ var c=0xFFFFFFFF; for(var i=0;i<buf.length;i++){ c=crcTable[(c^buf[i])&0xFF]^(c>>>8); } return (c^0xFFFFFFFF)>>>0; }
+  function enc(s){ return new TextEncoder().encode(s); }
+  function buildZip(entries){
+    var d=new Date();
+    var dt=((d.getHours()<<11)|(d.getMinutes()<<5)|Math.floor(d.getSeconds()/2))&0xFFFF;
+    var dd=(((d.getFullYear()-1980)<<9)|((d.getMonth()+1)<<5)|d.getDate())&0xFFFF;
+    function u16(v){ return [v&0xFF,(v>>>8)&0xFF]; }
+    function u32(v){ return [v&0xFF,(v>>>8)&0xFF,(v>>>16)&0xFF,(v>>>24)&0xFF]; }
+    var parts=[], central=[], offset=0;
+    entries.forEach(function(e){
+      var nameB=enc(e.name), crc=crc32(e.bytes), sz=e.bytes.length;
+      var lh=[].concat(u32(0x04034b50),u16(20),u16(0),u16(0),u16(dt),u16(dd),u32(crc),u32(sz),u32(sz),u16(nameB.length),u16(0));
+      parts.push(new Uint8Array(lh)); parts.push(nameB); parts.push(e.bytes);
+      var cd=[].concat(u32(0x02014b50),u16(20),u16(20),u16(0),u16(0),u16(dt),u16(dd),u32(crc),u32(sz),u32(sz),u16(nameB.length),u16(0),u16(0),u16(0),u16(0),u32(0),u32(offset));
+      central.push(new Uint8Array(cd)); central.push(nameB);
+      offset += lh.length + nameB.length + sz;
+    });
+    var cdSize=0; central.forEach(function(c){ cdSize+=c.length; });
+    var eocd=[].concat(u32(0x06054b50),u16(0),u16(0),u16(entries.length),u16(entries.length),u32(cdSize),u32(offset),u16(0));
+    return new Blob(parts.concat(central, [new Uint8Array(eocd)]), {type:'application/zip'});
+  }
+  function pad(n){ return (n<10?'0':'')+n; }
+  function stamp(){ var d=new Date(); return d.getFullYear()+'_'+pad(d.getMonth()+1)+'_'+pad(d.getDate())+'_'+pad(d.getHours())+'_'+pad(d.getMinutes())+'_'+pad(d.getSeconds()); }
+  function titleSlug(){ return (document.title||'Walkthrough').trim().replace(/\s+/g,'-').replace(/[^A-Za-z0-9_-]/g,'') || 'Walkthrough'; }
+  function collect(){
+    var params={}, pin=document.querySelectorAll('.param-input');
+    for(var i=0;i<pin.length;i++){ params[pin[i].dataset.var]=pin[i].value; }
+    var notes=[], nf=document.querySelectorAll('.notefield');
+    for(var j=0;j<nf.length;j++){ var lab=nf[j].querySelector('label'), inp=nf[j].querySelector('.note-input,.note-area');
+      if(inp) notes.push({label:lab?lab.textContent:'', value:inp.value}); }
+    var sn=document.getElementById('bf-session-notes');
+    return {params:params, notes:notes, session_notes:sn?sn.value:''};
+  }
+  function notesMd(data){
+    var L=['# '+(document.title||'Walkthrough')+' — Record','','Exported: '+new Date().toString(),''];
+    var pk=Object.keys(data.params);
+    if(pk.length){ L.push('## Parameters'); pk.forEach(function(k){ L.push('- '+k+': '+data.params[k]); }); L.push(''); }
+    if(data.notes.length){ L.push('## Notes'); data.notes.forEach(function(n){ L.push('### '+n.label,(n.value||'(blank)'),''); }); }
+    L.push('## Session Notes', (data.session_notes||'(blank)'), '');
+    if(atts.length){ L.push('## Attachments'); atts.forEach(function(a){ L.push('- attachments/'+a.name+' ('+fmtSize(a.bytes.length)+')'); }); L.push(''); }
+    return L.join('\n');
+  }
+  var exportBtn=document.getElementById('bf-export-btn');
+  if(exportBtn){
+    exportBtn.addEventListener('click', function(){
+      var data=collect(), entries=[];
+      entries.push({name:'notes.md', bytes:enc(notesMd(data))});
+      entries.push({name:'record.json', bytes:enc(JSON.stringify({title:document.title, exported_at:new Date().toISOString(),
+        parameters:data.params, notes:data.notes, session_notes:data.session_notes,
+        attachments:atts.map(function(a){ return {name:a.name, size:a.bytes.length, type:a.type}; })}, null, 2))});
+      atts.forEach(function(a){ entries.push({name:'attachments/'+a.name, bytes:a.bytes}); });
+      var url=URL.createObjectURL(buildZip(entries));
+      var a=document.createElement('a'); a.href=url; a.download=titleSlug()+'_'+stamp()+'.zip';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+      var o=exportBtn.textContent; exportBtn.textContent='Saved ✓'; setTimeout(function(){ exportBtn.textContent=o; }, 1400);
     });
   }
 })();

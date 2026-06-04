@@ -272,6 +272,14 @@ NAME         STATUS   ROLES                  AGE   VERSION
 pve01-k3s    Ready    control-plane,master   5m    v1.28.x
 ```
 
+Record the outcome of this forge for your records (use **Export**, top-right, to save
+these notes + any attached logs as a timestamped package):
+
+@field[Hatchery FQDN]
+@field[k3s node status (from kubectl get nodes)]
+@field[Flux reconciliation status (flux get kustomizations)]
+@area[Any phase that needed --from resume, manual steps, or deviations]
+
 ---
 
 ## Troubleshooting

@@ -255,6 +255,15 @@ python3 assemble-spawn-package.py \
 
 Output: `spawn-package-cell-alpha-pve02-2026-06-01_12_00_00.tar.gz`
 
+Record this spawn for your records (use **Export**, top-right, to save these notes
+plus any attached logs/output as a timestamped package):
+
+@field[Broodling hostname]
+@field[Spawn package filename]
+@field[Package SHA-256 (printed by the assembler)]
+@field[Allocated VMIDs / IPs (from spawn-plan.json)]
+@area[Per-phase notes on the broodling: pre-flight result, any failures, deviations]
+
 **Package contents:**
 ```
 spawn-package-cell-alpha-pve02-2026-06-01_12_00_00.tar.gz
