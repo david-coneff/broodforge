@@ -13,6 +13,7 @@ Generated scripts use the checkpoint library pattern:
 Stdlib only. Generated scripts are bash; they run on the Proxmox host.
 """
 
+import shlex
 from typing import Optional
 
 # ---------------------------------------------------------------------------
@@ -118,15 +119,16 @@ def _step_block(step: dict) -> str:
     on_fail = step.get("on_failure", "abort")
 
     checkpoint_key = f"step-{sid}".replace(".", "-")
+    ck_q = shlex.quote(checkpoint_key)  # single-quoted for bash function args
 
     lines = [
         f"",
         f"# ── Step {sid}: {action}",
-        f'if is_done "{checkpoint_key}"; then',
-        f'    checkpoint_skip "{checkpoint_key}"',
+        f'if is_done {ck_q}; then',
+        f'    checkpoint_skip {ck_q}',
         f"else",
-        f'    checkpoint_start "{checkpoint_key}"',
-        f'    echo "[step {sid}] {action}"',
+        f'    checkpoint_start {ck_q}',
+        f"    echo '[step {sid}] {action}'",
     ]
 
     for cmd in cmds:
@@ -148,11 +150,11 @@ def _step_block(step: dict) -> str:
 
     if on_fail == "abort":
         lines += [
-            f'    checkpoint_done "{checkpoint_key}" \\',
-            f'        || {{ checkpoint_failed "{checkpoint_key}"; exit 1; }}',
+            f'    checkpoint_done {ck_q} \\',
+            f'        || {{ checkpoint_failed {ck_q}; exit 1; }}',
         ]
     else:
-        lines.append(f'    checkpoint_done "{checkpoint_key}"')
+        lines.append(f'    checkpoint_done {ck_q}')
 
     lines.append("fi")
     return "\n".join(lines)
@@ -195,16 +197,16 @@ def generate_wave_script(wave: dict, playbook: Optional[dict] = None) -> str:
             lines.append(f"#   - {p}")
     lines.append("")
     lines.append(f'echo ""')
-    lines.append(f'echo "[Wave {wave_num}] {wave_name}"')
+    lines.append(f"echo '[Wave {wave_num}] {wave_name}'")
     if est_mins:
-        lines.append(f'echo "[Wave {wave_num}] Estimated: {est_mins} minutes"')
+        lines.append(f"echo '[Wave {wave_num}] Estimated: {est_mins} minutes'")
     lines.append(f'echo ""')
 
     for step in steps:
         lines.append(_step_block(step))
 
     lines.append("")
-    lines.append(f'echo "[Wave {wave_num}] Complete."')
+    lines.append(f"echo '[Wave {wave_num}] Complete.'")
 
     return "\n".join(lines) + "\n"
 
@@ -241,14 +243,14 @@ def generate_run_all_sh(playbook: dict) -> str:
         f'  phoenix_keepass_gate',
         f'fi',
         f'',
-        f'echo "============================================================="',
-        f'echo " Phoenix Restoration: {hostname}"',
-        f'echo " Cell:   {cell_id}"',
-        f'echo " Scope:  {scope}"',
-        f'echo " Waves:  {len(waves)}"',
-        f'echo " Estimated: {est_total} minutes"',
-        f'echo " Generated: {generated}"',
-        f'echo "============================================================="',
+        f"echo '============================================================='",
+        f"echo ' Phoenix Restoration: {hostname}'",
+        f"echo ' Cell:   {cell_id}'",
+        f"echo ' Scope:  {scope}'",
+        f"echo ' Waves:  {len(waves)}'",
+        f"echo ' Estimated: {est_total} minutes'",
+        f"echo ' Generated: {generated}'",
+        f"echo '============================================================='",
         f'echo ""',
         "",
     ]
@@ -258,29 +260,30 @@ def generate_run_all_sh(playbook: dict) -> str:
         wave_name = wave.get("name", "")
         est_mins  = wave.get("estimated_minutes", "?")
         script    = f"phase-{str(wave_num).replace('.', '-')}-{wave_name.lower().replace(' ', '-')}.sh"
+        script_q  = shlex.quote(script)  # single-quoted script name — prevents $() in wave_name
 
         lines += [
-            f'# ── Wave {wave_num}: {wave_name} ({est_mins}m)',
-            f'echo "[phoenix] Starting Wave {wave_num}: {wave_name}"',
-            f'bash "$SCRIPT_DIR/{script}" \\',
-            f'    || {{ echo "[phoenix] FAILED at Wave {wave_num}: {wave_name}"; exit 1; }}',
-            f'echo "[phoenix] Wave {wave_num} complete."',
+            f"# ── Wave {wave_num}: {wave_name} ({est_mins}m)",
+            f"echo '[phoenix] Starting Wave {wave_num}: {wave_name}'",
+            f'bash "$SCRIPT_DIR/"{script_q} \\',
+            f"    || {{ echo '[phoenix] FAILED at Wave {wave_num}: {wave_name}'; exit 1; }}",
+            f"echo '[phoenix] Wave {wave_num} complete.'",
             f'echo ""',
             "",
         ]
 
     lines += [
-        f'echo "============================================================="',
-        f'echo " Phoenix Restoration Complete: {hostname}"',
-        f'echo "============================================================="',
+        f"echo '============================================================='",
+        f"echo ' Phoenix Restoration Complete: {hostname}'",
+        f"echo '============================================================='",
         f'echo ""',
-        f'echo " Post-restoration validation checklist:"',
+        f"echo ' Post-restoration validation checklist:'",
     ]
     for item in checklist:
-        lines.append(f'echo "   ☐ {item}"')
+        lines.append(f"echo '   - {item}'")
     lines += [
         f'echo ""',
-        f'echo " Update bootstrap-state.json and commit to Forgejo."',
+        f"echo ' Update bootstrap-state.json and commit to Forgejo.'",
         f'echo ""',
     ]
 
