@@ -113,15 +113,15 @@ def _section_network(manifest: dict) -> str:
     ]
     if wan:
         pairs += [
-            ("Headscale URL",  wan.get("headscale_url") or "—"),
-            ("DDNS Provider",  wan.get("dns_provider") or "—"),
-            ("TLS Provider",   wan.get("tls_provider") or "—"),
+            ("Headscale URL",  wan.get("headscale_url") or nt.get("headscale_url") or "—"),
+            ("DDNS Provider",  wan.get("dns_provider") or nt.get("ddns_provider") or "—"),
+            ("TLS Provider",   wan.get("tls_provider") or nt.get("ssl_provider") or "—"),
         ]
     items = [
         "Bridges active: ip link show",
         "dnsmasq running: systemctl status dnsmasq",
     ]
-    if wan.get("headscale_url"):
+    if wan.get("headscale_url") or nt.get("headscale_url"):
         items.append("Headscale running: systemctl status headscale")
         items.append("Hatchery registered with its own Headscale")
     body = dl(pairs) + checkbox_list(items, id_prefix="net")

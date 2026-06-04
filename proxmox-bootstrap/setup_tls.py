@@ -141,7 +141,7 @@ def generate_tls_config(
     provider = _normalize_tls_provider(
         nt.get("ssl_provider")
         or wan.get("tls_provider")
-        or TlsProvider.for_ddns_provider(wan.get("ddns_provider") or "none")
+        or TlsProvider.for_ddns_provider(wan.get("ddns_provider") or nt.get("ddns_provider") or "none")
     )
 
     cert_path = nt.get("ssl_cert_path") or "/etc/broodforge/ssl/fullchain.pem"

@@ -356,7 +356,7 @@ def build_cell_identity(
             "timezone":  hi.get("timezone"),
         },
         "network_profile":       nt.get("profile"),
-        "headscale_url":         wan.get("headscale_url"),
+        "headscale_url":         wan.get("headscale_url") or nt.get("headscale_url"),
         "forgejo_url":           None,
         "assessment_engine_url": None,
         "node_count":            None,

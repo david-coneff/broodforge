@@ -154,6 +154,41 @@ called by `engine.py`. Verified each separately with a `setup_network`-style sta
 
 ---
 
+## Audit cycle — 2026-06-04_13_20_46 UTC
+
+### Method
+
+**Comprehensive sweep** for the whole bug class (rather than one-at-a-time): grepped every
+reader of a `setup_network`-top-level key (`headscale_url`, `ddns_*`, `ssl_*`) that reads it
+from `wan_config`, across all of `proxmox-bootstrap/` and `doc-gen/`.
+
+### Findings (one cluster, G7)
+
+| Reader | Impact | Status |
+|---|---|---|
+| `spawn_planner.py` (spawn-manifest `hatchery.headscale_url`) | **HIGH** — a WAN **spawn package** would embed an empty Headscale URL, so the broodling could not join the tailnet | **[FIXED]** |
+| `spawn-planner.py` (network-mode prompt default) | MED | **[FIXED]** |
+| `twin_state_writer.py` (`headscale_url` in twin state) | MED — propagates the blank into derived state | **[FIXED]** |
+| `setup_tls.py` (ddns-provider fallback for TLS derivation) | LOW (ssl_provider read first) | **[FIXED]** |
+| `html_forge_workbook.py` (Headscale URL / providers + checklist) | LOW–MED (forge workbook display) | **[FIXED]** |
+
+All now read the key from `wan_config` **or** the top level (matching G4/G5/G6).
+
+Left as-is (correct): `forge_planner.py` reads `headscale_url` from the `wan_config` it
+*itself* builds during forge planning — internally consistent, not a cross-writer mismatch.
+
+### Fix attempt + re-audit result
+
+**Attempt 1 — resolved.** Re-grep confirms all five sites now use the read-both pattern; the
+sweep returns no remaining `wan_config`-only reads of top-level keys. Full suite **4000
+passed, 1 skipped**. (Same fix shape as G4/G5/G6, which were verified functionally.)
+
+> This closes the recurring **field-location** class (F6 dnsmasq, G1 TLS provider value,
+> G3 Headscale base, G4 DDNS, G5/G6/G7 headscale_url): writers split fields between
+> top-level `network_topology` and nested `wan_config`; readers now accept either.
+
+---
+
 ## Trailing history of fixes (cycles 1–7, this session)
 
 All verified by re-audit and the pytest suite (4000 passed, 1 skipped) at the time.

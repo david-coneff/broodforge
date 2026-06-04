@@ -90,8 +90,9 @@ def _step0_interactive(session: SpawnPlannerSession, state: dict) -> SpawnPlanne
     print("\n  Determines how the hatchery reaches the broodling for hardware")
     print("  discovery and how the broodling joins the tailnet (WAN only).\n")
 
-    wan = (state.get("network_topology") or {}).get("wan_config") or {}
-    headscale_url = wan.get("headscale_url", "")
+    _nt = state.get("network_topology") or {}
+    wan = _nt.get("wan_config") or {}
+    headscale_url = wan.get("headscale_url") or _nt.get("headscale_url") or ""
 
     sel = _choice([
         ("Same LAN",  "direct SSH using temporary root password"),

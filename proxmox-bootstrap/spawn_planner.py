@@ -490,7 +490,7 @@ def build_spawn_plan(
         },
         "hatchery": {
             "proxmox_cluster_address": hi.get("lan_ip", ""),
-            "headscale_url":           wan.get("headscale_url") or session.headscale_url or "",
+            "headscale_url":           wan.get("headscale_url") or nt.get("headscale_url") or session.headscale_url or "",
             "cell_id":                 cell,
         },
         "vms": vms,
