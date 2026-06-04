@@ -250,6 +250,44 @@ vmid/ip derivation. Verified end-to-end: a plan with 2 VMs yields 3 dns entries
 
 ---
 
+## Audit cycle — 2026-06-04_13_31_51 UTC — FIRST CLEAN PASS
+
+### Method (deep + even-deeper)
+
+Symptom-based content scans of the pipelines not yet content-checked, plus one more
+contract trace:
+
+1. **Phoenix wave content** — built a playbook from the fixture state; scanned all 64
+   step commands across 6 waves for placeholders / empties (`{{…}}`, `[VM_IP]`, `None`,
+   `POPULATE`).
+2. **Spawn IaC content** — generated tfvars, both cloud-init snippets, the Ansible
+   inventory, and the k3s group_vars; scanned for unresolved placeholders and missing
+   critical values (VM IP, VMID, k3s token).
+3. **Backup contract** — cross-referenced the `backup_config` keys `setup-backup.py`
+   writes vs. those `run-backup.py` / `restore-from-backup.py` read.
+
+### Result
+
+- **Phoenix waves: clean** — real VMIDs (100/101/102/103/9000) in `qm` commands, no
+  placeholders.
+- **Spawn IaC: clean** — tfvars carries `vmid=241`, `ip=192.168.1.41/24`; the k3s
+  group_vars now carries the real join token (G8 fix); inventory + cloud-init populated.
+- **Backup contract: coherent** — readers read only keys the writer produces; no
+  field-name/location mismatch.
+
+**No new findings.** This is the first cycle where both a deepthink pass and an
+even-deeper pass surface zero issues — the stopping condition.
+
+### Caveat
+
+The structured audits (documented commands, CLI flags, network-field locations, secret
+flow, spawn/phoenix/backup content) are now clean. This does **not** prove the absence of
+deeper logic bugs or anything that only appears on real Proxmox hardware — those remain
+`user-tested`-pending (see `FEATURE-HISTORY.md`). Full suite throughout: **4000 passed,
+1 skipped**.
+
+---
+
 ## Trailing history of fixes (cycles 1–7, this session)
 
 All verified by re-audit and the pytest suite (4000 passed, 1 skipped) at the time.

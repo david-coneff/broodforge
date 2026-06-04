@@ -216,6 +216,38 @@
 <h3>Fix + re-audit result</h3>
 <p><code>build_spawn_result</code> now derives <code>dns_entries</code> from <code>spawn_plan["lan_ip"]</code> (the broodling host) and each <code>vms[].ip</code> (with fqdn from the VM name + domain), matching the existing vmid/ip derivation. Verified end-to-end: a plan with 2 VMs yields 3 dns entries (broodling + 2 VMs) and <code>update_state_after_spawn</code> registers all three IPs into <code>dns_registry</code>. 451 spawn/update/receiver tests pass; full suite <strong>4000 passed, 1 skipped</strong>.</p>
 <hr>
+</div></details><details class="section" open><summary><h2>Audit cycle — 2026-06-04_13_31_51 UTC — FIRST CLEAN PASS</h2></summary><div class="sec-body">
+<h3>Method (deep + even-deeper)</h3>
+<p>Symptom-based content scans of the pipelines not yet content-checked, plus one more contract trace:</p>
+<ol>
+<li><strong>Phoenix wave content</strong> — built a playbook from the fixture state; scanned all 64</li>
+</ol>
+<p>step commands across 6 waves for placeholders / empties (<code>{{…}}</code>, <code>[VM_IP]</code>, <code>None</code>, <code>POPULATE</code>).</p>
+<ol>
+<li><strong>Spawn IaC content</strong> — generated tfvars, both cloud-init snippets, the Ansible</li>
+</ol>
+<p>inventory, and the k3s group_vars; scanned for unresolved placeholders and missing critical values (VM IP, VMID, k3s token).</p>
+<ol>
+<li><strong>Backup contract</strong> — cross-referenced the <code>backup_config</code> keys <code>setup-backup.py</code></li>
+</ol>
+<p>writes vs. those <code>run-backup.py</code> / <code>restore-from-backup.py</code> read.</p>
+<h3>Result</h3>
+<ul>
+<li><strong>Phoenix waves: clean</strong> — real VMIDs (100/101/102/103/9000) in <code>qm</code> commands, no</li>
+</ul>
+<p>placeholders.</p>
+<ul>
+<li><strong>Spawn IaC: clean</strong> — tfvars carries <code>vmid=241</code>, <code>ip=192.168.1.41/24</code>; the k3s</li>
+</ul>
+<p>group_vars now carries the real join token (G8 fix); inventory + cloud-init populated.</p>
+<ul>
+<li><strong>Backup contract: coherent</strong> — readers read only keys the writer produces; no</li>
+</ul>
+<p>field-name/location mismatch.</p>
+<p><strong>No new findings.</strong> This is the first cycle where both a deepthink pass and an even-deeper pass surface zero issues — the stopping condition.</p>
+<h3>Caveat</h3>
+<p>The structured audits (documented commands, CLI flags, network-field locations, secret flow, spawn/phoenix/backup content) are now clean. This does <strong>not</strong> prove the absence of deeper logic bugs or anything that only appears on real Proxmox hardware — those remain <code>user-tested</code>-pending (see <code>FEATURE-HISTORY.md</code>). Full suite throughout: <strong>4000 passed, 1 skipped</strong>.</p>
+<hr>
 </div></details><details class="section" open><summary><h2>Trailing history of fixes (cycles 1–7, this session)</h2></summary><div class="sec-body">
 <p>All verified by re-audit and the pytest suite (4000 passed, 1 skipped) at the time.</p>
 <table><thead><tr><th>Finding</th><th>Resolution</th><th>Status</th></tr></thead><tbody><tr><td>Forge package shipped without its library code (<code>--repo</code> optional, docs omit it) → phase-00 fails</td><td>Assembler infers repo root by default; verified bundles 95 tools + 26 schemas + 78 doc-gen</td><td><strong>[FIXED]</strong></td></tr><tr><td>Dashboard <code>/api/state</code> (unauth) leaked k3s join tokens from bootstrap-state.json</td><td><code>_redact_secrets()</code> on all unauth GET endpoints</td><td><strong>[FIXED]</strong></td></tr><tr><td>Spawn pre-flight <code>validate-spawn.py</code> referenced but never bundled (silent skip)</td><td>New <code>validate-spawn.py</code> CLI + closure bundled</td><td><strong>[FIXED]</strong></td></tr><tr><td>Forge IaC: <code>ansible/</code> + <code>generators/</code> not bundled; phase-05 referenced wrong filenames</td><td>Bundle both; fix phase-05 paths; honest status note</td><td><strong>[FIXED]</strong></td></tr><tr><td>Stargate workflow had no playbook-generation entry point</td><td><code>phoenix-planner.py --state</code> now generates; new <code>docs/PHOENIX.md</code></td><td><strong>[FIXED]</strong></td></tr><tr><td><code>engine.py</code> invoked with unsupported <code>--state</code>/<code>--output</code> (forge phase-07)</td><td>Switched to <code>--manifest</code></td><td><strong>[FIXED]</strong></td></tr><tr><td><code>engine.py --set-timezone</code> documented (AD-045) but unimplemented</td><td>Implemented <code>--set-timezone TZ</code></td><td><strong>[FIXED]</strong></td></tr><tr><td><code>spawn_hardware_discovery.py</code> (NODE-SPAWNING step 1) had no CLI; password auth dead</td><td>Added CLI + <code>sshpass</code> password auth (no argv leak)</td><td><strong>[FIXED]</strong></td></tr><tr><td><code>setup_ddns.py</code> library invoked as CLI by forge + docs; <code>setup-ddns.py</code> filename wrong</td><td>Real CLI (both forms); fixed all references</td><td><strong>[FIXED]</strong></td></tr><tr><td><code>init-bootstrap-state.py</code> (forge phase-07) ignored <code>--manifest</code>, would hang interactively</td><td><code>--manifest</code> seeds state non-interactively; phase-07 passes <code>--non-interactive</code></td><td><strong>[FIXED]</strong></td></tr><tr><td>Stale spawn/phoenix phase names, test counts, broken doc links, "Forgability" spelling</td><td>Corrected across README/ROADMAP/FORGING/ARCHITECTURE</td><td><strong>[FIXED]</strong></td></tr></tbody></table></div></details>
