@@ -191,9 +191,11 @@ bash forge.sh --reset</code></pre></div>
 <li>Configure port forwarding: 8080 → hatchery LAN IP (for Headscale)</li>
 </ol>
 <h3>Phase 04 — VMs</h3>
-<p>Provisions the minimum viable stack VMs using OpenTofu. The VM IDs, IPs, and roles are derived from <code>forge-manifest.json</code>. VM definitions are in <code>opentofu/</code>.</p>
+<p>Provisions the minimum viable stack VMs (Forgejo + operations) using OpenTofu, from an <code>opentofu/</code> directory in the package. VM IDs, IPs, and roles are derived from <code>forge-manifest.json</code>.</p>
 <h3>Phase 05 — k3s</h3>
-<p>Runs the Ansible <code>k3s-server</code> role against the provisioned VMs. The k3s join token is retrieved from KeePass automatically.</p>
+<p>Runs the Ansible <code>k3s-server</code> playbook (<code>ansible/playbooks/04-k3s.yaml</code>) against the provisioned VMs, using the generated inventory at <code>ansible/inventory/hosts.yaml</code>. The k3s join token is retrieved from KeePass automatically.</p>
+<h3>Forge provisioning status (opentofu/ansible)</h3>
+<blockquote><strong>Implementation status — read before forging on real hardware.</strong> The forge package bundles the Ansible roles/playbooks (<code>ansible/</code>) and the IaC generators (<code>proxmox-bootstrap/generators/</code>). The <strong>OpenTofu modules</strong> that phase-04 applies, and the generated <strong>Ansible inventory</strong> (<code>ansible/inventory/ hosts.yaml</code>) that phase-05 needs, are the active *deploy-to-hardware* work and are not yet produced end-to-end by the package. Until that layer is complete, <code>forge.sh</code> runs all phases but <strong>phase-04 and phase-05 self-skip</strong> with a clear message rather than failing. To forge a working hatchery today, after phase-03 you provision the Forgejo + operations VMs and the k3s server yourself (or supply your own <code>opentofu/</code> + <code>ansible/inventory/</code>), then resume with <code>bash forge.sh --from 6</code> for the GitOps / intelligence / verify phases. The <strong>spawn</strong> flow, by contrast, generates its IaC fully (<code>spawn_iac_generator.py</code>) and provisions broodling VMs without this gap.</blockquote>
 <h3>Phase 06 — Flux CD bootstrap</h3>
 <p>Bootstraps Flux CD against the Forgejo git server. Flux will continuously reconcile the GitOps repository to deploy application workloads.</p>
 <p><strong>After forging:</strong> push your application manifests to the Forgejo repository. Flux CD will deploy them automatically without further manual intervention.</p>

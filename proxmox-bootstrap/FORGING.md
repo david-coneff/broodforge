@@ -197,13 +197,34 @@ If you selected the WAN network profile:
 
 ### Phase 04 — VMs
 
-Provisions the minimum viable stack VMs using OpenTofu. The VM IDs, IPs, and roles
-are derived from `forge-manifest.json`. VM definitions are in `opentofu/`.
+Provisions the minimum viable stack VMs (Forgejo + operations) using OpenTofu,
+from an `opentofu/` directory in the package. VM IDs, IPs, and roles are derived
+from `forge-manifest.json`.
 
 ### Phase 05 — k3s
 
-Runs the Ansible `k3s-server` role against the provisioned VMs. The k3s join token
-is retrieved from KeePass automatically.
+Runs the Ansible `k3s-server` playbook (`ansible/playbooks/04-k3s.yaml`) against
+the provisioned VMs, using the generated inventory at `ansible/inventory/hosts.yaml`.
+The k3s join token is retrieved from KeePass automatically.
+
+### Forge provisioning status (opentofu/ansible)
+
+> **Implementation status — read before forging on real hardware.**
+>
+> The forge package bundles the Ansible roles/playbooks (`ansible/`) and the IaC
+> generators (`proxmox-bootstrap/generators/`). The **OpenTofu modules** that
+> phase-04 applies, and the generated **Ansible inventory** (`ansible/inventory/
+> hosts.yaml`) that phase-05 needs, are the active *deploy-to-hardware* work and
+> are not yet produced end-to-end by the package.
+>
+> Until that layer is complete, `forge.sh` runs all phases but **phase-04 and
+> phase-05 self-skip** with a clear message rather than failing. To forge a working
+> hatchery today, after phase-03 you provision the Forgejo + operations VMs and the
+> k3s server yourself (or supply your own `opentofu/` + `ansible/inventory/`), then
+> resume with `bash forge.sh --from 6` for the GitOps / intelligence / verify phases.
+>
+> The **spawn** flow, by contrast, generates its IaC fully (`spawn_iac_generator.py`)
+> and provisions broodling VMs without this gap.
 
 ### Phase 06 — Flux CD bootstrap
 

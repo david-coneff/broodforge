@@ -496,7 +496,10 @@ if is_done "$step"; then checkpoint_skip "$step"; else
     tofu apply -input=false forge.tfplan
     cd "$SCRIPT_DIR"
   else
-    echo "[phase-04] No opentofu/ directory found — skipping (VMs may be pre-created)."
+    echo "[phase-04] No opentofu/ modules in package — VM provisioning skipped." >&2
+    echo "[phase-04] The forge VM-provisioning IaC is the active deploy-to-hardware" >&2
+    echo "[phase-04] work; see FORGING.md 'Forge provisioning status (opentofu/ansible)'." >&2
+    echo "[phase-04] Provision the Forgejo + operations VMs manually, then re-run --from 5." >&2
   fi
   checkpoint_done "$step"
 fi
@@ -511,22 +514,22 @@ def generate_phase_05_sh(manifest: dict) -> str:
 step="phase05_k3s"
 if is_done "$step"; then checkpoint_skip "$step"; else
   checkpoint_start "$step"
-  if [ -d "$SCRIPT_DIR/ansible" ]; then
+  _ans="$SCRIPT_DIR/ansible"
+  _inv="$_ans/inventory/hosts.yaml"
+  _play="$_ans/playbooks/04-k3s.yaml"
+  if [ -f "$_inv" ] && [ -f "$_play" ]; then
     # Write k3s token to a temp vars file so it never appears on the ansible command line
     # (command-line -e values are visible in ps aux and may appear in logs)
     _k3s_vars=$(mktemp)
     chmod 600 "$_k3s_vars"
     trap 'rm -f "$_k3s_vars"' EXIT INT TERM
     printf 'k3s_token: "%s"\\n' "$(kdbx_get 'k3s/join-token-server')" > "$_k3s_vars"
-    ansible-playbook \\
-      -i "$SCRIPT_DIR/ansible/inventory.ini" \\
-      "$SCRIPT_DIR/ansible/site.yml" \\
-      --tags k3s-server \\
-      -e "@$_k3s_vars"
+    ansible-playbook -i "$_inv" "$_play" -e "@$_k3s_vars"
     rm -f "$_k3s_vars"
     trap - EXIT INT TERM
   else
-    echo "[phase-05] No ansible/ directory — k3s setup may be manual." >&2
+    echo "[phase-05] ansible inventory ($_inv) not generated — k3s setup is manual for now." >&2
+    echo "[phase-05] See FORGING.md 'Forge provisioning status (opentofu/ansible)'." >&2
   fi
   checkpoint_done "$step"
 fi

@@ -280,8 +280,8 @@ forge-package-{cell_id}-{ts}.tar.gz
   ├── discovery/              Hardware, network, storage discovery scripts
   ├── planners/               Cluster, storage, network, naming planners
   ├── generators/             OpenTofu vars, Cloud-Init snippets, Ansible inventory
-  ├── opentofu/               IaC for Proxmox VMs (Forgejo, operations VM)
-  ├── ansible/                Roles: proxmox-host, forgejo, k3s-server, flux-bootstrap
+  ├── [opentofu/]             IaC for Proxmox VMs (Forgejo, operations VM) — in progress (see FORGING.md)
+  ├── ansible/                Roles + playbooks: common, forgejo, operations-vm, k3s-server
   ├── scripts/
   │   ├── forge.sh            Orchestrated entry point — runs all phases
   │   ├── phase-00-discover.sh   Hardware/network/storage discovery
@@ -1358,8 +1358,15 @@ latest session context.
 **Test suite: 4000 passing, 1 skipped (Windows-only).**
 All roadmap milestones complete through Phase 26 (Autonomous Remediation) + 9.T
 (Talos alternative), including node spawn automation (Phase 12.E) and the phoenix
-recovery/stargate process. The implementation is feature-complete against the v7.1
-architecture; ongoing work is hardening and real-hardware validation.
+recovery/stargate process. The planning, assessment, spawn, phoenix, recovery, and
+remediation tiers are implemented and tested.
+
+**One known gap:** the **forge** VM-provisioning IaC — the OpenTofu modules for the
+initial Forgejo + operations VMs, and the generated Ansible inventory — is the
+active deploy-to-hardware work. `forge.sh` runs end-to-end but phases 04–05 self-skip
+with a clear message until that layer lands (see `proxmox-bootstrap/FORGING.md`
+→ "Forge provisioning status"). The spawn flow generates its IaC fully and does not
+share this gap.
 
 ### Active
 

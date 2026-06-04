@@ -59,6 +59,28 @@ execution paths) until zero findings on a deep + deeper pass, or budget exhauste
 Candidate not yet addressed: theme toggle on the runtime-generated dashboard HTML
 (it is an app surface, not documentation — deferred deliberately).
 
+### Audit cycle 2 — forge IaC provisioning incoherence (fixed, bounded)
+
+Deepthink trace of the forge execution path found a real docs-vs-code incoherence:
+the docs present `forge.sh` as turnkey (bare metal → operational hatchery with
+Forgejo VM + k3s), but:
+- No `opentofu/` modules exist anywhere in the repo; forge phase-04 needs them.
+- forge phase-05 referenced **nonexistent** `ansible/site.yml` + `ansible/inventory.ini`
+  (the real files are `ansible/playbooks/04-k3s.yaml` + `ansible/inventory/hosts.yaml`).
+- The assembler bundled neither `ansible/` (exists, 18 files) nor
+  `proxmox-bootstrap/generators/` (the IaC producers; skipped by the non-recursive
+  `*.py` glob).
+
+Result: phases 04–05 silently skipped VM + k3s provisioning while docs claimed success.
+
+Bounded fixes (full opentofu authoring is the deploy-to-hardware milestone, not an
+audit-fix): assembler now bundles `ansible/` + `generators/`; phase-05 references the
+real playbook/inventory paths and only runs ansible when the inventory exists, else
+degrades with a pointer to the new FORGING.md "Forge provisioning status" note;
+phase-04 message made honest. README "feature-complete" claim corrected to name the
+forge VM-provisioning IaC as the one known gap. Verified: forge package bundles 18
+ansible + 15 generator files incl. the k3s playbook/role. Tests: 4000 passed, 1 skipped.
+
 ---
 
 ### Audit rounds 16–18 (completed)

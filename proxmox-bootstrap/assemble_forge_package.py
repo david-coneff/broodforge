@@ -259,5 +259,16 @@ def assemble_forge_package(
             dg_dir = repo_dir / "doc-gen"
             if dg_dir.exists():
                 _add_dir(dg_dir, "doc-gen")
+            # Ansible roles + playbooks (forge VM + k3s configuration). phase-05
+            # references ansible/playbooks/04-k3s.yaml and ansible/inventory/.
+            ans_dir = repo_dir / "ansible"
+            if ans_dir.exists():
+                _add_dir(ans_dir, "ansible")
+            # IaC generators (produce opentofu tfvars + ansible inventory from
+            # plans). proxmox-bootstrap/*.py is bundled non-recursively above, so
+            # the generators/ subpackage must be added explicitly.
+            gen_dir = repo_dir / "proxmox-bootstrap" / "generators"
+            if gen_dir.exists():
+                _add_dir(gen_dir, "proxmox-bootstrap/generators")
 
     return pkg_path

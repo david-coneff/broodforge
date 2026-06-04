@@ -220,8 +220,8 @@ Wave 5    Post-restore validation  (cluster health, all in-scope VMs running)</c
   ├── discovery/              Hardware, network, storage discovery scripts
   ├── planners/               Cluster, storage, network, naming planners
   ├── generators/             OpenTofu vars, Cloud-Init snippets, Ansible inventory
-  ├── opentofu/               IaC for Proxmox VMs (Forgejo, operations VM)
-  ├── ansible/                Roles: proxmox-host, forgejo, k3s-server, flux-bootstrap
+  ├── [opentofu/]             IaC for Proxmox VMs (Forgejo, operations VM) — in progress (see FORGING.md)
+  ├── ansible/                Roles + playbooks: common, forgejo, operations-vm, k3s-server
   ├── scripts/
   │   ├── forge.sh            Orchestrated entry point — runs all phases
   │   ├── phase-00-discover.sh   Hardware/network/storage discovery
@@ -862,7 +862,8 @@ Phase 7   Monitoring ────────────────  GATE 4: p
 <p>Broodforge is under active development. See <a href="ROADMAP.md">ROADMAP.md</a> for full milestone detail and <a href="docs/SESSION-HANDOFF.md">docs/SESSION-HANDOFF.md</a> for the latest session context.</p>
 <h3>Completed</h3>
 <table><thead><tr><th>Milestone</th><th>Description</th></tr></thead><tbody><tr><td>Legacy <code>pae</code> CLI</td><td>Assessment engine, SQLite history, OpenTofu ingestion, report generation</td></tr><tr><td>Architecture Reviews v4–v7</td><td>Progressive architecture formalization (v7: Assessment Engine as first-class subsystem, 5 scores, 12-phase roadmap)</td></tr><tr><td>Phase 0</td><td>Metadata model — 10 authoritative YAML schemas + validator</td></tr><tr><td>Phase 1</td><td>Bootstrap Intelligence — hardware/network/storage discovery + 4 planners + 2 validators</td></tr><tr><td>Milestones 5.1–5.6</td><td>Data model formalization, bootstrap/recovery doc generators, readiness scoring, drift detection</td></tr><tr><td>Milestones 6.0–6.8</td><td>Bootstrap State schema, Cloud-Init templates, Secret/DNS registries, provenance tracking, template registry, Tier 2 SSH state collector, Bootstrap Workbook registry wiring</td></tr><tr><td>Milestones 7.1–7.3</td><td>Service contract implementation, service state schema and collection, external dependency state (cert expiry monitoring, recovery runbook Appendix G)</td></tr></tbody></table>
-<p><strong>Test suite: 4000 passing, 1 skipped (Windows-only).</strong> All roadmap milestones complete through Phase 26 (Autonomous Remediation) + 9.T (Talos alternative), including node spawn automation (Phase 12.E) and the phoenix recovery/stargate process. The implementation is feature-complete against the v7.1 architecture; ongoing work is hardening and real-hardware validation.</p>
+<p><strong>Test suite: 4000 passing, 1 skipped (Windows-only).</strong> All roadmap milestones complete through Phase 26 (Autonomous Remediation) + 9.T (Talos alternative), including node spawn automation (Phase 12.E) and the phoenix recovery/stargate process. The planning, assessment, spawn, phoenix, recovery, and remediation tiers are implemented and tested.</p>
+<p><strong>One known gap:</strong> the <strong>forge</strong> VM-provisioning IaC — the OpenTofu modules for the initial Forgejo + operations VMs, and the generated Ansible inventory — is the active deploy-to-hardware work. <code>forge.sh</code> runs end-to-end but phases 04–05 self-skip with a clear message until that layer lands (see <code>proxmox-bootstrap/FORGING.md</code> → "Forge provisioning status"). The spawn flow generates its IaC fully and does not share this gap.</p>
 <h3>Active</h3>
 <p><strong>Deploy to hardware</strong> — All implementation milestones complete. Next step: run <code>python3 proxmox-bootstrap/forge-planner.py</code> on your workstation to plan the first cell, then <code>assemble-forge-package.py</code> and <code>bash forge.sh</code> on a real Proxmox host. See <code>proxmox-bootstrap/FORGING.md</code> for the full operator runbook.</p>
 <h3>Upcoming</h3>
