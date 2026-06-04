@@ -55,6 +55,15 @@
   .attach-list button{margin-left:auto;background:none;border:1px solid var(--border);color:var(--muted);
     border-radius:4px;cursor:pointer;padding:1px 8px;font-size:.85em}
   .attach-list button:hover{border-color:var(--red);color:var(--red)}
+  /* collapsible sections (--collapsible) */
+  details.section{margin:8px 0;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+  details.section>summary{background:var(--bg2);color:var(--accent);cursor:pointer;user-select:none;
+    padding:9px 14px;font-weight:600;font-size:1.0em;list-style:none;text-transform:uppercase;letter-spacing:.04em}
+  details.section>summary::-webkit-details-marker{display:none}
+  details.section>summary::before{content:'▶';font-size:.7em;color:var(--muted);margin-right:8px;transition:transform .15s}
+  details.section[open]>summary::before{transform:rotate(90deg)}
+  details.section>summary h2{display:inline;border:none;margin:0;padding:0;font-size:inherit;color:inherit;letter-spacing:inherit}
+  details.section .sec-body{padding:6px 16px 14px}
   /* code block + copy */
   .codewrap{position:relative;margin:10px 0}
   .copy-btn{position:absolute;top:6px;right:6px;background:var(--btn-bg);color:var(--muted);
