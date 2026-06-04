@@ -501,7 +501,7 @@ def generate_dashboard_html(
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta http-equiv="refresh" content="60">
-<title>Broodforge Dashboard — {cell_id}</title>
+<title>Broodforge Dashboard — {_e(cell_id)}</title>
 <style>
   :root{{--bg:#1a1d23;--bg2:#22262e;--bg3:#2a2f3a;--border:#3a3f4d;--text:#cdd6f4;--muted:#7f8498;
     --accent:#89b4fa;--green:#a6e3a1;--yellow:#f9e2af;--orange:#fab387;--red:#f38ba8;--code-bg:#181b21;--radius:6px}}
@@ -577,7 +577,7 @@ def generate_dashboard_html(
 
 <div class="topbar">
   <span class="topbar-title">🔥 Broodforge</span>
-  <span class="topbar-cell">{cell_id} · {hostname}</span>
+  <span class="topbar-cell">{_e(cell_id)} · {_e(hostname)}</span>
   {auto_badge}
   <span class="topbar-time">Generated: {gen_at}</span>
   <span class="topbar-ver">v{DASHBOARD_VERSION}</span>
@@ -699,7 +699,7 @@ def generate_dashboard_html(
 
   <p style="color:var(--muted);font-size:.78em;margin-top:16px;text-align:center">
     Broodforge Dashboard v{DASHBOARD_VERSION} · <a href="/api/state" style="color:var(--muted)">state</a> ·
-    Binds <code>{cfg.listen_host}:{cfg.listen_port}</code>
+    Binds <code>{_e(cfg.listen_host)}:{cfg.listen_port}</code>
   </p>
 
 </div>
