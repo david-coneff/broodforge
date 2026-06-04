@@ -91,11 +91,11 @@ def generate_headscale_config(
     tls_cert = network_topology.get("ssl_cert_path") or None
     tls_key  = network_topology.get("ssl_key_path")  or None
 
-    # dns_base_domain derived from operator domain
+    # MagicDNS base_domain must be a domain the operator controls. Use a subdomain of
+    # their own domain (brood.{domain}) rather than brood.{tld} — the latter produced
+    # e.g. "brood.com", a registrable domain the operator does not own.
     domain   = host_identity.get("domain") or "home.example.com"
-    # Strip TLD for short internal domain
-    parts = domain.split(".")
-    dns_base = f"brood.{parts[-1]}" if len(parts) >= 2 else "brood.internal"
+    dns_base = f"brood.{domain}" if domain else "brood.internal"
 
     return HeadscaleConfig(
         server_url=server_url,

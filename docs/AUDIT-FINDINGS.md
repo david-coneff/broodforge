@@ -67,6 +67,36 @@ is told these are manual today, so they are not *hidden* broken steps.
 
 ---
 
+## Audit cycle — 2026-06-04_13_01_48 UTC
+
+### Method
+
+Deep **content** verification of the config generators wired in the previous cycle
+(F1–F3) — not just "does the CLI write a file", but "is the generated config correct".
+This surfaced the same *field/value-mismatch* class as F6.
+
+### Findings
+
+| # | Area | Finding | Status |
+|---|---|---|---|
+| G1 | forge phase-03 TLS | `generate_tls_config()` stores `ssl_provider` verbatim, but `setup_network.py` writes it as **`certbot-cloudflare`** / **`acme.sh-duckdns`** while `TlsProvider` constants are `certbot` / `acme.sh`. So `render_tls_commands()` never matches → falls through to a **no-op (no certificate issued)** for every real provider value. Only the bare `certbot` worked. | **[FIXED]** — normalize the provider to the `TlsProvider` constants before matching |
+| G2 | forge phase-03 TLS | `acme_email` is read from `wan_config.acme_email` but is **written nowhere** in the codebase → certbot always uses `--register-unsafely-without-email`. Functional (cert still issues) but suboptimal. | **[FIXED]** — also read top-level `acme_email`; behavior still valid when absent |
+| G3 | forge phase-03 Headscale | `dns_base_domain = brood.{tld}` → **`brood.com`** for `home.example.com` — a registrable domain the operator does **not** own, used as the MagicDNS base. | **[FIXED]** — derive from the operator's own domain (`brood.{domain}`) |
+
+### Fix attempt + re-audit result
+
+**Attempt 1 — all three resolved; no second round required.** Re-audited each against
+the original problem:
+- **G1** — `certbot-cloudflare`→`certbot` (13 cmds), `acme.sh-duckdns`→`acme.sh` (6 cmds),
+  `cloudflare`/`duckdns` likewise, `self-signed` (4 cmds); `none` correctly stays a 1-line
+  no-op. Previously every real value produced the 1-line no-op.
+- **G2** — top-level `acme_email` now flows into the cert config.
+- **G3** — `dns_base_domain` = `brood.home.example.com` (operator-owned subdomain).
+
+290 tls/headscale/network tests pass; full suite **4000 passed, 1 skipped**.
+
+---
+
 ## Trailing history of fixes (cycles 1–7, this session)
 
 All verified by re-audit and the pytest suite (4000 passed, 1 skipped) at the time.

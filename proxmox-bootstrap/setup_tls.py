@@ -97,6 +97,26 @@ class TlsConfig:
 # Generator
 # ---------------------------------------------------------------------------
 
+def _normalize_tls_provider(raw: str) -> str:
+    """Map any stored provider value to a canonical TlsProvider constant.
+
+    setup_network.py stores ssl_provider as "certbot-cloudflare" / "acme.sh-duckdns";
+    setup_ddns uses "cloudflare" / "duckdns"; the TlsProvider constants are "certbot" /
+    "acme.sh". Without this, render_tls_commands() never matched and silently issued no
+    certificate.
+    """
+    r = (raw or "").strip().lower()
+    if not r or r == "none":
+        return TlsProvider.NONE
+    if "certbot" in r or "cloudflare" in r:
+        return TlsProvider.CERTBOT
+    if "acme" in r or "duckdns" in r:
+        return TlsProvider.ACME_SH
+    if "self" in r:
+        return TlsProvider.SELF_SIGNED
+    return r
+
+
 def generate_tls_config(
     network_topology: dict,
     host_identity:    dict,
@@ -116,8 +136,9 @@ def generate_tls_config(
     fqdn    = host_identity.get("fqdn")   or "hatchery.home.example.com"
     domain  = host_identity.get("domain") or "home.example.com"
 
-    # Determine provider
-    provider = (
+    # Determine provider, then normalize to a canonical TlsProvider constant so
+    # render_tls_commands() matches regardless of how the value was stored.
+    provider = _normalize_tls_provider(
         nt.get("ssl_provider")
         or wan.get("tls_provider")
         or TlsProvider.for_ddns_provider(wan.get("ddns_provider") or "none")
@@ -141,7 +162,7 @@ def generate_tls_config(
         provider=provider,
         fqdn=fqdn,
         domain=domain,
-        acme_email=wan.get("acme_email"),
+        acme_email=wan.get("acme_email") or nt.get("acme_email"),
         cloudflare_token_keepass_path=wan.get("cloudflare_token_keepass_path"),
         duckdns_subdomain=duckdns_sub,
         cert_path=cert_path,
