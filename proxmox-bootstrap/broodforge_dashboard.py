@@ -648,15 +648,15 @@ def generate_dashboard_html(
         <div class="stat-label">Security score</div>
       </div>
       <div class="stat">
-        <div class="stat-val" style="color:var(--red)">{sec_red}</div>
+        <div class="stat-val" style="color:var(--red)">{_e(str(sec_red))}</div>
         <div class="stat-label">RED (leaks)</div>
       </div>
       <div class="stat">
-        <div class="stat-val" style="color:var(--orange)">{sec_orange}</div>
+        <div class="stat-val" style="color:var(--orange)">{_e(str(sec_orange))}</div>
         <div class="stat-label">ORANGE (unsafe)</div>
       </div>
       <div class="stat">
-        <div class="stat-val" style="color:var(--yellow)">{sec_yellow}</div>
+        <div class="stat-val" style="color:var(--yellow)">{_e(str(sec_yellow))}</div>
         <div class="stat-label">YELLOW (review)</div>
       </div>
       <div class="stat">
