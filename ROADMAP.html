@@ -7,10 +7,14 @@
 <style>
   :root{--bg:#1a1d23;--bg2:#22262e;--bg3:#2a2f3a;--border:#3a3f4d;--text:#cdd6f4;--muted:#7f8498;
     --accent:#89b4fa;--green:#a6e3a1;--yellow:#f9e2af;--orange:#fab387;--red:#f38ba8;
-    --code-bg:#181b21;--radius:6px}
+    --code-bg:#181b21;--code-text:#a6e3a1;--radius:6px;--btn-bg:#2a2f3a}
+  body.light{--bg:#ffffff;--bg2:#f4f5f7;--bg3:#eceff2;--border:#d0d7de;--text:#1f2328;--muted:#57606a;
+    --accent:#0969da;--green:#1a7f37;--yellow:#9a6700;--orange:#bc4c00;--red:#cf222e;
+    --code-bg:#f6f8fa;--code-text:#0a3069;--btn-bg:#eaeef2}
   *{box-sizing:border-box;margin:0;padding:0}
   body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
-    font-size:14px;line-height:1.6;padding:24px;max-width:1100px;margin:0 auto}
+    font-size:14px;line-height:1.6;padding:24px 24px 80px;max-width:1100px;margin:0 auto;
+    transition:background .15s,color .15s}
   h1{color:var(--accent);font-size:1.7em;margin:18px 0 4px}
   h2{color:var(--accent);font-size:1.05em;margin:24px 0 8px;text-transform:uppercase;letter-spacing:.05em;
     border-bottom:1px solid var(--border);padding-bottom:4px}
@@ -22,13 +26,13 @@
   li>ul,li>ol{margin:4px 0 4px 18px}
   strong{color:var(--text);font-weight:600}
   hr{border:none;border-top:1px solid var(--border);margin:20px 0}
-  blockquote{border-left:3px solid var(--accent);background:#1e2d3a;margin:10px 0;
+  blockquote{border-left:3px solid var(--accent);background:var(--bg2);margin:10px 0;
     padding:8px 14px;border-radius:0 var(--radius) var(--radius) 0;color:var(--text)}
-  code{background:var(--code-bg);color:var(--green);padding:1px 5px;border-radius:3px;
+  code{background:var(--code-bg);color:var(--code-text);padding:1px 5px;border-radius:3px;
     font-family:'Cascadia Code','Fira Code',Consolas,monospace;font-size:.9em}
   pre{background:var(--code-bg);border:1px solid var(--border);border-radius:var(--radius);
-    padding:12px 14px;overflow-x:auto;margin:10px 0;font-family:'Cascadia Code','Fira Code',Consolas,monospace;
-    font-size:.85em;color:var(--green);white-space:pre}
+    padding:12px 14px;overflow-x:auto;margin:0;font-family:'Cascadia Code','Fira Code',Consolas,monospace;
+    font-size:.85em;color:var(--code-text);white-space:pre}
   pre code{background:none;padding:0;color:inherit}
   table{width:100%;border-collapse:collapse;margin:10px 0;font-size:.88em}
   th{background:var(--bg2);color:var(--muted);text-align:left;padding:6px 8px;
@@ -36,11 +40,44 @@
   td{padding:5px 8px;border-bottom:1px solid var(--bg3);vertical-align:top}
   tr:last-child td{border-bottom:none}
   .doc-meta{color:var(--muted);font-size:.8em;margin:4px 0 20px}
-  @media print{body{padding:12px;max-width:none}}
+  /* theme toggle */
+  #bf-theme-btn{position:fixed;top:14px;right:16px;z-index:50;background:var(--btn-bg);color:var(--text);
+    border:1px solid var(--border);border-radius:var(--radius);padding:5px 12px;cursor:pointer;
+    font-size:.8em;font-family:inherit}
+  #bf-theme-btn:hover{border-color:var(--accent);color:var(--accent)}
+  /* code block + copy */
+  .codewrap{position:relative;margin:10px 0}
+  .copy-btn{position:absolute;top:6px;right:6px;background:var(--btn-bg);color:var(--muted);
+    border:1px solid var(--border);border-radius:4px;padding:2px 9px;cursor:pointer;font-size:.72em;
+    font-family:inherit;opacity:.55;transition:opacity .12s}
+  .codewrap:hover .copy-btn{opacity:1}
+  .copy-btn:hover{border-color:var(--accent);color:var(--accent)}
+  .tpl{color:var(--orange);background:rgba(250,179,135,.13);border-radius:3px;padding:0 2px}
+  body.light .tpl{background:rgba(188,76,0,.10)}
+  /* parameters panel */
+  .params{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+    padding:12px 16px;margin:14px 0 18px}
+  .params h3{margin:0 0 8px;color:var(--accent)}
+  .params .hint{color:var(--muted);font-size:.8em;margin-bottom:10px}
+  .param-row{display:flex;align-items:center;gap:10px;margin:6px 0;flex-wrap:wrap}
+  .param-row label{min-width:200px;font-family:monospace;font-size:.85em;color:var(--muted)}
+  .param-input,.note-input,.note-area,#bf-session-notes{background:var(--code-bg);color:var(--text);
+    border:1px solid var(--border);border-radius:4px;padding:5px 8px;font-family:'Cascadia Code',Consolas,monospace;
+    font-size:.85em;flex:1;min-width:220px}
+  .param-input:focus,.note-input:focus,.note-area:focus,#bf-session-notes:focus{outline:none;border-color:var(--accent)}
+  /* note fields */
+  .notefield{margin:10px 0}
+  .notefield label{display:block;font-size:.82em;color:var(--muted);margin-bottom:3px;font-weight:600}
+  .note-area,#bf-session-notes{width:100%;min-height:70px;resize:vertical;flex:none}
+  .session-notes{margin-top:36px;border-top:1px solid var(--border);padding-top:14px}
+  @media print{body{padding:12px;max-width:none}#bf-theme-btn,.copy-btn{display:none}
+    .param-input,.note-input,.note-area,#bf-session-notes{border:1px solid #999}}
 </style>
 </head>
-<body>
-<div class="doc-meta">Generated from <code>ROADMAP.md</code> — self-contained · print-friendly</div>
+<body data-doc="broodforge-roadmap">
+<button id="bf-theme-btn" type="button">☀ Light</button>
+<div class="doc-meta">Generated from <code>ROADMAP.md</code> — self-contained · print-friendly · values saved in your browser</div>
+
 <h1>Broodforge — Roadmap</h1>
 <p>Version: 7.1 Last updated: 2026-06-03 (audit round 14: security hardening, HTML escaping, quoting, handler parity) Architecture: v7.1 (see ARCHITECTURE.md; design evolution in docs/DESIGN-HISTORY.md)</p>
 <hr>
@@ -1017,7 +1054,7 @@
 <p><strong>Step 0 — Network mode (asked before anything else):</strong></p>
 <p>Because the hatchery runs split-horizon DNS, the Headscale server URL in every spawn package is always the hatchery's FQDN (<code>host_identity.fqdn</code>): <code>https://hatchery.home.example.com:8080</code> LAN broodlings resolve this to the LAN IP via the hatchery's dnsmasq. WAN broodlings resolve this to the WAN IP via public DNS. The same spawn package works from both locations without modification.</p>
 <p>The planner still asks which network mode the broodling is on, because the SSH discovery path differs (direct IP vs tailnet IP):</p>
-<pre><code>      Is the broodling on the same LAN as the hatchery?
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>      Is the broodling on the same LAN as the hatchery?
       [auto-detecting — trying {broodling-ip} directly... timeout 5s]
 
         1. Same LAN  — direct SSH using temporary root password
@@ -1025,11 +1062,11 @@
                        hatchery.{domain} — already correct for both LAN and WAN)
         3. Specify   — enter broodling IP / hostname manually
 
-      &gt; _</code></pre>
+      &gt; _</code></pre></div>
 <p><strong>LAN mode:</strong> proceeds with the existing temporary root password flow. Broodling is configured to use hatchery as its DNS server (via DHCP or static config in spawn package), so <code>hatchery.{domain}</code> resolves to LAN IP.</p>
 <p><strong>WAN mode:</strong> the planner calls: <code>headscale authkeys generate --expiration 1h --user broodforge</code> The auth key and <code>https://hatchery.{domain}:8080</code> are embedded in the spawn package. phase-00a on the broodling: Installs Tailscale: <code>curl -fsSL https://tailscale.com/install.sh | sh</code> Registers: <code>tailscale up --authkey {key} --login-server https://hatchery.{domain}:8080</code> (The FQDN resolves to WAN IP via public DNS, which routes to Headscale via the operator's router port forwarding.) Broodling appears on tailnet → hatchery SSHes to its tailnet IP for discovery. After spawn completes, Tailscale remains installed — the broodling is a permanent tailnet member. Its tailnet IP is recorded in bootstrap-state.json alongside its LAN IP (if any).</p>
 <p><strong>Step 1 — Execution mode (asked after network mode):</strong></p>
-<pre><code>      How should the spawn package run on the broodling?
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>      How should the spawn package run on the broodling?
 
         1. Autonomous (default)  — finalise service selection now; spawn.sh runs
                                    without prompting after the KeePass unlock gate
@@ -1037,7 +1074,7 @@
                                    broodling's hardware at runtime and presents the
                                    service menu there
 
-      &gt; _</code></pre>
+      &gt; _</code></pre></div>
 <p><strong>If Interactive:</strong> the planner records <code>execution_mode: interactive</code> and proceeds directly to package assembly. No service selection on the hatchery. The package includes all available service scripts. Service selection happens entirely on the broodling at execution time against actual hardware.</p>
 <p><strong>If Autonomous:</strong> the planner continues to Step 2.</p>
 <p>For autonomous mode, the planner also generates a <strong>suggested temporary root password</strong> (readable passphrase format) at this point and displays it to the operator with the instruction to use it when setting the Proxmox root password during installation. The hatchery stores this password in memory for the duration of the spawn-planning session so it can use it for password-based SSH discovery without the operator re-entering it. The password is NOT stored in KeePass — it is temporary, replaced by a proper KeePass-managed credential during the spawn process.</p>
@@ -1373,10 +1410,10 @@
 <p><strong>26.2 — Approval Queue</strong> (<code>proxmox-bootstrap/remediation_queue.py</code>)</p>
 <p>Manages the lifecycle of proposals from creation through execution.</p>
 <p>State machine per proposal:</p>
-<pre><code>proposed → approved → executing → resolved
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>proposed → approved → executing → resolved
         ↘ rejected
         ↘ superseded   (newer proposal for same issue replaces this one)
-        ↘ expired      (underlying issue resolved by other means before approval)</code></pre>
+        ↘ expired      (underlying issue resolved by other means before approval)</code></pre></div>
 <p>Queue storage: <code>remediations</code> array in <code>bootstrap-state.json</code>. Each entry persists until resolved, rejected, or superseded. Queue is committed to Forgejo on every state change so the record is version-controlled and auditable.</p>
 <p>Approval record per transition:</p>
 <ul>
@@ -1514,7 +1551,7 @@
 <hr>
 <p><strong>Enabling ceremony — two-step confirmation required</strong></p>
 <p>Autonomous mode cannot be turned on by editing a config file directly. It requires a deliberate interactive ceremony so the operator understands exactly what they are enabling before it takes effect:</p>
-<pre><code>$ python3 proxmox-bootstrap/remediation-cli.py enable-autonomous
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>$ python3 proxmox-bootstrap/remediation-cli.py enable-autonomous
 
 Current policy review
 =====================
@@ -1544,7 +1581,7 @@ This mode will auto-disable after 30 days (2026-07-02) unless renewed.
 To disable at any time: remediation-cli.py disable-autonomous
 
 Type 'enable autonomous' to confirm, or Ctrl-C to cancel:
-&gt; _</code></pre>
+&gt; _</code></pre></div>
 <p>The confirmation phrase must be typed exactly. A mistype aborts with no change. After confirmation the mode is recorded in <code>bootstrap-state.json</code> with:</p>
 <ul>
 <li><code>enabled_by</code> — Unix user + hostname at enable time</li>
@@ -1576,10 +1613,10 @@ Type 'enable autonomous' to confirm, or Ctrl-C to cancel:
 <hr>
 <p><strong>Disabling autonomous mode</strong></p>
 <p>Autonomous mode can be disabled at any time with no confirmation required:</p>
-<pre><code>$ python3 proxmox-bootstrap/remediation-cli.py disable-autonomous
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>$ python3 proxmox-bootstrap/remediation-cli.py disable-autonomous
 [remediation] Autonomous mode disabled.
 [remediation] Proposals in queue: 2 now require per-action approval.
-[remediation] Disable recorded: 2026-06-15T14:22:00Z by root@hatchery</code></pre>
+[remediation] Disable recorded: 2026-06-15T14:22:00Z by root@hatchery</code></pre></div>
 <p>Or from the dashboard via the "Disable autonomous mode" button (no confirmation prompt in the UI — disabling is always safe and immediate).</p>
 <p>Auto-disable triggers (without operator action):</p>
 <ul>
@@ -1660,5 +1697,61 @@ Type 'enable autonomous' to confirm, or Ctrl-C to cancel:
 <li><strong>Remediation is proposed, not imposed.</strong> The assessment engine recommends;</li>
 </ol>
 <p>the operator approves; the system executes. No autonomous action changes infrastructure state without a recorded human approval. This is an architectural constraint, not a configuration option.</p>
+<div class="session-notes"><h2>Session Notes</h2><p style="color:var(--muted);font-size:.85em">Anything unexpected, or that did not fit the steps above. Saved in your browser.</p><textarea id="bf-session-notes" placeholder="notes…"></textarea></div>
+<script>
+(function(){
+  var ns = 'bf:' + (document.body.dataset.doc || 'doc') + ':';
+  // ---- theme ----
+  try{ if(localStorage.getItem('bf:theme')==='light') document.body.classList.add('light'); }catch(e){}
+  var tb = document.getElementById('bf-theme-btn');
+  function lbl(){ tb.textContent = document.body.classList.contains('light') ? '☾ Dark' : '☀ Light'; }
+  if(tb){ lbl(); tb.addEventListener('click', function(){
+    document.body.classList.toggle('light');
+    try{ localStorage.setItem('bf:theme', document.body.classList.contains('light')?'light':'dark'); }catch(e){}
+    lbl();
+  }); }
+  // ---- live template parameters ----
+  function applyVar(name, val){
+    var slots = document.querySelectorAll('.tpl[data-var="'+name+'"]');
+    for(var i=0;i<slots.length;i++){ slots[i].textContent = val; }
+  }
+  var inputs = document.querySelectorAll('.param-input');
+  for(var i=0;i<inputs.length;i++){
+    (function(inp){
+      var name = inp.dataset.var, k = ns+'param:'+name;
+      try{ var s = localStorage.getItem(k); if(s!==null) inp.value = s; }catch(e){}
+      applyVar(name, inp.value);
+      inp.addEventListener('input', function(){
+        applyVar(name, inp.value);
+        try{ localStorage.setItem(k, inp.value); }catch(e){}
+      });
+    })(inputs[i]);
+  }
+  // ---- note fields + session notes (persisted) ----
+  var notes = document.querySelectorAll('.note-input,.note-area,#bf-session-notes');
+  for(var j=0;j<notes.length;j++){
+    (function(el){
+      var id = el.dataset.note || el.id, k = ns+'note:'+id;
+      try{ var s = localStorage.getItem(k); if(s!==null) el.value = s; }catch(e){}
+      el.addEventListener('input', function(){ try{ localStorage.setItem(k, el.value); }catch(e){} });
+    })(notes[j]);
+  }
+  // ---- copy buttons ----
+  var btns = document.querySelectorAll('.copy-btn');
+  for(var b=0;b<btns.length;b++){
+    btns[b].addEventListener('click', function(){
+      var btn = this, pre = btn.parentElement.querySelector('pre');
+      var text = pre.innerText;
+      var done = function(){ var o=btn.textContent; btn.textContent='Copied!'; setTimeout(function(){btn.textContent=o;},1200); };
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(text).then(done, function(){ done(); });
+      } else {
+        var ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta);
+        ta.select(); try{document.execCommand('copy');}catch(e){} document.body.removeChild(ta); done();
+      }
+    });
+  }
+})();
+</script>
 </body>
 </html>

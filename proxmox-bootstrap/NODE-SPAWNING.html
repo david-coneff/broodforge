@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Node Spawning — Operator Runbook</title>
+<style>
+  :root{--bg:#1a1d23;--bg2:#22262e;--bg3:#2a2f3a;--border:#3a3f4d;--text:#cdd6f4;--muted:#7f8498;
+    --accent:#89b4fa;--green:#a6e3a1;--yellow:#f9e2af;--orange:#fab387;--red:#f38ba8;
+    --code-bg:#181b21;--code-text:#a6e3a1;--radius:6px;--btn-bg:#2a2f3a}
+  body.light{--bg:#ffffff;--bg2:#f4f5f7;--bg3:#eceff2;--border:#d0d7de;--text:#1f2328;--muted:#57606a;
+    --accent:#0969da;--green:#1a7f37;--yellow:#9a6700;--orange:#bc4c00;--red:#cf222e;
+    --code-bg:#f6f8fa;--code-text:#0a3069;--btn-bg:#eaeef2}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+    font-size:14px;line-height:1.6;padding:24px 24px 80px;max-width:1100px;margin:0 auto;
+    transition:background .15s,color .15s}
+  h1{color:var(--accent);font-size:1.7em;margin:18px 0 4px}
+  h2{color:var(--accent);font-size:1.05em;margin:24px 0 8px;text-transform:uppercase;letter-spacing:.05em;
+    border-bottom:1px solid var(--border);padding-bottom:4px}
+  h3{color:var(--accent);font-size:.95em;margin:14px 0 6px}
+  h4{color:var(--muted);font-size:.82em;margin:10px 0 4px;text-transform:uppercase;letter-spacing:.08em}
+  h5,h6{color:var(--muted);font-size:.8em;margin:8px 0 4px}
+  a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+  p{margin:8px 0}ul,ol{margin:8px 0 8px 22px}li{margin:4px 0}
+  li>ul,li>ol{margin:4px 0 4px 18px}
+  strong{color:var(--text);font-weight:600}
+  hr{border:none;border-top:1px solid var(--border);margin:20px 0}
+  blockquote{border-left:3px solid var(--accent);background:var(--bg2);margin:10px 0;
+    padding:8px 14px;border-radius:0 var(--radius) var(--radius) 0;color:var(--text)}
+  code{background:var(--code-bg);color:var(--code-text);padding:1px 5px;border-radius:3px;
+    font-family:'Cascadia Code','Fira Code',Consolas,monospace;font-size:.9em}
+  pre{background:var(--code-bg);border:1px solid var(--border);border-radius:var(--radius);
+    padding:12px 14px;overflow-x:auto;margin:0;font-family:'Cascadia Code','Fira Code',Consolas,monospace;
+    font-size:.85em;color:var(--code-text);white-space:pre}
+  pre code{background:none;padding:0;color:inherit}
+  table{width:100%;border-collapse:collapse;margin:10px 0;font-size:.88em}
+  th{background:var(--bg2);color:var(--muted);text-align:left;padding:6px 8px;
+    border-bottom:1px solid var(--border);font-weight:600;font-size:.8em;text-transform:uppercase;letter-spacing:.05em}
+  td{padding:5px 8px;border-bottom:1px solid var(--bg3);vertical-align:top}
+  tr:last-child td{border-bottom:none}
+  .doc-meta{color:var(--muted);font-size:.8em;margin:4px 0 20px}
+  /* theme toggle */
+  #bf-theme-btn{position:fixed;top:14px;right:16px;z-index:50;background:var(--btn-bg);color:var(--text);
+    border:1px solid var(--border);border-radius:var(--radius);padding:5px 12px;cursor:pointer;
+    font-size:.8em;font-family:inherit}
+  #bf-theme-btn:hover{border-color:var(--accent);color:var(--accent)}
+  /* code block + copy */
+  .codewrap{position:relative;margin:10px 0}
+  .copy-btn{position:absolute;top:6px;right:6px;background:var(--btn-bg);color:var(--muted);
+    border:1px solid var(--border);border-radius:4px;padding:2px 9px;cursor:pointer;font-size:.72em;
+    font-family:inherit;opacity:.55;transition:opacity .12s}
+  .codewrap:hover .copy-btn{opacity:1}
+  .copy-btn:hover{border-color:var(--accent);color:var(--accent)}
+  .tpl{color:var(--orange);background:rgba(250,179,135,.13);border-radius:3px;padding:0 2px}
+  body.light .tpl{background:rgba(188,76,0,.10)}
+  /* parameters panel */
+  .params{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+    padding:12px 16px;margin:14px 0 18px}
+  .params h3{margin:0 0 8px;color:var(--accent)}
+  .params .hint{color:var(--muted);font-size:.8em;margin-bottom:10px}
+  .param-row{display:flex;align-items:center;gap:10px;margin:6px 0;flex-wrap:wrap}
+  .param-row label{min-width:200px;font-family:monospace;font-size:.85em;color:var(--muted)}
+  .param-input,.note-input,.note-area,#bf-session-notes{background:var(--code-bg);color:var(--text);
+    border:1px solid var(--border);border-radius:4px;padding:5px 8px;font-family:'Cascadia Code',Consolas,monospace;
+    font-size:.85em;flex:1;min-width:220px}
+  .param-input:focus,.note-input:focus,.note-area:focus,#bf-session-notes:focus{outline:none;border-color:var(--accent)}
+  /* note fields */
+  .notefield{margin:10px 0}
+  .notefield label{display:block;font-size:.82em;color:var(--muted);margin-bottom:3px;font-weight:600}
+  .note-area,#bf-session-notes{width:100%;min-height:70px;resize:vertical;flex:none}
+  .session-notes{margin-top:36px;border-top:1px solid var(--border);padding-top:14px}
+  @media print{body{padding:12px;max-width:none}#bf-theme-btn,.copy-btn{display:none}
+    .param-input,.note-input,.note-area,#bf-session-notes{border:1px solid #999}}
+</style>
+</head>
+<body data-doc="node-spawning-operator-runbook">
+<button id="bf-theme-btn" type="button">☀ Light</button>
+<div class="doc-meta">Generated from <code>NODE-SPAWNING.md</code> — self-contained · print-friendly · values saved in your browser</div>
+
+<h1>Node Spawning — Operator Runbook</h1>
+<p><strong>Phase 12.E — Hatchery Process</strong> Document date: 2026-06-01 | Review by: 2027-06-01</p>
+<p>A broodling is a new Proxmox node that joins the hatchery's cluster via the <strong>hatchery process</strong>. This runbook covers end-to-end spawning: from bare hardware → cluster member with declared services running.</p>
+<hr>
+<h2>Overview</h2>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>Hatchery (pve01)                    Broodling (pve02 — fresh Proxmox install)
+  │                                    │
+  │  1. Run spawn-planner.py           │
+  │  2. Discover hardware ─────────────► SSH to broodling
+  │  3. Select disposition             │
+  │  4. Generate spawn package         │
+  │  5. Copy package ─────────────────►│
+  │                                    │  6. bash spawn.sh
+  │                                    │     KeePass gate
+  │                                    │     phase-00 preflight + host config
+  │                                    │     phase-01 Proxmox join
+  │                                    │     phase-02 VMs
+  │                                    │     phase-03 Cloud-Init + VM start
+  │                                    │     phase-04 k3s join
+  │                                    │     [phase-05 HA promotion]
+  │                                    │     phase-06 verify
+  │  7. update-state-after-spawn.py ◄──┤
+  │  8. Assessment Engine reassesses   │</code></pre></div>
+<hr>
+<h2>Prerequisites</h2>
+<h3>Hatchery side</h3>
+<ul>
+<li><code>bootstrap-state.json</code> is current (run <code>collect-tier2.py</code> if needed)</li>
+<li>Forgejo is running and accessible (phase scripts are committed there)</li>
+<li>KeePass database is accessible (on USB, local disk, or embedded in package)</li>
+<li>Python 3.8+ available: <code>python3 --version</code></li>
+<li>Required modules in <code>proxmox-bootstrap/</code>:</li>
+</ul>
+<p><code>hatchery_state.py</code>, <code>validate_spawn.py</code>, <code>spawn_hardware_discovery.py</code>, <code>spawn_iac_generator.py</code>, <code>spawn_scripts.py</code>, <code>assemble_spawn_package.py</code></p>
+<h3>Broodling side</h3>
+<ul>
+<li>Bare Proxmox VE installed (community edition; subscription nag suppressed automatically)</li>
+<li>Root SSH access (temporary password set during installation)</li>
+<li>Network connectivity — either:</li>
+<li><strong>LAN mode</strong>: broodling reachable from hatchery via <code>ping {broodling-ip}</code></li>
+<li><strong>WAN mode</strong>: Tailscale will be installed by <code>phase-00a</code> using the embedded auth key</li>
+<li>No existing ZFS pools, VMs, or custom bridges (factory state)</li>
+<li>Sufficient hardware for the planned disposition (see capacity guidance below)</li>
+</ul>
+<hr>
+<h2>Step 1 — Discover Hardware</h2>
+<p>Run from the hatchery. Produces <code>hardware-profile-{hostname}.json</code>.</p>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>cd /opt/broodforge/proxmox-bootstrap
+
+# LAN mode (password-based SSH)
+python3 spawn_hardware_discovery.py \
+    --host 192.168.1.15 \
+    --user root \
+    --password-prompt \
+    --output hardware-profile-pve02.json
+
+# WAN mode (Headscale tailnet — after the broodling has joined via phase-00a)
+python3 spawn_hardware_discovery.py \
+    --host 100.64.0.5 \   # tailnet IP
+    --user root \
+    --password-prompt \
+    --output hardware-profile-pve02.json</code></pre></div>
+<p><strong>Discovery output</strong> — <code>hardware-profile-pve02.json</code>:</p>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>{
+  "hostname": "pve02",
+  "cpu_model": "AMD Ryzen 5600",
+  "cpu_cores": 6,
+  "ram_gb": 32,
+  "disks": [
+    {"name": "/dev/sda", "size_gb": 500, "rotational": false},
+    {"name": "/dev/sdb", "size_gb": 500, "rotational": false}
+  ],
+  "nics": [
+    {"name": "eno1", "mac": "AA:BB:CC:DD:EE:FF", "speed_mbps": 1000}
+  ],
+  "derived": {
+    "usable_disks": 2,
+    "ssd_count": 2,
+    "hdd_count": 0,
+    "zfs_topology": "mirror"
+  }
+}</code></pre></div>
+<p><strong>ZFS topology auto-selected from usable disk count:</strong></p>
+<table><thead><tr><th>Disks</th><th>Topology</th></tr></thead><tbody><tr><td>1</td><td>stripe (no redundancy — WARNING shown)</td></tr><tr><td>2</td><td>mirror</td></tr><tr><td>3</td><td>raidz1</td></tr><tr><td>4–6</td><td>raidz2</td></tr><tr><td>7+</td><td>raidz3</td></tr></tbody></table>
+<hr>
+<h2>Step 2 — Run Spawn Planner</h2>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>python3 spawn-planner.py \
+    --state bootstrap-state.json \
+    --hardware hardware-profile-pve02.json</code></pre></div>
+<p>The planner walks through three steps interactively:</p>
+<h3>Step 0 — Network Mode</h3>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>Is the broodling on the same LAN as the hatchery?
+[auto-detecting — trying 192.168.1.15... timeout 5s]
+
+  1. Same LAN  — direct SSH using temporary root password
+  2. WAN       — Headscale tailnet (generates auth key)
+  3. Specify   — enter broodling IP/hostname manually
+
+&gt; _</code></pre></div>
+<ul>
+<li><strong>LAN</strong>: generates a suggested temporary root password (<code>Ready.to.spawn.7</code> format).</li>
+</ul>
+<p>Use this password when installing Proxmox on the broodling. The planner holds it in memory for hardware discovery — not stored in KeePass.</p>
+<ul>
+<li><strong>WAN</strong>: calls <code>headscale authkeys generate --expiration 1h --user broodforge</code>.</li>
+</ul>
+<p>The auth key is embedded in the spawn package. <code>phase-00a</code> installs Tailscale and registers the broodling before any deployment begins.</p>
+<h3>Step 1 — Execution Mode</h3>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>How should the spawn package run on the broodling?
+
+  1. Autonomous (default)  — finalise service selection now; spawn.sh runs
+                             without prompting after KeePass unlock
+  2. Interactive            — service menu evaluated on the broodling at runtime
+
+&gt; _</code></pre></div>
+<ul>
+<li><strong>Autonomous</strong> (recommended): you select services now; locked into package.</li>
+</ul>
+<p>Only the KeePass master password is required before fully automated execution.</p>
+<ul>
+<li><strong>Interactive</strong>: no service selection needed now. <code>spawn.sh</code> presents the</li>
+</ul>
+<p>service menu on the broodling, evaluated against actual hardware at runtime.</p>
+<h3>Step 2 — Service Selection (Autonomous Only)</h3>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>Select services to deploy:
+
+  Mode 1: Full mirror      — all services that fit this hardware
+  Mode 2: Select by group  — Infrastructure / Platform / Intelligence / Monitoring / Apps
+  Mode 3: Select individually
+
+&gt; _</code></pre></div>
+<p><strong>Hardware fit display:</strong></p>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>  [✓] k3s-worker          fits  (RAM: 4 GB required; 26 GB available)
+  [✓] longhorn             fits  (RAM: 2 GB, disk: 50 GB)
+  [!] prometheus           marginal (RAM: 6 GB; reduced to 4 GB)
+  [✗] pbs-datastore        no fit (requires 16 GB RAM, only 8 GB available)</code></pre></div>
+<p>Services marked <code>[✗]</code> are excluded automatically. The planner records them in <code>disposition.excluded</code> with the reason.</p>
+<p><strong>Intelligence baseline is always included</strong> (cannot be deselected): Proxmox cluster membership, k3s worker node, assessment visibility.</p>
+<h3>Planner Output — <code>spawn-plan-pve02.json</code></h3>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>{
+  "cell_id": "cell-alpha",
+  "hostname": "pve02",
+  "domain": "home.example.com",
+  "lan_ip": "192.168.1.15",
+  "package_id": "spawn-cell-alpha-pve02-2026-06-01_12_00_00",
+  "generated_at": "2026-06-01T12:00:00Z",
+  "disposition": {
+    "execution_mode": "autonomous",
+    "network_mode": "lan",
+    "services": ["k3s-worker", "longhorn"],
+    "excluded": [
+      {"service": "pbs-datastore", "reason": "requires 16 GB RAM; host has 8 GB"}
+    ]
+  },
+  "storage": {
+    "pool_name": "rpool",
+    "topology": "mirror",
+    "disk_ids": ["/dev/sda", "/dev/sdb"],
+    "datastore_name": "local-rpool"
+  },
+  "network": {
+    "bridge": "vmbr0",
+    "gateway": "192.168.1.1",
+    "nameservers": ["192.168.1.1"]
+  },
+  "vms": [
+    {"vmid": 200, "name": "k3s-worker-01", "ip": "192.168.1.50", "memory_mb": 4096},
+    {"vmid": 201, "name": "longhorn-01",   "ip": "192.168.1.51", "memory_mb": 2048}
+  ],
+  "k3s": {
+    "role": "worker",
+    "server_url": "https://k3s-server-01.home.example.com:6443",
+    "node_labels": ["worker=true"]
+  }
+}</code></pre></div>
+<p><strong>Review the plan</strong> — pay attention to:</p>
+<ul>
+<li><code>disposition.excluded</code> — services the planner dropped. If a service you want</li>
+</ul>
+<p>is excluded, the reason tells you exactly what hardware is needed.</p>
+<ul>
+<li><code>vms[].vmid</code> — confirm no conflicts with your existing VMID allocation.</li>
+<li><code>storage.disk_ids</code> — confirm these are the correct physical disks.</li>
+<li><code>k3s.role</code> — worker (default) or server (HA promotion if 3rd server node).</li>
+</ul>
+<hr>
+<h2>Step 3 — Generate Spawn Package</h2>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>python3 assemble-spawn-package.py \
+    --plan spawn-plan-pve02.json \
+    --state bootstrap-state.json \
+    [--kdbx /path/to/vault.kdbx]  # optional — embed KeePass DB in package</code></pre></div>
+<p>Output: <code>spawn-package-cell-alpha-pve02-2026-06-01_12_00_00.tar.gz</code></p>
+<p><strong>Package contents:</strong></p>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>spawn-package-cell-alpha-pve02-2026-06-01_12_00_00.tar.gz
+├── spawn-manifest.json        hatchery reservation snapshot
+├── spawn-plan.json            broodling-specific plan
+├── spawn.sh                   orchestrated entry point
+├── [tailscale-join.sh]        WAN mode only: Headscale/Tailscale join (phase-00a)
+├── phase-00-preflight.sh      hardware pre-flight verification
+├── phase-00-host.sh           hostname + bridges + ZFS + datastore
+├── phase-01-proxmox.sh        pvecm join
+├── phase-02-vms.sh            tofu apply
+├── phase-03-cloudinit.sh      cloud-init install + VM start
+├── phase-04-k3s.sh            ansible k3s role
+├── [phase-05-ha.sh]           HA promotion (3rd server only)
+├── phase-06-verify.sh         post-spawn health check
+├── spawn-workbook-pve02.html  HTML tracking workbook
+├── opentofu/                  Proxmox VM tfvars
+├── cloud-init/snippets/       user-data + network-config per VM
+├── ansible/                   inventory + k3s role vars
+├── lib/checkpoint.sh          resumable execution library
+├── lib/keepass-gate.sh        KeePass master password gate
+└── [kdbx/vault.kdbx]          optional embedded KeePass database</code></pre></div>
+<p><strong>Security note:</strong> The package <strong>never contains secret values</strong>. It contains only KeePass path references (e.g. <code>Infrastructure/k3s/worker-join-token</code>). The KeePass database can be embedded (optional) but still requires the master password at the gate — it cannot auto-unlock.</p>
+<hr>
+<h2>Step 4 — Copy Package to Broodling</h2>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>scp spawn-package-cell-alpha-pve02-2026-06-01_12_00_00.tar.gz \
+    root@192.168.1.15:/root/
+
+# SSH in to verify
+ssh root@192.168.1.15 "ls -lh /root/*.tar.gz"</code></pre></div>
+<p>If the KeePass database is <strong>not</strong> embedded in the package, copy it separately to the broodling at an agreed path (e.g. <code>/root/vault.kdbx</code> or USB mount):</p>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>scp /path/to/vault.kdbx root@192.168.1.15:/root/vault.kdbx</code></pre></div>
+<hr>
+<h2>Step 5 — Execute Spawn Package</h2>
+<p>SSH to the broodling and extract + run:</p>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>ssh root@192.168.1.15
+
+cd /root
+tar -xzf spawn-package-cell-alpha-pve02-2026-06-01_12_00_00.tar.gz
+cd spawn-package-cell-alpha-pve02-2026-06-01_12_00_00/
+bash spawn.sh</code></pre></div>
+<h3>KeePass Unlock Gate (runs first)</h3>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>=================================================================
+ KeePass Unlock Gate
+ The master password is required once before any secrets are
+ accessed. All subsequent lookups are automatic.
+=================================================================
+[kdbx] Using embedded database: ./kdbx/vault.kdbx
+[kdbx] Master password: _
+[kdbx] Database unlocked. Secrets broker active.</code></pre></div>
+<p>In <strong>autonomous mode</strong>, this is the <strong>only prompt</strong> before fully automated execution. In <strong>interactive mode</strong>, the service selection menu follows after unlock.</p>
+<h3>Phase Execution</h3>
+<p>Phases run sequentially. Each phase prints timestamped checkpoint progress:</p>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>[12:01:15] START: hostname
+[12:01:16] DONE:  hostname
+[12:01:16] START: bridge
+[12:01:18] DONE:  bridge
+[12:01:18] START: zpool
+[12:01:45] DONE:  zpool
+...</code></pre></div>
+<p><strong>Resuming after failure:</strong> If a phase fails, fix the issue and re-run <code>bash spawn.sh</code>. Completed checkpoints are skipped automatically — the package is fully idempotent.</p>
+<p><strong>Pre-flight gate (phase-00-preflight):</strong> Runs read-only checks before any changes are made:</p>
+<ul>
+<li>Disk IDs from spawn plan exist and have expected capacity</li>
+<li>NIC names/MACs match embedded hardware profile</li>
+<li>Available RAM ≥ sum of VM RAM + 10% overhead</li>
+<li>No existing ZFS pool name conflict</li>
+<li>No existing bridge name conflict</li>
+<li>No VMID/IP/hostname conflicts against live hatchery snapshot</li>
+</ul>
+<p>If <strong>any pre-flight check fails</strong>, phase-00-preflight exits immediately with a clear error. No changes are made to the broodling. Report the mismatch to the hatchery operator to regenerate the spawn package.</p>
+<h3>Expected Phase Duration</h3>
+<table><thead><tr><th>Phase</th><th>Expected Time</th><th>Notes</th></tr></thead><tbody><tr><td>phase-00-preflight</td><td>&lt; 30s</td><td>Read-only checks</td></tr><tr><td>phase-00-host</td><td>2–5 min</td><td>ZFS pool creation depends on disk count</td></tr><tr><td>phase-01-proxmox</td><td>1–2 min</td><td>pvecm join requires cluster quorum</td></tr><tr><td>phase-02-vms</td><td>3–10 min</td><td>Depends on number of VMs</td></tr><tr><td>phase-03-cloudinit</td><td>5–15 min</td><td>Cloud-Init runs inside each VM</td></tr><tr><td>phase-04-k3s</td><td>3–8 min</td><td>Ansible k3s role</td></tr><tr><td>phase-05-ha (if present)</td><td>5–10 min</td><td>etcd migration quiesces cluster briefly</td></tr><tr><td>phase-06-verify</td><td>&lt; 2 min</td><td>Health checks</td></tr></tbody></table>
+<h3>phase-06-verify Output (Success)</h3>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>[spawn] All nodes Ready:
+  pve01/k3s-server-01     Ready   v1.29.0
+  pve02/k3s-worker-01     Ready   v1.29.0
+
+[spawn] All VMs running:
+  VMID 200  k3s-worker-01    running
+  VMID 201  longhorn-01      running
+
+[spawn] Spawn complete — pve02 is a cluster member.
+Flux CD will schedule workloads automatically.
+Assessment Engine will reassess on next collection cycle.</code></pre></div>
+<hr>
+<h2>Step 6 — Update Hatchery State</h2>
+<p><strong>Automatic path (recommended):</strong> <code>phase-06-verify.sh</code> (the last phase in <code>spawn.sh</code>) automatically POSTs to the hatchery's <code>/api/spawn-complete</code> endpoint. If the hatchery is running <code>hatchery_receiver.py</code>, it processes the event and updates <code>bootstrap-state.json</code> without any manual intervention.</p>
+<p><strong>Manual fallback</strong> (when the hatchery receiver is not reachable):</p>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>python3 proxmox-bootstrap/update_state_after_spawn.py \
+    --state proxmox-bootstrap/bootstrap-state.json \
+    --plan spawn-plan-pve02.json \
+    --hardware hardware-profile-pve02.json \
+    --spawned-at "$(date -u +%Y-%m-%dT%H:%M:%SZ)"</code></pre></div>
+<p>This merges:</p>
+<ul>
+<li>New VMs (VMIDs 200, 201) into <code>vms[]</code></li>
+<li>DNS entries for broodling and VMs into <code>dns_registry[]</code></li>
+<li>Provenance records for new VMs into <code>provenance_records[]</code></li>
+<li>Spawn event (hostname, services, timestamp) prepended to <code>spawn_history[]</code></li>
+</ul>
+<p>Commit the updated state to Forgejo:</p>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>git -C /opt/broodforge add proxmox-bootstrap/bootstrap-state.json
+git -C /opt/broodforge commit -m "spawn: pve02 joined — k3s-worker, longhorn"
+git -C /opt/broodforge push</code></pre></div>
+<p>The Forgejo webhook triggers the Assessment Engine to reassess the expanded cluster automatically.</p>
+<hr>
+<h2>Step 7 — Verify Cluster Health</h2>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code># On the hatchery or any cluster member:
+kubectl get nodes -o wide
+
+# Expected:
+NAME           STATUS   ROLES    AGE
+pve01          Ready    master   30d
+pve02          Ready    worker   2m
+
+# Proxmox Datacenter:
+pvecm nodes
+# Should show both pve01 and pve02
+
+# Assessment Engine:
+python3 doc-gen/engine.py --mode bootstrap \
+    --manifest bootstrap-state.json
+# Readiness score should be GREEN or improve</code></pre></div>
+<hr>
+<h2>Troubleshooting</h2>
+<h3>Pre-flight fails: "disk /dev/sda not found"</h3>
+<p>The disk name changed after Proxmox installation (kernel update or hardware change). Re-run hardware discovery on the hatchery and regenerate the spawn package.</p>
+<h3>Pre-flight fails: "stale manifest — VMID 200 now in use"</h3>
+<p>Another spawn happened between package generation and execution. Re-run the spawn planner on the hatchery to allocate a fresh VMID block.</p>
+<h3>pvecm join fails: "totem RAFT protocol error"</h3>
+<p>Time synchronisation issue. Verify <code>chronyc tracking</code> shows &lt; 1s offset on both nodes. Proxmox cluster requires accurate time.</p>
+<h3>k3s join fails: "token mismatch"</h3>
+<p>The k3s join token in KeePass may have been rotated. Retrieve the current token:</p>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code># On hatchery k3s server:
+cat /var/lib/rancher/k3s/server/node-token</code></pre></div>
+<p>Update the KeePass entry and re-run phase-04-k3s.sh.</p>
+<h3>Resuming a failed spawn</h3>
+<p>Fix the issue, then re-run:</p>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>bash spawn.sh</code></pre></div>
+<p>Completed checkpoints are skipped. Only failed/incomplete phases re-run.</p>
+<h3>Resetting all checkpoints (fresh start)</h3>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>source lib/checkpoint.sh
+checkpoint_reset
+bash spawn.sh</code></pre></div>
+<hr>
+<h2>Spawn History</h2>
+<p>After each successful spawn, <code>bootstrap-state.json</code> records:</p>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>{
+  "spawn_history": [
+    {
+      "broodling_hostname": "pve02",
+      "broodling_fqdn": "pve02.home.example.com",
+      "spawn_package_id": "spawn-cell-alpha-pve02-2026-06-01_12_00_00",
+      "execution_mode": "autonomous",
+      "disposition_services": ["k3s-worker", "longhorn"],
+      "disposition_excluded": [{"service": "pbs-datastore", "reason": "..."}],
+      "k3s_role": "worker",
+      "spawned_at": "2026-06-01T13:45:00+00:00",
+      "vmids_allocated": [200, 201],
+      "ips_allocated": ["192.168.1.15", "192.168.1.50", "192.168.1.51"],
+      "broodling_lan_ip": "192.168.1.15",
+      "broodling_tailnet_ip": "100.64.0.5",
+      "hardware_profile": {"cpu_cores": 8, "ram_gb": 32, "disk_count": 2}
+    }
+  ]
+}</code></pre></div>
+<p>The Assessment Engine reads <code>spawn_history</code> to build disposition compliance scoring: a node with <code>k3s-worker</code> in <code>disposition_services</code> that is not running a k3s worker → RED finding. A node without <code>pbs-datastore</code> is not scored against backup target requirements.</p>
+<hr>
+<h2>Hardware Capacity Guidelines</h2>
+<table><thead><tr><th>Disposition</th><th>Minimum RAM</th><th>Minimum Disks</th><th>k3s Role</th></tr></thead><tbody><tr><td>Baseline</td><td>8 GB</td><td>2</td><td>worker</td></tr><tr><td>Compute</td><td>16 GB</td><td>2</td><td>worker</td></tr><tr><td>Storage</td><td>16 GB</td><td>3+</td><td>worker</td></tr><tr><td>Control plane</td><td>32 GB</td><td>2</td><td>server</td></tr><tr><td>Full peer</td><td>64 GB</td><td>4+</td><td>server</td></tr></tbody></table>
+<p>The planner enforces a 90% RAM headroom limit: <code>sum(VM RAM) ≤ host RAM × 0.90</code></p>
+<hr>
+<h2>Key Files</h2>
+<table><thead><tr><th>File</th><th>Description</th></tr></thead><tbody><tr><td><code>spawn-planner.py</code></td><td>Interactive planner — generates spawn-plan.json</td></tr><tr><td><code>spawn_hardware_discovery.py</code></td><td>SSH hardware discovery library</td></tr><tr><td><code>spawn_iac_generator.py</code></td><td>Generates OpenTofu tfvars + Cloud-Init + Ansible</td></tr><tr><td><code>spawn_scripts.py</code></td><td>Generates phase-00 through phase-06 bash scripts</td></tr><tr><td><code>assemble_spawn_package.py</code></td><td>Bundles everything into a tar.gz</td></tr><tr><td><code>html_spawn_workbook.py</code></td><td>Generates HTML tracking workbook</td></tr><tr><td><code>validate_spawn.py</code></td><td>Conflict validator (VMID/IP/hostname/capacity)</td></tr><tr><td><code>hatchery_state.py</code></td><td>Reads hatchery state → spawn manifest</td></tr><tr><td><code>update_state_after_spawn.py</code></td><td>Merges broodling back into bootstrap-state.json</td></tr></tbody></table>
+<div class="session-notes"><h2>Session Notes</h2><p style="color:var(--muted);font-size:.85em">Anything unexpected, or that did not fit the steps above. Saved in your browser.</p><textarea id="bf-session-notes" placeholder="notes…"></textarea></div>
+<script>
+(function(){
+  var ns = 'bf:' + (document.body.dataset.doc || 'doc') + ':';
+  // ---- theme ----
+  try{ if(localStorage.getItem('bf:theme')==='light') document.body.classList.add('light'); }catch(e){}
+  var tb = document.getElementById('bf-theme-btn');
+  function lbl(){ tb.textContent = document.body.classList.contains('light') ? '☾ Dark' : '☀ Light'; }
+  if(tb){ lbl(); tb.addEventListener('click', function(){
+    document.body.classList.toggle('light');
+    try{ localStorage.setItem('bf:theme', document.body.classList.contains('light')?'light':'dark'); }catch(e){}
+    lbl();
+  }); }
+  // ---- live template parameters ----
+  function applyVar(name, val){
+    var slots = document.querySelectorAll('.tpl[data-var="'+name+'"]');
+    for(var i=0;i<slots.length;i++){ slots[i].textContent = val; }
+  }
+  var inputs = document.querySelectorAll('.param-input');
+  for(var i=0;i<inputs.length;i++){
+    (function(inp){
+      var name = inp.dataset.var, k = ns+'param:'+name;
+      try{ var s = localStorage.getItem(k); if(s!==null) inp.value = s; }catch(e){}
+      applyVar(name, inp.value);
+      inp.addEventListener('input', function(){
+        applyVar(name, inp.value);
+        try{ localStorage.setItem(k, inp.value); }catch(e){}
+      });
+    })(inputs[i]);
+  }
+  // ---- note fields + session notes (persisted) ----
+  var notes = document.querySelectorAll('.note-input,.note-area,#bf-session-notes');
+  for(var j=0;j<notes.length;j++){
+    (function(el){
+      var id = el.dataset.note || el.id, k = ns+'note:'+id;
+      try{ var s = localStorage.getItem(k); if(s!==null) el.value = s; }catch(e){}
+      el.addEventListener('input', function(){ try{ localStorage.setItem(k, el.value); }catch(e){} });
+    })(notes[j]);
+  }
+  // ---- copy buttons ----
+  var btns = document.querySelectorAll('.copy-btn');
+  for(var b=0;b<btns.length;b++){
+    btns[b].addEventListener('click', function(){
+      var btn = this, pre = btn.parentElement.querySelector('pre');
+      var text = pre.innerText;
+      var done = function(){ var o=btn.textContent; btn.textContent='Copied!'; setTimeout(function(){btn.textContent=o;},1200); };
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(text).then(done, function(){ done(); });
+      } else {
+        var ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta);
+        ta.select(); try{document.execCommand('copy');}catch(e){} document.body.removeChild(ta); done();
+      }
+    });
+  }
+})();
+</script>
+</body>
+</html>

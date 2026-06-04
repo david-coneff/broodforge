@@ -1,8 +1,65 @@
 # Session Handoff
 
-Last updated: 2026-06-03 UTC
+Last updated: 2026-06-04 UTC
 
 ## What Was Done This Session (current)
+
+### Deep architecture-vs-docs audit + interactive HTML (completed)
+
+**Implementation gaps (broken next-steps) — fixed & verified:**
+- **B1 (HIGH)** `assemble-forge-package.py` now infers the repo root when `--repo`
+  is omitted, so the documented FORGING.md path produces a self-contained package.
+  Previously the generated phase scripts called `$SCRIPT_DIR/proxmox-bootstrap/*.py`
+  against files that were never bundled — `phase-00-discover.sh` failed instantly.
+  Verified: no-`--repo` package bundles 95 tools + 26 schemas + 78 doc-gen files.
+- **B2 (MED)** New `validate-spawn.py` CLI + its import closure (`validate_spawn.py`,
+  `hatchery_state.py`) are now bundled in spawn packages. `phase-00-preflight.sh`'s
+  `[ -f ]`-guarded conflict re-validation was a silent no-op (tool never packaged).
+
+**Security:**
+- **A1 (HIGH)** `broodforge_dashboard` now `_redact_secrets()` masks secret-bearing
+  fields (k3s `worker_join_token`/`server_join_token`, `*token/*password/*secret/
+  *api_key/*auth_key`) before serving the unauthenticated GET endpoints. k3s join
+  tokens live in bootstrap-state.json and were served verbatim — a LAN-adjacent
+  client could read one and join a rogue cluster node. Redaction copies, never
+  mutates, so POST write paths are intact (verified).
+- **A3** forge/spawn/phoenix assembler CLIs print the package SHA-256 (tamper-evidence);
+  FORGING.md documents verifying it after `scp`.
+
+**Documentation alignment (drift fixed to match implementation):**
+- README spawn & phoenix package listings rewritten to real phase/wave names;
+  recovery-wave model aligned to the implemented playbook waves.
+- Stale test counts and muddled Development Status corrected.
+- Broken `docs/DNS-UPDATE-SETUP.md` refs fixed (FORGING.md + 2× ROADMAP.md).
+- Spelling: "Forgability" → "Forgeability".
+
+**Straggler cleanup:**
+- Moved `ARCHITECTURE-REVIEW-v7.md` → `deprecated/` (joining v4–v6) and the orphan
+  `CONTAINER-COMPATIBILITY-PLAN.html`.
+- New durable `docs/DESIGN-HISTORY.md` traces the v4→v7 design evolution + rationale
+  (replaces the versioned-review churn). ARCHITECTURE.md / .ai/* repointed to it.
+
+**Interactive HTML documentation (`proxmox-bootstrap/md_to_html.py` rewrite):**
+- Light/dark **theme toggle** (persisted), per-code-block **Copy** buttons,
+  **live-templated commands** (`{{VAR}}` / `{{VAR=default}}` → a Parameters panel;
+  editing rewrites every command + Copy copies the resolved text),
+  **note fields** (`@field[Label]` / `@area[Label]`), and an auto **Session Notes**
+  textarea. All values persist per-doc in localStorage.
+- `RECONSTRUCTION-DRILL.md` is the showcase (templated paths + per-step note fields).
+- New `inject_html_theme.py` retro-fits the toggle + copy buttons onto hand-authored
+  HTML (`docs/ARCHITECTURE.html`, `docs/SETUP-GUIDE.html`).
+- Generated/regenerated HTML: README, ROADMAP, DESIGN-HISTORY, RECONSTRUCTION-DRILL,
+  CLOUDFLARE/DUCKDNS/CLOUD-STORAGE-SETUP, TALOS-ALTERNATIVE, plus new
+  `proxmox-bootstrap/FORGING.html` and `NODE-SPAWNING.html`.
+
+**Tests: 4000 passed, 1 skipped (Windows-only).** No regressions.
+
+**Next:** continue autonomous deepthink audit cycles (architecture vs documented
+execution paths) until zero findings on a deep + deeper pass, or budget exhausted.
+Candidate not yet addressed: theme toggle on the runtime-generated dashboard HTML
+(it is an app surface, not documentation — deferred deliberately).
+
+---
 
 ### Audit rounds 16–18 (completed)
 

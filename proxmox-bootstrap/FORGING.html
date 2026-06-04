@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FORGING.md — Operator Runbook</title>
+<style>
+  :root{--bg:#1a1d23;--bg2:#22262e;--bg3:#2a2f3a;--border:#3a3f4d;--text:#cdd6f4;--muted:#7f8498;
+    --accent:#89b4fa;--green:#a6e3a1;--yellow:#f9e2af;--orange:#fab387;--red:#f38ba8;
+    --code-bg:#181b21;--code-text:#a6e3a1;--radius:6px;--btn-bg:#2a2f3a}
+  body.light{--bg:#ffffff;--bg2:#f4f5f7;--bg3:#eceff2;--border:#d0d7de;--text:#1f2328;--muted:#57606a;
+    --accent:#0969da;--green:#1a7f37;--yellow:#9a6700;--orange:#bc4c00;--red:#cf222e;
+    --code-bg:#f6f8fa;--code-text:#0a3069;--btn-bg:#eaeef2}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+    font-size:14px;line-height:1.6;padding:24px 24px 80px;max-width:1100px;margin:0 auto;
+    transition:background .15s,color .15s}
+  h1{color:var(--accent);font-size:1.7em;margin:18px 0 4px}
+  h2{color:var(--accent);font-size:1.05em;margin:24px 0 8px;text-transform:uppercase;letter-spacing:.05em;
+    border-bottom:1px solid var(--border);padding-bottom:4px}
+  h3{color:var(--accent);font-size:.95em;margin:14px 0 6px}
+  h4{color:var(--muted);font-size:.82em;margin:10px 0 4px;text-transform:uppercase;letter-spacing:.08em}
+  h5,h6{color:var(--muted);font-size:.8em;margin:8px 0 4px}
+  a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+  p{margin:8px 0}ul,ol{margin:8px 0 8px 22px}li{margin:4px 0}
+  li>ul,li>ol{margin:4px 0 4px 18px}
+  strong{color:var(--text);font-weight:600}
+  hr{border:none;border-top:1px solid var(--border);margin:20px 0}
+  blockquote{border-left:3px solid var(--accent);background:var(--bg2);margin:10px 0;
+    padding:8px 14px;border-radius:0 var(--radius) var(--radius) 0;color:var(--text)}
+  code{background:var(--code-bg);color:var(--code-text);padding:1px 5px;border-radius:3px;
+    font-family:'Cascadia Code','Fira Code',Consolas,monospace;font-size:.9em}
+  pre{background:var(--code-bg);border:1px solid var(--border);border-radius:var(--radius);
+    padding:12px 14px;overflow-x:auto;margin:0;font-family:'Cascadia Code','Fira Code',Consolas,monospace;
+    font-size:.85em;color:var(--code-text);white-space:pre}
+  pre code{background:none;padding:0;color:inherit}
+  table{width:100%;border-collapse:collapse;margin:10px 0;font-size:.88em}
+  th{background:var(--bg2);color:var(--muted);text-align:left;padding:6px 8px;
+    border-bottom:1px solid var(--border);font-weight:600;font-size:.8em;text-transform:uppercase;letter-spacing:.05em}
+  td{padding:5px 8px;border-bottom:1px solid var(--bg3);vertical-align:top}
+  tr:last-child td{border-bottom:none}
+  .doc-meta{color:var(--muted);font-size:.8em;margin:4px 0 20px}
+  /* theme toggle */
+  #bf-theme-btn{position:fixed;top:14px;right:16px;z-index:50;background:var(--btn-bg);color:var(--text);
+    border:1px solid var(--border);border-radius:var(--radius);padding:5px 12px;cursor:pointer;
+    font-size:.8em;font-family:inherit}
+  #bf-theme-btn:hover{border-color:var(--accent);color:var(--accent)}
+  /* code block + copy */
+  .codewrap{position:relative;margin:10px 0}
+  .copy-btn{position:absolute;top:6px;right:6px;background:var(--btn-bg);color:var(--muted);
+    border:1px solid var(--border);border-radius:4px;padding:2px 9px;cursor:pointer;font-size:.72em;
+    font-family:inherit;opacity:.55;transition:opacity .12s}
+  .codewrap:hover .copy-btn{opacity:1}
+  .copy-btn:hover{border-color:var(--accent);color:var(--accent)}
+  .tpl{color:var(--orange);background:rgba(250,179,135,.13);border-radius:3px;padding:0 2px}
+  body.light .tpl{background:rgba(188,76,0,.10)}
+  /* parameters panel */
+  .params{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+    padding:12px 16px;margin:14px 0 18px}
+  .params h3{margin:0 0 8px;color:var(--accent)}
+  .params .hint{color:var(--muted);font-size:.8em;margin-bottom:10px}
+  .param-row{display:flex;align-items:center;gap:10px;margin:6px 0;flex-wrap:wrap}
+  .param-row label{min-width:200px;font-family:monospace;font-size:.85em;color:var(--muted)}
+  .param-input,.note-input,.note-area,#bf-session-notes{background:var(--code-bg);color:var(--text);
+    border:1px solid var(--border);border-radius:4px;padding:5px 8px;font-family:'Cascadia Code',Consolas,monospace;
+    font-size:.85em;flex:1;min-width:220px}
+  .param-input:focus,.note-input:focus,.note-area:focus,#bf-session-notes:focus{outline:none;border-color:var(--accent)}
+  /* note fields */
+  .notefield{margin:10px 0}
+  .notefield label{display:block;font-size:.82em;color:var(--muted);margin-bottom:3px;font-weight:600}
+  .note-area,#bf-session-notes{width:100%;min-height:70px;resize:vertical;flex:none}
+  .session-notes{margin-top:36px;border-top:1px solid var(--border);padding-top:14px}
+  @media print{body{padding:12px;max-width:none}#bf-theme-btn,.copy-btn{display:none}
+    .param-input,.note-input,.note-area,#bf-session-notes{border:1px solid #999}}
+</style>
+</head>
+<body data-doc="forging-md-operator-runbook">
+<button id="bf-theme-btn" type="button">☀ Light</button>
+<div class="doc-meta">Generated from <code>FORGING.md</code> — self-contained · print-friendly · values saved in your browser</div>
+
+<h1>FORGING.md — Operator Runbook</h1>
+<p><strong>Phase 1.F</strong> | Last updated: 2026-06-01</p>
+<p>Forging is the process of taking bare Proxmox hardware to a fully operational broodforge hatchery using the forge package. This runbook covers the complete forge workflow end-to-end.</p>
+<hr>
+<h2>Prerequisites</h2>
+<h3>Hardware requirements</h3>
+<table><thead><tr><th>Component</th><th>Minimum</th><th>Recommended</th></tr></thead><tbody><tr><td>RAM</td><td>16 GiB</td><td>32 GiB</td></tr><tr><td>Disks (ZFS)</td><td>2 × ≥32 GiB</td><td>2-4 × ≥200 GiB SSD</td></tr><tr><td>NICs</td><td>1</td><td>2 (management + VM traffic)</td></tr><tr><td>CPU cores</td><td>2</td><td>4+</td></tr></tbody></table>
+<h3>Software requirements</h3>
+<ul>
+<li>Proxmox VE installed on the target host (bare metal or nested virtualisation)</li>
+<li>Proxmox CE (community edition, no subscription) is fully supported</li>
+<li>Network access from your workstation to the target host (SSH on port 22)</li>
+<li>Python 3.11+ on your workstation (for generating the forge package)</li>
+</ul>
+<h3>Network requirements</h3>
+<ul>
+<li>Static IP assigned to the hatchery host (or DHCP reservation)</li>
+<li>Default gateway configured</li>
+<li>Internet access from the hatchery host (for apt, Let's Encrypt, Flux CD)</li>
+</ul>
+<hr>
+<h2>Step 1 — Generate the forge manifest</h2>
+<p>On your <strong>workstation</strong>, generate the forge manifest using the interactive planner:</p>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>python3 proxmox-bootstrap/forge-planner.py</code></pre></div>
+<p>The planner will ask you to:</p>
+<ol>
+<li>Choose a setup mode (autonomous recommended for first forge)</li>
+<li>Set the hatchery hostname and domain</li>
+<li>Choose a network profile (LAN only or WAN-capable with Headscale)</li>
+<li>Confirm your timezone</li>
+<li>Configure at least one backup destination</li>
+</ol>
+<p>The planner writes <code>forge-manifest.json</code> in the current directory.</p>
+<p><strong>Review the manifest:</strong></p>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>cat forge-manifest.json</code></pre></div>
+<hr>
+<h2>Step 2 — Assemble the forge package</h2>
+<p>On your <strong>workstation</strong>, generate the self-contained forge package:</p>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>python3 proxmox-bootstrap/assemble-forge-package.py --manifest forge-manifest.json</code></pre></div>
+<p>This produces a package in the current directory:</p>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>forge-package-{cell_id}-{timestamp}.tar.gz</code></pre></div>
+<p>To embed the KeePass database in the package (convenient for offline use):</p>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>python3 proxmox-bootstrap/assemble-forge-package.py \
+    --manifest forge-manifest.json \
+    --kdbx /path/to/keepass.kdbx</code></pre></div>
+<p><strong>Security note:</strong> The forge package never contains secret values — only KeePass paths (references). If you embed the KeePass database, it requires the master password to unlock. Without the database, the KeePass gate will prompt for the path at runtime.</p>
+<hr>
+<h2>Step 3 — Copy the forge package to the target host</h2>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>scp forge-package-*.tar.gz root@&lt;hatchery-ip&gt;:/root/</code></pre></div>
+<p><strong>Verify integrity after transfer.</strong> The assembler prints the package SHA-256 (<code>SHA-256: …</code>) when it finishes Step 2. Confirm the copy on the target host matches before extracting:</p>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code># On the target host:
+sha256sum forge-package-*.tar.gz   # compare against the value printed in Step 2</code></pre></div>
+<hr>
+<h2>Step 4 — Execute the forge package</h2>
+<p>On the <strong>target host</strong> (SSH in or use the Proxmox console):</p>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>cd /root
+tar xzf forge-package-*.tar.gz
+bash forge.sh</code></pre></div>
+<h3>What forge.sh does</h3>
+<p>The forge orchestrator runs 9 phases in order. Completed phases are checkpointed — if forge.sh fails or is interrupted, re-run it to resume from where it left off:</p>
+<table><thead><tr><th>Phase</th><th>Script</th><th>Action</th></tr></thead><tbody><tr><td>00</td><td><code>phase-00-discover.sh</code></td><td>Hardware discovery (disks, NICs, RAM, CPU)</td></tr><tr><td>01</td><td><code>phase-01-plan.sh</code></td><td>Identity planning (hostname, domain, cell_id)</td></tr><tr><td>02</td><td><code>phase-02-validate.sh</code></td><td>Hardware validation — RED findings block forge</td></tr><tr><td>03</td><td><code>phase-03-host.sh</code></td><td>Host config: hostname, ZFS pool, dnsmasq, KeePass init</td></tr><tr><td>04</td><td><code>phase-04-vms.sh</code></td><td>VM provisioning (OpenTofu — minimum viable stack)</td></tr><tr><td>05</td><td><code>phase-05-k3s.sh</code></td><td>k3s cluster init (Ansible k3s-server role)</td></tr><tr><td>06</td><td><code>phase-06-gitops.sh</code></td><td>Flux CD bootstrap → Forgejo</td></tr><tr><td>07</td><td><code>phase-07-intelligence.sh</code></td><td>Assessment + documentation engine init</td></tr><tr><td>08</td><td><code>phase-08-verify.sh</code></td><td>Cluster health check + state commit</td></tr></tbody></table>
+<h3>Resuming after failure</h3>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code># Resume from a specific phase (e.g. phase 3 if phase-03 failed)
+bash forge.sh --from 3
+
+# Start completely fresh
+bash forge.sh --reset</code></pre></div>
+<hr>
+<h2>Step 5 — Forge phase details</h2>
+<h3>Phase 00 — Discover</h3>
+<p>Scans the hardware using <code>lsblk</code>, <code>ip link</code>, and <code>/proc/meminfo</code>. Writes <code>hardware-profile.json</code>. No changes are made to the system.</p>
+<h3>Phase 01 — Plan</h3>
+<p>Re-reads <code>forge-manifest.json</code>. If the manifest was generated on a different machine, this step adapts the plan to the actual discovered hardware.</p>
+<h3>Phase 02 — Validate</h3>
+<p>Runs <code>forge_validator.py</code> against <code>hardware-profile.json</code>. RED findings block the forge. Review the output and resolve issues before re-running.</p>
+<p>Common RED findings:</p>
+<ul>
+<li><strong>RAM too low</strong>: add RAM or use a machine with ≥16 GiB</li>
+<li><strong>Insufficient disks</strong>: add a second disk for ZFS mirror</li>
+<li><strong>No NICs</strong>: check that the NIC is detected by the kernel</li>
+</ul>
+<h3>Phase 03 — Host configuration</h3>
+<p>This is the longest phase. It:</p>
+<ol>
+<li>Sets the hostname and /etc/hosts</li>
+<li>Suppresses the Proxmox CE subscription nag</li>
+<li>Creates the ZFS pool (topology derived from disk count)</li>
+<li>Installs and configures dnsmasq (split-horizon DNS)</li>
+<li>Initialises the KeePass database (master password prompt)</li>
+<li>If WAN profile: installs Headscale, issues TLS cert, configures DDNS</li>
+</ol>
+<p><strong>KeePass gate:</strong> Phase 03 prompts for the KeePass master password once. All subsequent secret lookups during forging use this unlocked session — you will not be prompted again.</p>
+<p><strong>Master password selection:</strong></p>
+<ul>
+<li>forge.sh suggests a readable passphrase (e.g. <code>Forest.amber.glide.8</code>)</li>
+<li>Accept the suggestion, enter your own, or use KeePass's built-in generator</li>
+<li>This is the single most important secret — choose carefully and record it safely</li>
+</ul>
+<h3>Phase 03 — WAN profile only</h3>
+<p>If you selected the WAN network profile:</p>
+<ul>
+<li><strong>Headscale</strong> is installed and configured as the hatchery's own tailnet coordinator</li>
+<li><strong>TLS certificate</strong> is issued via Let's Encrypt (Cloudflare or DuckDNS path)</li>
+<li><strong>DDNS</strong> timer is configured to update the external A record every 5 minutes</li>
+</ul>
+<p><strong>Before running phase 03 in WAN mode:</strong></p>
+<ol>
+<li>Ensure your domain's A record or DDNS is set up (see <code>docs/CLOUDFLARE-SETUP.md</code> or <code>docs/DUCKDNS-SETUP.md</code>)</li>
+<li>If using Cloudflare: have your API token ready (will be stored in KeePass)</li>
+<li>If using DuckDNS: have your token ready</li>
+<li>Configure port forwarding: 8080 → hatchery LAN IP (for Headscale)</li>
+</ol>
+<h3>Phase 04 — VMs</h3>
+<p>Provisions the minimum viable stack VMs using OpenTofu. The VM IDs, IPs, and roles are derived from <code>forge-manifest.json</code>. VM definitions are in <code>opentofu/</code>.</p>
+<h3>Phase 05 — k3s</h3>
+<p>Runs the Ansible <code>k3s-server</code> role against the provisioned VMs. The k3s join token is retrieved from KeePass automatically.</p>
+<h3>Phase 06 — Flux CD bootstrap</h3>
+<p>Bootstraps Flux CD against the Forgejo git server. Flux will continuously reconcile the GitOps repository to deploy application workloads.</p>
+<p><strong>After forging:</strong> push your application manifests to the Forgejo repository. Flux CD will deploy them automatically without further manual intervention.</p>
+<h3>Phase 07 — Intelligence layer</h3>
+<p>Initialises <code>bootstrap-state.json</code> from the forge manifest and generates the first set of broodforge documentation (Bootstrap Workbook, Recovery Runbook, Readiness Report).</p>
+<h3>Phase 08 — Verify and commit</h3>
+<ul>
+<li>Verifies all k3s nodes are Ready</li>
+<li>Checks Flux CD reconciliation status</li>
+<li>Commits <code>bootstrap-state.json</code> and <code>forge-manifest.json</code> to the Forgejo repository</li>
+</ul>
+<hr>
+<h2>Step 6 — Verify the hatchery is operational</h2>
+<p>After forge.sh completes:</p>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code># Check k3s cluster health
+kubectl get nodes
+kubectl get pods -A
+
+# Check Flux CD
+flux get kustomizations
+
+# Check assessment engine
+python3 doc-gen/engine.py --mode bootstrap --manifest proxmox-bootstrap/bootstrap-state.json
+
+# Access Forgejo web UI
+open https://forgejo.{your-domain}</code></pre></div>
+<p>Expected output from <code>kubectl get nodes</code>:</p>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>NAME         STATUS   ROLES                  AGE   VERSION
+pve01-k3s    Ready    control-plane,master   5m    v1.28.x</code></pre></div>
+<hr>
+<h2>Troubleshooting</h2>
+<h3>Phase 02 fails with "hardware mismatch"</h3>
+<p>The hardware does not meet minimum requirements. Review <code>hardware-profile.json</code> and the validator output. Common causes:</p>
+<ul>
+<li>Not enough disks: <code>lsblk</code> shows only 1 disk ≥32 GiB</li>
+<li>Too little RAM: <code>/proc/meminfo MemTotal</code> shows &lt; 16 GiB</li>
+<li>No physical NICs: <code>ip link</code> shows only loopback and virtual interfaces</li>
+</ul>
+<h3>Phase 03 fails with "ZFS pool create failed"</h3>
+<p>Common causes:</p>
+<ul>
+<li>Disk already has a ZFS pool from a previous attempt: <code>zpool import -a</code> then <code>zpool destroy rpool</code></li>
+<li>Disk is in use by the OS (boot disk): ensure the ZFS member disks are not the Proxmox boot disk</li>
+</ul>
+<h3>Phase 05 fails with "Ansible unreachable"</h3>
+<p>The k3s VMs are not yet accessible via SSH. Wait for Cloud-Init to complete (usually 1-3 minutes). Check VM status in the Proxmox web UI. Re-run <code>bash forge.sh --from 5</code>.</p>
+<h3>Phase 06 fails with "Flux bootstrap failed"</h3>
+<p>Common causes:</p>
+<ul>
+<li>Forgejo is not yet running: check VM health in phase 04</li>
+<li>Git repository not pre-created: forge.sh will attempt to create it automatically,</li>
+</ul>
+<p>but if Forgejo credentials aren't in KeePass yet, it may fail</p>
+<h3>Headscale not accessible from WAN</h3>
+<ol>
+<li>Verify port forwarding: router → 8080 → hatchery LAN IP</li>
+<li>Verify external DNS A record: <code>dig hatchery.{domain} @8.8.8.8</code></li>
+<li>Check Headscale service: <code>systemctl status headscale</code></li>
+<li>Check TLS cert: <code>openssl s_client -connect hatchery.{domain}:8080</code></li>
+</ol>
+<hr>
+<h2>Key files after forge</h2>
+<table><thead><tr><th>File</th><th>Location</th><th>Purpose</th></tr></thead><tbody><tr><td><code>forge-manifest.json</code></td><td><code>/root/</code></td><td>Cell identity snapshot</td></tr><tr><td><code>hardware-profile.json</code></td><td><code>/root/</code></td><td>Discovered hardware</td></tr><tr><td><code>bootstrap-state.json</code></td><td><code>proxmox-bootstrap/</code></td><td>Authoritative cell state</td></tr><tr><td><code>dns-registry.yaml</code></td><td><code>proxmox-bootstrap/</code></td><td>DNS records for all nodes</td></tr><tr><td>KeePass database</td><td><code>/etc/broodforge/keepass.kdbx</code></td><td>All service credentials</td></tr><tr><td>dnsmasq config</td><td><code>/etc/dnsmasq.d/broodforge.conf</code></td><td>Split-horizon DNS</td></tr><tr><td>Headscale config</td><td><code>/etc/headscale/config.yaml</code></td><td>Tailnet coordinator</td></tr><tr><td>TLS cert (WAN)</td><td><code>/etc/broodforge/ssl/</code></td><td>Let's Encrypt wildcard cert</td></tr></tbody></table>
+<hr>
+<h2>Next steps after forging</h2>
+<ol>
+<li><strong>Push GitOps repository</strong> to Forgejo — Flux CD will deploy application workloads</li>
+<li><strong>Spawn broodlings</strong> — run <code>python3 proxmox-bootstrap/spawn-planner.py</code> on the hatchery</li>
+</ol>
+<p>to generate spawn packages for additional nodes</p>
+<ol>
+<li><strong>Run reconstruction drill</strong> — validate the hatchery can be reconstructed from state</li>
+</ol>
+<p>(<code>docs/RECONSTRUCTION-DRILL.md</code>)</p>
+<ol>
+<li><strong>Review the Bootstrap Workbook</strong> — generated in <code>reports/</code> by the intelligence layer</li>
+<li><strong>Set up monitoring</strong> — deploy Prometheus agent via Flux GitOps</li>
+</ol>
+<hr>
+<p>*Broodforge FORGING.md | Phase 1.F | Architecture v7.1*</p>
+<div class="session-notes"><h2>Session Notes</h2><p style="color:var(--muted);font-size:.85em">Anything unexpected, or that did not fit the steps above. Saved in your browser.</p><textarea id="bf-session-notes" placeholder="notes…"></textarea></div>
+<script>
+(function(){
+  var ns = 'bf:' + (document.body.dataset.doc || 'doc') + ':';
+  // ---- theme ----
+  try{ if(localStorage.getItem('bf:theme')==='light') document.body.classList.add('light'); }catch(e){}
+  var tb = document.getElementById('bf-theme-btn');
+  function lbl(){ tb.textContent = document.body.classList.contains('light') ? '☾ Dark' : '☀ Light'; }
+  if(tb){ lbl(); tb.addEventListener('click', function(){
+    document.body.classList.toggle('light');
+    try{ localStorage.setItem('bf:theme', document.body.classList.contains('light')?'light':'dark'); }catch(e){}
+    lbl();
+  }); }
+  // ---- live template parameters ----
+  function applyVar(name, val){
+    var slots = document.querySelectorAll('.tpl[data-var="'+name+'"]');
+    for(var i=0;i<slots.length;i++){ slots[i].textContent = val; }
+  }
+  var inputs = document.querySelectorAll('.param-input');
+  for(var i=0;i<inputs.length;i++){
+    (function(inp){
+      var name = inp.dataset.var, k = ns+'param:'+name;
+      try{ var s = localStorage.getItem(k); if(s!==null) inp.value = s; }catch(e){}
+      applyVar(name, inp.value);
+      inp.addEventListener('input', function(){
+        applyVar(name, inp.value);
+        try{ localStorage.setItem(k, inp.value); }catch(e){}
+      });
+    })(inputs[i]);
+  }
+  // ---- note fields + session notes (persisted) ----
+  var notes = document.querySelectorAll('.note-input,.note-area,#bf-session-notes');
+  for(var j=0;j<notes.length;j++){
+    (function(el){
+      var id = el.dataset.note || el.id, k = ns+'note:'+id;
+      try{ var s = localStorage.getItem(k); if(s!==null) el.value = s; }catch(e){}
+      el.addEventListener('input', function(){ try{ localStorage.setItem(k, el.value); }catch(e){} });
+    })(notes[j]);
+  }
+  // ---- copy buttons ----
+  var btns = document.querySelectorAll('.copy-btn');
+  for(var b=0;b<btns.length;b++){
+    btns[b].addEventListener('click', function(){
+      var btn = this, pre = btn.parentElement.querySelector('pre');
+      var text = pre.innerText;
+      var done = function(){ var o=btn.textContent; btn.textContent='Copied!'; setTimeout(function(){btn.textContent=o;},1200); };
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(text).then(done, function(){ done(); });
+      } else {
+        var ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta);
+        ta.select(); try{document.execCommand('copy');}catch(e){} document.body.removeChild(ta); done();
+      }
+    });
+  }
+})();
+</script>
+</body>
+</html>

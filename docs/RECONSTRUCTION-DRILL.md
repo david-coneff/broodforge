@@ -58,15 +58,21 @@ gaps before a real incident forces you to discover them under time pressure.
 
 ### Step 1 — Start the drill record
 
-Register the drill in bootstrap-state.json before you begin:
+Register the drill in bootstrap-state.json before you begin. Set the paths in the
+**Parameters** panel at the top once — every command on this page then uses them.
 
 ```bash
 python3 proxmox-bootstrap/reconstruction-drill.py start \
-  --playbook reconstruction/phoenix-playbook-latest.json \
-  --state proxmox-bootstrap/bootstrap-state.json
+  --playbook {{PLAYBOOK=reconstruction/phoenix-playbook-latest.json}} \
+  --state {{STATE=proxmox-bootstrap/bootstrap-state.json}}
 ```
 
-This prints a `drill_id` and estimated total time. Note the drill_id — you'll need it to find the record if needed.
+This prints a `drill_id` and estimated total time. Record them here so you have a
+traceable record of this drill run:
+
+@field[drill_id (printed by the start command)]
+@field[Estimated total time (minutes)]
+@field[Drill start time (UTC)]
 
 ### Step 2 — Execute the playbook (live or tabletop)
 
@@ -76,20 +82,25 @@ Work through the phoenix playbook waves manually, timing each wave and noting an
 
 Keep notes on: actual time taken, steps that were unclear, anything that differed from the playbook.
 
+@area[Per-wave actual times, unclear steps, and gaps observed during execution]
+
 ### Step 3 — Complete the drill record
 
 When finished, record the outcome and generate a report:
 
 ```bash
 python3 proxmox-bootstrap/reconstruction-drill.py complete \
-  --state proxmox-bootstrap/bootstrap-state.json \
-  --outcome success \
+  --state {{STATE=proxmox-bootstrap/bootstrap-state.json}} \
+  --outcome {{OUTCOME=success}} \
   --gaps "Bridge vmbr1 pre-flight step was unclear" "Wave 3 restore took 2× longer than estimated" \
-  --output drill-report.md
+  --output {{REPORT=drill-report.md}}
 ```
 
 `--outcome` choices: `success` (default), `partial`, `failed`, `aborted`  
 `--gaps` (optional): one or more gap descriptions appended to `gaps_found` in the drill record
+
+@field[Final outcome recorded (success / partial / failed / aborted)]
+@field[Actual total time (minutes)]
 
 ---
 
@@ -98,12 +109,12 @@ python3 proxmox-bootstrap/reconstruction-drill.py complete \
 ```bash
 # Print the most recent drill record as JSON
 python3 proxmox-bootstrap/reconstruction-drill.py last \
-  --state proxmox-bootstrap/bootstrap-state.json
+  --state {{STATE=proxmox-bootstrap/bootstrap-state.json}}
 
 # Regenerate the Markdown report for the last drill
 python3 proxmox-bootstrap/reconstruction-drill.py report \
-  --state proxmox-bootstrap/bootstrap-state.json \
-  --output drill-report.md
+  --state {{STATE=proxmox-bootstrap/bootstrap-state.json}} \
+  --output {{REPORT=drill-report.md}}
 ```
 
 ---

@@ -3,466 +3,464 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Cloud Storage Setup — Broodforge</title>
+<title>Cloud Storage Setup Guide</title>
 <style>
   :root{--bg:#1a1d23;--bg2:#22262e;--bg3:#2a2f3a;--border:#3a3f4d;--text:#cdd6f4;--muted:#7f8498;
     --accent:#89b4fa;--green:#a6e3a1;--yellow:#f9e2af;--orange:#fab387;--red:#f38ba8;
-    --code-bg:#181b21;--radius:6px}
+    --code-bg:#181b21;--code-text:#a6e3a1;--radius:6px;--btn-bg:#2a2f3a}
+  body.light{--bg:#ffffff;--bg2:#f4f5f7;--bg3:#eceff2;--border:#d0d7de;--text:#1f2328;--muted:#57606a;
+    --accent:#0969da;--green:#1a7f37;--yellow:#9a6700;--orange:#bc4c00;--red:#cf222e;
+    --code-bg:#f6f8fa;--code-text:#0a3069;--btn-bg:#eaeef2}
   *{box-sizing:border-box;margin:0;padding:0}
   body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
-    font-size:14px;line-height:1.6;padding:24px;max-width:960px;margin:0 auto}
-  h1{color:var(--accent);font-size:1.6em;margin-bottom:4px}
-  h2{color:var(--accent);font-size:1.05em;margin:20px 0 6px;text-transform:uppercase;letter-spacing:.05em}
+    font-size:14px;line-height:1.6;padding:24px 24px 80px;max-width:1100px;margin:0 auto;
+    transition:background .15s,color .15s}
+  h1{color:var(--accent);font-size:1.7em;margin:18px 0 4px}
+  h2{color:var(--accent);font-size:1.05em;margin:24px 0 8px;text-transform:uppercase;letter-spacing:.05em;
+    border-bottom:1px solid var(--border);padding-bottom:4px}
   h3{color:var(--accent);font-size:.95em;margin:14px 0 6px}
-  .subtitle{color:var(--muted);margin-bottom:20px;font-size:.9em}
-  .meta{color:var(--muted);font-size:.8em;margin-bottom:24px}
-  p{margin:8px 0}ul,ol{margin:8px 0 8px 20px}li{margin:3px 0}
-  code{background:var(--code-bg);color:var(--green);padding:1px 5px;border-radius:3px;
+  h4{color:var(--muted);font-size:.82em;margin:10px 0 4px;text-transform:uppercase;letter-spacing:.08em}
+  h5,h6{color:var(--muted);font-size:.8em;margin:8px 0 4px}
+  a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+  p{margin:8px 0}ul,ol{margin:8px 0 8px 22px}li{margin:4px 0}
+  li>ul,li>ol{margin:4px 0 4px 18px}
+  strong{color:var(--text);font-weight:600}
+  hr{border:none;border-top:1px solid var(--border);margin:20px 0}
+  blockquote{border-left:3px solid var(--accent);background:var(--bg2);margin:10px 0;
+    padding:8px 14px;border-radius:0 var(--radius) var(--radius) 0;color:var(--text)}
+  code{background:var(--code-bg);color:var(--code-text);padding:1px 5px;border-radius:3px;
     font-family:'Cascadia Code','Fira Code',Consolas,monospace;font-size:.9em}
   pre{background:var(--code-bg);border:1px solid var(--border);border-radius:var(--radius);
-    padding:12px 14px;overflow-x:auto;margin:10px 0}
-  pre code{background:none;padding:0;display:block;white-space:pre}
+    padding:12px 14px;overflow-x:auto;margin:0;font-family:'Cascadia Code','Fira Code',Consolas,monospace;
+    font-size:.85em;color:var(--code-text);white-space:pre}
+  pre code{background:none;padding:0;color:inherit}
   table{width:100%;border-collapse:collapse;margin:10px 0;font-size:.88em}
   th{background:var(--bg2);color:var(--muted);text-align:left;padding:6px 8px;
     border-bottom:1px solid var(--border);font-weight:600;font-size:.8em;text-transform:uppercase;letter-spacing:.05em}
   td{padding:5px 8px;border-bottom:1px solid var(--bg3);vertical-align:top}
   tr:last-child td{border-bottom:none}
-  .tip{background:#1e2d3a;border-left:3px solid var(--accent);padding:8px 12px;
-    border-radius:0 var(--radius) var(--radius) 0;margin:10px 0}
-  .warn{background:#3a2e1a;border-left:3px solid var(--yellow);padding:8px 12px;
-    border-radius:0 var(--radius) var(--radius) 0;margin:10px 0}
-  .danger{background:#3a1a1a;border-left:3px solid var(--red);padding:8px 12px;
-    border-radius:0 var(--radius) var(--radius) 0;margin:10px 0}
-  details{margin:6px 0}
-  details[open]>summary{border-radius:var(--radius) var(--radius) 0 0}
-  summary{cursor:pointer;user-select:none;padding:9px 14px;border-radius:var(--radius);
-    list-style:none;display:flex;align-items:center;gap:8px;font-weight:600}
-  summary::-webkit-details-marker{display:none}
-  summary::before{content:'▶';font-size:.7em;color:var(--muted);transition:transform .15s;flex-shrink:0}
-  details[open]>summary::before{transform:rotate(90deg)}
-  .detail-body{padding:14px 18px 14px 36px}
-  details.provider>summary{background:#1e3040;color:#89dceb;border:1px solid #2e5060}
-  details.provider>.detail-body{background:#1b2a34;border:1px solid #2a4050;border-top:none;
-    border-radius:0 0 var(--radius) var(--radius)}
-  details.provider.b2>summary{background:#2a2040;color:#cba6f7;border:1px solid #4a3060}
-  details.provider.b2>.detail-body{background:#211a30;border:1px solid #3a2850;border-top:none;
-    border-radius:0 0 var(--radius) var(--radius)}
-  details.provider.aws>summary{background:#2a2010;color:#f9e2af;border:1px solid #5a4010}
-  details.provider.aws>.detail-body{background:#201a10;border:1px solid #4a3810;border-top:none;
-    border-radius:0 0 var(--radius) var(--radius)}
-  details.provider.r2>summary{background:#1e2a1e;color:#a6e3a1;border:1px solid #2e5a2e}
-  details.provider.r2>.detail-body{background:#1a2a1a;border:1px solid #285028;border-top:none;
-    border-radius:0 0 var(--radius) var(--radius)}
-  details.provider.gdrive>summary{background:#2a1e10;color:#fab387;border:1px solid #5a3810}
-  details.provider.gdrive>.detail-body{background:#221810;border:1px solid #4a3010;border-top:none;
-    border-radius:0 0 var(--radius) var(--radius)}
-  details.provider.minio>summary{background:#1e2a2a;color:#89dceb;border:1px solid #2e5050}
-  details.provider.minio>.detail-body{background:#1a2828;border:1px solid #285050;border-top:none;
-    border-radius:0 0 var(--radius) var(--radius)}
-  details.section>summary{background:var(--bg2);color:var(--text);border:1px solid var(--border);
-    font-weight:600;font-size:.92em;padding:7px 12px}
-  details.section>.detail-body{background:var(--bg3);border:1px solid var(--border);border-top:none;
-    border-radius:0 0 var(--radius) var(--radius);padding:12px 16px 12px 32px}
-  .toc{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px 18px;margin-bottom:24px}
-  .toc h2{font-size:.85em;margin:0 0 8px}.toc a{color:var(--muted);text-decoration:none}
-  .toc a:hover{color:var(--accent)}.toc li{margin:3px 0}
-  .badge-rec{display:inline-block;background:#1e3040;color:var(--accent);border:1px solid #2e5060;
-    border-radius:99px;padding:2px 10px;font-size:.72em;font-weight:700;margin-left:4px;vertical-align:middle}
-  .provider-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}
-  @media(max-width:600px){.provider-grid{grid-template-columns:1fr}}
-  .provider-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
-    padding:10px 14px}
-  .provider-card h3{margin:0 0 4px;font-size:.9em}
-  .provider-card p{margin:0;font-size:.82em;color:var(--muted)}
-  .controls{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
-  .ctrl-btn{background:var(--bg2);border:1px solid var(--border);color:var(--muted);
-    padding:5px 14px;border-radius:var(--radius);cursor:pointer;font-size:.82em}
-  .ctrl-btn:hover{border-color:var(--accent);color:var(--accent)}
-  @media print{body{background:#fff;color:#000}.controls{display:none!important}
-    details{display:block!important}summary::before{display:none}}
+  .doc-meta{color:var(--muted);font-size:.8em;margin:4px 0 20px}
+  /* theme toggle */
+  #bf-theme-btn{position:fixed;top:14px;right:16px;z-index:50;background:var(--btn-bg);color:var(--text);
+    border:1px solid var(--border);border-radius:var(--radius);padding:5px 12px;cursor:pointer;
+    font-size:.8em;font-family:inherit}
+  #bf-theme-btn:hover{border-color:var(--accent);color:var(--accent)}
+  /* code block + copy */
+  .codewrap{position:relative;margin:10px 0}
+  .copy-btn{position:absolute;top:6px;right:6px;background:var(--btn-bg);color:var(--muted);
+    border:1px solid var(--border);border-radius:4px;padding:2px 9px;cursor:pointer;font-size:.72em;
+    font-family:inherit;opacity:.55;transition:opacity .12s}
+  .codewrap:hover .copy-btn{opacity:1}
+  .copy-btn:hover{border-color:var(--accent);color:var(--accent)}
+  .tpl{color:var(--orange);background:rgba(250,179,135,.13);border-radius:3px;padding:0 2px}
+  body.light .tpl{background:rgba(188,76,0,.10)}
+  /* parameters panel */
+  .params{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+    padding:12px 16px;margin:14px 0 18px}
+  .params h3{margin:0 0 8px;color:var(--accent)}
+  .params .hint{color:var(--muted);font-size:.8em;margin-bottom:10px}
+  .param-row{display:flex;align-items:center;gap:10px;margin:6px 0;flex-wrap:wrap}
+  .param-row label{min-width:200px;font-family:monospace;font-size:.85em;color:var(--muted)}
+  .param-input,.note-input,.note-area,#bf-session-notes{background:var(--code-bg);color:var(--text);
+    border:1px solid var(--border);border-radius:4px;padding:5px 8px;font-family:'Cascadia Code',Consolas,monospace;
+    font-size:.85em;flex:1;min-width:220px}
+  .param-input:focus,.note-input:focus,.note-area:focus,#bf-session-notes:focus{outline:none;border-color:var(--accent)}
+  /* note fields */
+  .notefield{margin:10px 0}
+  .notefield label{display:block;font-size:.82em;color:var(--muted);margin-bottom:3px;font-weight:600}
+  .note-area,#bf-session-notes{width:100%;min-height:70px;resize:vertical;flex:none}
+  .session-notes{margin-top:36px;border-top:1px solid var(--border);padding-top:14px}
+  @media print{body{padding:12px;max-width:none}#bf-theme-btn,.copy-btn{display:none}
+    .param-input,.note-input,.note-area,#bf-session-notes{border:1px solid #999}}
 </style>
 </head>
-<body>
+<body data-doc="cloud-storage-setup-guide">
+<button id="bf-theme-btn" type="button">☀ Light</button>
+<div class="doc-meta">Generated from <code>CLOUD-STORAGE-SETUP.md</code> — self-contained · print-friendly · values saved in your browser</div>
 
-<h1>Cloud Storage Setup</h1>
-<p class="subtitle">Backup destination credentials for restic + rclone</p>
-<p class="meta">Created: 2026-05-31 · Review by: 2027-05-31 (cloud UIs change — verify steps are current)</p>
-
-<div class="controls">
-  <button class="ctrl-btn" onclick="document.querySelectorAll('details').forEach(d=>d.open=true)">⊞ Expand all</button>
-  <button class="ctrl-btn" onclick="document.querySelectorAll('details').forEach(d=>d.open=false)">⊟ Collapse all</button>
-  <button class="ctrl-btn" onclick="window.print()">🖨 Print</button>
-</div>
-
-<div class="warn">
-  Broodforge requires <strong>API-level access</strong> — not username + password — for all cloud backup destinations. Each provider section covers creating a credential scoped to a single bucket with minimum required permissions.
-</div>
-
-<div class="toc">
-  <h2>Contents</h2>
-  <ul>
-    <li><a href="#b2">Backblaze B2</a> — recommended starting point</li>
-    <li><a href="#aws">AWS S3</a></li>
-    <li><a href="#r2">Cloudflare R2</a> — no egress fees</li>
-    <li><a href="#gdrive">Google Drive</a> — OAuth2 or Service Account</li>
-    <li><a href="#minio">Self-hosted MinIO</a> — zero cloud dependency</li>
-    <li><a href="#keeping-current">Keeping this document current</a></li>
-  </ul>
-</div>
-
-<!-- ── Backblaze B2 ──────────────────────────────────────────────────────── -->
-<h2 id="b2" style="margin-top:8px">Backblaze B2 <span class="badge-rec">recommended</span></h2>
-
-<details class="provider b2" open>
-<summary>Backblaze B2 — straightforward setup, competitive pricing, native restic support</summary>
-<div class="detail-body">
-
-  <p style="color:var(--muted);font-size:.88em"><strong>Authentication:</strong> Application Key (Key ID + Application Key string) · <strong>Restic:</strong> native B2 support, no rclone needed · <strong>Security:</strong> always use a bucket-scoped restricted key, never the Master Application Key</p>
-
-  <details class="section" open>
-  <summary>Step 1 — Create a Backblaze account</summary>
-  <div class="detail-body">
-    <ol>
-      <li>Go to <a href="https://www.backblaze.com" style="color:var(--accent)">backblaze.com</a> → Sign Up</li>
-      <li>Verify your email address</li>
-    </ol>
-  </div>
-  </details>
-
-  <details class="section">
-  <summary>Step 2 — Create a bucket</summary>
-  <div class="detail-body">
-    <ol>
-      <li>Log in → <strong>B2 Cloud Storage</strong> → <strong>Buckets</strong> → <strong>Create a Bucket</strong></li>
-      <li>Bucket name: e.g. <code>broodforge-cell-a-backup</code> (must be globally unique)</li>
-      <li>Files in bucket: <strong>Private</strong></li>
-      <li>Server-side encryption: <strong>Enable</strong> (SSE-B2 is free — adds a second layer on top of restic's own encryption)</li>
-    </ol>
-  </div>
-  </details>
-
-  <details class="section">
-  <summary>Step 3 — Create a restricted Application Key</summary>
-  <div class="detail-body">
-    <ol>
-      <li><strong>Account</strong> → <strong>App Keys</strong> → <strong>Add a New Application Key</strong></li>
-      <li>Name: <code>broodforge-backup</code></li>
-      <li>Allow access to bucket: <strong>select the specific bucket</strong> (NOT "All Buckets")</li>
-      <li>Type of access: <strong>Read and Write</strong></li>
-      <li>Allow List All Bucket Names: <strong>No</strong></li>
-      <li>Click <strong>Create New Key</strong></li>
-      <li><strong>Copy both the Key ID and the Application Key immediately</strong> — Application Key is shown only once</li>
-    </ol>
-    <div class="danger">If you lose the Application Key, delete this key and create a new one. There is no way to retrieve it after the creation screen.</div>
-  </div>
-  </details>
-
-  <details class="section">
-  <summary>Step 4 — Configure in broodforge (setup-backup.py)</summary>
-  <div class="detail-body">
-    <pre><code>Provider: Backblaze B2
+<h1>Cloud Storage Setup Guide</h1>
+<p><strong>Document created:</strong> 2026-05-31 <strong>Review by:</strong> 2027-05-31 (cloud provider UIs change; verify steps are current)</p>
+<p>This guide covers setting up cloud storage credentials for use with broodforge's backup system (restic + rclone). Each section walks through a specific provider.</p>
+<p>Broodforge requires API-level access — not username + password — for all cloud backup destinations. This is enforced during <code>setup-backup.py</code> configuration.</p>
+<p><strong>Supported providers covered here:</strong></p>
+<ul>
+<li><a href="#google-drive">Google Drive</a> — OAuth2 or Service Account</li>
+<li><a href="#backblaze-b2">Backblaze B2</a> — Application Key (recommended first cloud option)</li>
+<li><a href="#aws-s3">AWS S3</a> — IAM user with access key</li>
+<li><a href="#cloudflare-r2">Cloudflare R2</a> — S3-compatible, no egress fees</li>
+<li><a href="#self-hosted-minio">Self-hosted MinIO</a> — S3-compatible, full local control</li>
+</ul>
+<p><strong>If this document is more than 12 months old, treat the UI steps as approximate and verify against the provider's current documentation.</strong></p>
+<hr>
+<h2>Backblaze B2</h2>
+<p>*Recommended starting point for cloud backup — straightforward setup, competitive pricing, no egress fees to Cloudflare Workers (relevant for R2 users), and restic has native B2 support without rclone.*</p>
+<p><strong>What you need:</strong> A Backblaze account (free tier available for evaluation). <strong>Authentication:</strong> Application Key (Key ID + Application Key string). <strong>Security note:</strong> Application Keys can be scoped to a single bucket with specific permissions. Always create a restricted key — not the Master Application Key.</p>
+<h3>Step 1 — Create a Backblaze account</h3>
+<ol>
+<li>Go to <a href="https://www.backblaze.com">backblaze.com</a> → Sign Up</li>
+<li>Verify your email address</li>
+</ol>
+<h3>Step 2 — Create a bucket</h3>
+<ol>
+<li>Log in → <strong>B2 Cloud Storage</strong> → <strong>Buckets</strong> → <strong>Create a Bucket</strong></li>
+<li>Bucket name: e.g. <code>broodforge-cell-a-backup</code> (must be globally unique)</li>
+<li>Files in bucket: <strong>Private</strong> (not public)</li>
+<li>Server-side encryption: <strong>Enable</strong> (SSE-B2 is free; adds a second encryption</li>
+</ol>
+<p>layer on top of restic's own encryption)</p>
+<ol>
+<li>Note the bucket name — you will need it for rclone / restic configuration</li>
+</ol>
+<h3>Step 3 — Create a restricted Application Key</h3>
+<ol>
+<li><strong>Account</strong> → <strong>App Keys</strong> → <strong>Add a New Application Key</strong></li>
+<li>Name: <code>broodforge-backup</code> (descriptive, for your reference)</li>
+<li>Allow access to bucket: select <strong>the specific bucket you just created</strong></li>
+</ol>
+<p>(do NOT select "All Buckets")</p>
+<ol>
+<li>Type of access: <strong>Read and Write</strong></li>
+<li>Allow List All Bucket Names: <strong>No</strong></li>
+<li>File name prefix: leave blank (or set to <code>restic/</code> if you want to restrict key</li>
+</ol>
+<p>to a specific path)</p>
+<ol>
+<li>Click <strong>Create New Key</strong></li>
+<li><strong>Copy both the Key ID and the Application Key immediately</strong> — the Application</li>
+</ol>
+<p>Key is shown only once. If you lose it, delete this key and create a new one.</p>
+<h3>Step 4 — Configure in broodforge</h3>
+<p>When <code>setup-backup.py</code> prompts for a B2 destination, enter:</p>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>Provider: Backblaze B2
 Key ID:   (paste the Key ID from step 3)
 App Key:  (paste the Application Key from step 3)
 Bucket:   broodforge-cell-a-backup
-Path:     restic</code></pre>
-    <p>Broodforge initialises a restic repository at <code>b2:broodforge-cell-a-backup/restic</code> and tests the connection before saving.</p>
-  </div>
-  </details>
-
-</div>
-</details>
-
-<!-- ── AWS S3 ─────────────────────────────────────────────────────────────── -->
-<h2 id="aws" style="margin-top:16px">AWS S3</h2>
-
-<details class="provider aws">
-<summary>AWS S3 — dedicated IAM user with bucket-scoped policy</summary>
-<div class="detail-body">
-
-  <p style="color:var(--muted);font-size:.88em"><strong>Authentication:</strong> IAM Access Key ID + Secret Access Key · <strong>Security:</strong> never use root credentials; create a dedicated IAM user with a minimal inline policy</p>
-
-  <details class="section" open>
-  <summary>Step 1 — Create an S3 bucket</summary>
-  <div class="detail-body">
-    <ol>
-      <li>AWS Console → <strong>S3</strong> → <strong>Create bucket</strong></li>
-      <li>Bucket name: e.g. <code>broodforge-cell-a-backup</code> (globally unique, lowercase, hyphens only)</li>
-      <li>Block all public access: <strong>enabled</strong> (all four checkboxes)</li>
-      <li>Server-side encryption: <strong>Enable</strong> — SSE-S3 (free)</li>
-    </ol>
-  </div>
-  </details>
-
-  <details class="section">
-  <summary>Step 2 — Create an IAM user with a scoped policy</summary>
-  <div class="detail-body">
-    <ol>
-      <li>AWS Console → <strong>IAM</strong> → <strong>Users</strong> → <strong>Create user</strong></li>
-      <li>Username: <code>broodforge-backup</code></li>
-      <li>Access type: <strong>Programmatic access</strong> only (no AWS Console login)</li>
-      <li>Attach this inline policy:</li>
-    </ol>
-    <pre><code>{
+Path:     restic   (directory within the bucket for restic's repository)</code></pre></div>
+<p>Broodforge will initialise a restic repository at <code>b2:broodforge-cell-a-backup/restic</code> and test the connection before saving the configuration.</p>
+<hr>
+<h2>AWS S3</h2>
+<p><strong>What you need:</strong> An AWS account. <strong>Authentication:</strong> IAM user with an access key (not root account credentials). <strong>Security note:</strong> Create a dedicated IAM user with a policy scoped to one bucket. Never use root account credentials or an access key with broad permissions.</p>
+<h3>Step 1 — Create an S3 bucket</h3>
+<ol>
+<li>AWS Console → <strong>S3</strong> → <strong>Create bucket</strong></li>
+<li>Bucket name: e.g. <code>broodforge-cell-a-backup</code> (globally unique; lowercase, hyphens only)</li>
+<li>Region: choose a region geographically close to you</li>
+<li>Block all public access: <strong>enabled</strong> (all four checkboxes)</li>
+<li>Bucket versioning: optional; restic manages its own versioning</li>
+<li>Server-side encryption: <strong>Enable</strong> — SSE-S3 (free) or SSE-KMS (requires KMS key)</li>
+<li>Create bucket</li>
+</ol>
+<h3>Step 2 — Create an IAM user with a scoped policy</h3>
+<ol>
+<li>AWS Console → <strong>IAM</strong> → <strong>Users</strong> → <strong>Create user</strong></li>
+<li>Username: <code>broodforge-backup</code></li>
+<li>Access type: <strong>Programmatic access</strong> (access key, not AWS Console login)</li>
+<li>Permissions: attach a new inline policy:</li>
+</ol>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>{
   "Version": "2012-10-17",
   "Statement": [
     {
       "Effect": "Allow",
-      "Action": ["s3:ListBucket", "s3:GetBucketLocation"],
+      "Action": [
+        "s3:ListBucket",
+        "s3:GetBucketLocation"
+      ],
       "Resource": "arn:aws:s3:::broodforge-cell-a-backup"
     },
     {
       "Effect": "Allow",
-      "Action": ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"],
+      "Action": [
+        "s3:GetObject",
+        "s3:PutObject",
+        "s3:DeleteObject"
+      ],
       "Resource": "arn:aws:s3:::broodforge-cell-a-backup/*"
     }
   ]
-}</code></pre>
-    <p>On the final screen, copy the <strong>Access Key ID</strong> and <strong>Secret Access Key</strong> — the Secret is shown only once.</p>
-  </div>
-  </details>
-
-  <details class="section">
-  <summary>Step 3 — Configure in broodforge</summary>
-  <div class="detail-body">
-    <pre><code>Provider:        AWS S3
+}</code></pre></div>
+<p>Replace <code>broodforge-cell-a-backup</code> with your actual bucket name.</p>
+<ol>
+<li>Finish creating the user. On the final screen, copy the <strong>Access Key ID</strong> and</li>
+</ol>
+<p><strong>Secret Access Key</strong> — the Secret Access Key is shown only once.</p>
+<h3>Step 3 — Configure in broodforge</h3>
+<p>When <code>setup-backup.py</code> prompts for an S3 destination, enter:</p>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>Provider:        AWS S3
 Region:          (your bucket's region, e.g. ap-southeast-2)
 Access Key ID:   (paste from step 2)
 Secret Key:      (paste from step 2)
 Bucket:          broodforge-cell-a-backup
-Path:            restic</code></pre>
-  </div>
-  </details>
-
-</div>
-</details>
-
-<!-- ── Cloudflare R2 ──────────────────────────────────────────────────────── -->
-<h2 id="r2" style="margin-top:16px">Cloudflare R2</h2>
-
-<details class="provider r2">
-<summary>Cloudflare R2 — S3-compatible, no egress fees</summary>
-<div class="detail-body">
-
-  <p style="color:var(--muted);font-size:.88em"><strong>Authentication:</strong> R2 API Token (separate from Cloudflare account API key) · <strong>Cost:</strong> 10 GB free/month, then ~$0.015/GB as of 2026 · <strong>Note:</strong> requires credit card on file even for free tier</p>
-
-  <details class="section" open>
-  <summary>Step 1 — Enable R2 and create a bucket</summary>
-  <div class="detail-body">
-    <ol>
-      <li><a href="https://dash.cloudflare.com" style="color:var(--accent)">dash.cloudflare.com</a> → <strong>R2</strong> → <strong>Get Started</strong> (enter credit card if prompted)</li>
-      <li><strong>R2</strong> → <strong>Create bucket</strong></li>
-      <li>Bucket name: e.g. <code>broodforge-cell-a-backup</code></li>
-    </ol>
-  </div>
-  </details>
-
-  <details class="section">
-  <summary>Step 2 — Create a scoped R2 API Token</summary>
-  <div class="detail-body">
-    <ol>
-      <li><strong>R2</strong> → <strong>Manage R2 API Tokens</strong> → <strong>Create API Token</strong></li>
-      <li>Token name: <code>broodforge-backup</code></li>
-      <li>Permissions: <strong>Object Read &amp; Write</strong></li>
-      <li>Specify bucket: select <strong>the specific bucket</strong> (not all buckets)</li>
-      <li>Create token — copy <strong>Access Key ID</strong>, <strong>Secret Access Key</strong></li>
-      <li>Note your <strong>Account ID</strong> (visible in the R2 dashboard right sidebar)</li>
-    </ol>
-    <p>Your S3 endpoint: <code>https://{Account ID}.r2.cloudflarestorage.com</code></p>
-  </div>
-  </details>
-
-  <details class="section">
-  <summary>Step 3 — Configure in broodforge</summary>
-  <div class="detail-body">
-    <pre><code>Provider:        Cloudflare R2 (S3-compatible)
+Path:            restic</code></pre></div>
+<hr>
+<h2>Cloudflare R2</h2>
+<p>*S3-compatible. No egress fees (you pay for storage and operations, not downloads). A cost-effective option if you expect to restore frequently.*</p>
+<p><strong>What you need:</strong> A Cloudflare account with R2 enabled (requires credit card on file; 10 GB free per month, then ~$0.015/GB/month as of 2026). <strong>Authentication:</strong> R2 API Token (not your Cloudflare account API key).</p>
+<h3>Step 1 — Enable R2 on your Cloudflare account</h3>
+<ol>
+<li><a href="https://dash.cloudflare.com">dash.cloudflare.com</a> → <strong>R2</strong> → <strong>Get Started</strong></li>
+<li>Enter a credit card if prompted (required even for free tier)</li>
+</ol>
+<h3>Step 2 — Create an R2 bucket</h3>
+<ol>
+<li><strong>R2</strong> → <strong>Create bucket</strong></li>
+<li>Bucket name: e.g. <code>broodforge-cell-a-backup</code></li>
+<li>Location: <strong>Automatic</strong> or choose a specific region</li>
+<li>Create bucket</li>
+</ol>
+<h3>Step 3 — Create a scoped API Token</h3>
+<ol>
+<li><strong>R2</strong> → <strong>Manage R2 API Tokens</strong> → <strong>Create API Token</strong></li>
+<li>Token name: <code>broodforge-backup</code></li>
+<li>Permissions: <strong>Object Read &amp; Write</strong></li>
+<li>Specify bucket: select <strong>the specific bucket</strong> you created (not all buckets)</li>
+<li>TTL: <strong>No expiration</strong> (or set a rotation schedule and update broodforge when rotating)</li>
+<li>Create token</li>
+<li>Copy: <strong>Access Key ID</strong>, <strong>Secret Access Key</strong>, and note your <strong>Account ID</strong></li>
+</ol>
+<p>(visible in the right sidebar of the R2 dashboard)</p>
+<ol>
+<li>Your S3 endpoint is: <code>https://{Account ID}.r2.cloudflarestorage.com</code></li>
+</ol>
+<h3>Step 4 — Configure in broodforge</h3>
+<p>When <code>setup-backup.py</code> prompts for a Cloudflare R2 destination:</p>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>Provider:        Cloudflare R2 (S3-compatible)
 Endpoint:        https://{your-account-id}.r2.cloudflarestorage.com
-Access Key ID:   (paste from step 2)
-Secret Key:      (paste from step 2)
+Access Key ID:   (paste from step 3)
+Secret Key:      (paste from step 3)
 Bucket:          broodforge-cell-a-backup
-Path:            restic</code></pre>
-    <p>Broodforge configures rclone with <code>type = s3</code>, <code>provider = Cloudflare</code>, and the endpoint URL.</p>
-  </div>
-  </details>
+Path:            restic</code></pre></div>
+<p>Broodforge configures rclone with <code>type = s3</code>, <code>provider = Cloudflare</code>, and the endpoint URL above.</p>
+<hr>
+<h2>Google Drive</h2>
+<p>*The most complex provider to set up due to OAuth2 / Google Cloud project requirements. Read all steps before starting — the Google Cloud Console UI changes frequently.*</p>
+<p><strong>Two authentication options:</strong></p>
+<table><thead><tr><th>Option</th><th>Best for</th><th>Complexity</th></tr></thead><tbody><tr><td><strong>OAuth2 (user account)</strong></td><td>Personal Google Drive; interactive setup</td><td>Medium</td></tr><tr><td><strong>Service Account</strong></td><td>Shared Drive / Google Workspace; non-interactive</td><td>Higher</td></tr></tbody></table>
+<h3>Option A — OAuth2 (personal Google Drive)</h3>
+<p>OAuth2 tokens are tied to your Google account. You set them up interactively once; rclone stores a refresh token that it uses automatically thereafter.</p>
+<h4>Step A.1 — Create a Google Cloud project</h4>
+<ol>
+<li>Go to <a href="https://console.cloud.google.com">console.cloud.google.com</a></li>
+<li>Click the project selector at the top → <strong>New Project</strong></li>
+<li>Project name: <code>broodforge-backup</code> (internal name; users won't see it)</li>
+<li>Create project</li>
+</ol>
+<h4>Step A.2 — Enable the Google Drive API</h4>
+<ol>
+<li>With your project selected: <strong>APIs &amp; Services</strong> → <strong>Library</strong></li>
+<li>Search for <code>Google Drive API</code></li>
+<li>Click it → <strong>Enable</strong></li>
+</ol>
+<h4>Step A.3 — Configure the OAuth consent screen</h4>
+<ol>
+<li><strong>APIs &amp; Services</strong> → <strong>OAuth consent screen</strong></li>
+<li>User type: <strong>External</strong> (unless you have a Google Workspace organisation)</li>
+<li>App name: <code>broodforge-backup</code></li>
+<li>User support email: your email address</li>
+<li>Developer contact: your email address</li>
+<li><strong>Save and Continue</strong> through Scopes (no scopes needed here) → <strong>Save and Continue</strong></li>
+<li>Add test users: add your own Google account email</li>
+<li><strong>Save and Continue</strong> → <strong>Back to Dashboard</strong></li>
+<li>Status will show "Testing" — this is fine for personal use (the app only</li>
+</ol>
+<p>needs to access your own Drive)</p>
+<h4>Step A.4 — Create OAuth 2.0 credentials</h4>
+<ol>
+<li><strong>APIs &amp; Services</strong> → <strong>Credentials</strong> → <strong>Create Credentials</strong> → <strong>OAuth client ID</strong></li>
+<li>Application type: <strong>Desktop app</strong></li>
+<li>Name: <code>broodforge-rclone</code></li>
+<li>Create</li>
+<li>Download the JSON file (or copy Client ID and Client Secret)</li>
+</ol>
+<h4>Step A.5 — Authorise rclone (run on the hatchery or your workstation)</h4>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code># On a machine with a browser (your workstation, not the Proxmox host):
+rclone config
 
-</div>
-</details>
-
-<!-- ── Google Drive ──────────────────────────────────────────────────────── -->
-<h2 id="gdrive" style="margin-top:16px">Google Drive</h2>
-
-<details class="provider gdrive">
-<summary>Google Drive — OAuth2 or Service Account (most complex setup)</summary>
-<div class="detail-body">
-
-  <div class="warn">Google Cloud Console UI changes frequently. If a step shows a different screen than described, check Google's current documentation. The overall flow remains the same.</div>
-
-  <table style="margin-bottom:12px">
-    <tr><th>Option</th><th>Best for</th><th>Complexity</th></tr>
-    <tr><td>OAuth2 (Option A)</td><td>Personal Google Drive; interactive setup once</td><td>Medium</td></tr>
-    <tr><td>Service Account (Option B)</td><td>Shared Drive / Google Workspace; non-interactive</td><td>Higher</td></tr>
-  </table>
-
-  <details class="section" open>
-  <summary>Option A — OAuth2 (personal Google Drive)</summary>
-  <div class="detail-body">
-    <h3>A.1 — Create a Google Cloud project</h3>
-    <ol>
-      <li><a href="https://console.cloud.google.com" style="color:var(--accent)">console.cloud.google.com</a> → project selector → <strong>New Project</strong></li>
-      <li>Name: <code>broodforge-backup</code> → Create</li>
-    </ol>
-
-    <h3>A.2 — Enable Google Drive API</h3>
-    <ol>
-      <li><strong>APIs &amp; Services</strong> → <strong>Library</strong> → search <code>Google Drive API</code> → Enable</li>
-    </ol>
-
-    <h3>A.3 — Configure OAuth consent screen</h3>
-    <ol>
-      <li><strong>APIs &amp; Services</strong> → <strong>OAuth consent screen</strong></li>
-      <li>User type: <strong>External</strong></li>
-      <li>App name: <code>broodforge-backup</code>, support/developer email: your email</li>
-      <li>Save and Continue through all screens; add your Google account as a test user</li>
-    </ol>
-
-    <h3>A.4 — Create OAuth 2.0 credentials</h3>
-    <ol>
-      <li><strong>APIs &amp; Services</strong> → <strong>Credentials</strong> → <strong>Create Credentials</strong> → <strong>OAuth client ID</strong></li>
-      <li>Application type: <strong>Desktop app</strong> · Name: <code>broodforge-rclone</code></li>
-      <li>Download the JSON file (or copy Client ID and Client Secret)</li>
-    </ol>
-
-    <h3>A.5 — Authorise rclone (run on your workstation, not the Proxmox host)</h3>
-    <pre><code>rclone config
-# n) New remote → name> gdrive → Storage> drive
-# client_id>   (paste Client ID)
-# client_secret>   (paste Client Secret)
-# scope> drive
-# Use auto config? y   ← opens browser for OAuth authorisation</code></pre>
-    <p>Copy <code>~/.config/rclone/rclone.conf</code> to the Proxmox host at the same path.</p>
-
-    <h3>A.6 — Configure in broodforge</h3>
-    <pre><code>Provider:      Google Drive (rclone remote)
+# Follow the prompts:
+# n) New remote
+# name&gt; gdrive
+# Storage&gt; drive                          (Google Drive)
+# client_id&gt;   (paste Client ID from step A.4)
+# client_secret&gt;   (paste Client Secret from step A.4)
+# scope&gt; drive                            (full access)
+# root_folder_id&gt;   (leave blank)
+# service_account_file&gt;   (leave blank)
+# Edit advanced config? n
+# Use auto config? y                      (opens browser for authorisation)
+#   → Browser opens; log in as your Google account → Grant access
+# Configure this as a Shared Drive? n
+# Keep this remote? y</code></pre></div>
+<p>The resulting token is saved in <code>~/.config/rclone/rclone.conf</code>. Copy this file to the Proxmox host at the same path.</p>
+<h4>Step A.6 — Configure in broodforge</h4>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>Provider:      Google Drive (rclone remote)
 rclone remote: gdrive
-Path:          broodforge-backup/restic</code></pre>
-  </div>
-  </details>
+Path:          broodforge-backup/restic</code></pre></div>
+<p>Broodforge will use <code>rclone:gdrive:broodforge-backup/restic</code> as the restic backend.</p>
+<hr>
+<h3>Option B — Service Account (Shared Drive / Workspace)</h3>
+<p>A service account is a Google identity for applications — no human OAuth flow, no browser required. Better for production use, especially with Google Workspace.</p>
+<h4>Step B.1 — Create a project (same as A.1 and A.2 above)</h4>
+<h4>Step B.2 — Create a Service Account</h4>
+<ol>
+<li><strong>IAM &amp; Admin</strong> → <strong>Service Accounts</strong> → <strong>Create Service Account</strong></li>
+<li>Name: <code>broodforge-backup</code></li>
+<li>Description: <code>restic backup agent for broodforge cluster</code></li>
+<li>Create and continue</li>
+<li>Role: skip (no project-level role needed for Drive access)</li>
+<li>Done</li>
+</ol>
+<h4>Step B.3 — Create and download a key</h4>
+<ol>
+<li>Click your new service account → <strong>Keys</strong> → <strong>Add Key</strong> → <strong>Create new key</strong></li>
+<li>Key type: <strong>JSON</strong></li>
+<li>Create — downloads a <code>.json</code> file. Store this securely; it is the service</li>
+</ol>
+<p>account's credential. Treat it like a private key — add it to KeePass.</p>
+<h4>Step B.4 — Share a Drive folder with the service account</h4>
+<ol>
+<li>In Google Drive, create a folder: <code>broodforge-backup</code></li>
+<li>Right-click → <strong>Share</strong></li>
+<li>Add the service account email (shown in Step B.2; looks like</li>
+</ol>
+<p><code>broodforge-backup@your-project.iam.gserviceaccount.com</code>)</p>
+<ol>
+<li>Role: <strong>Editor</strong></li>
+<li>Share</li>
+</ol>
+<h4>Step B.5 — Configure rclone with the service account</h4>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>rclone config
 
-  <details class="section">
-  <summary>Option B — Service Account (Shared Drive / Google Workspace)</summary>
-  <div class="detail-body">
-    <p>A service account is a Google identity for applications — no human OAuth flow, no browser required. Better for production or Google Workspace environments.</p>
-
-    <h3>B.1 — Create project and enable Drive API (same as A.1 and A.2)</h3>
-
-    <h3>B.2 — Create a Service Account</h3>
-    <ol>
-      <li><strong>IAM &amp; Admin</strong> → <strong>Service Accounts</strong> → <strong>Create Service Account</strong></li>
-      <li>Name: <code>broodforge-backup</code> · Skip role assignment → Done</li>
-    </ol>
-
-    <h3>B.3 — Create and download a JSON key</h3>
-    <ol>
-      <li>Click your service account → <strong>Keys</strong> → <strong>Add Key</strong> → <strong>Create new key</strong> → <strong>JSON</strong></li>
-      <li>Store the downloaded <code>.json</code> file in KeePass (treat as a private key)</li>
-    </ol>
-
-    <h3>B.4 — Share a Drive folder with the service account</h3>
-    <ol>
-      <li>In Google Drive, create folder: <code>broodforge-backup</code></li>
-      <li>Right-click → <strong>Share</strong> → add the service account email → Role: <strong>Editor</strong></li>
-    </ol>
-
-    <h3>B.5 — Configure rclone</h3>
-    <pre><code>rclone config
-# n) New remote → name> gdrive-sa → Storage> drive
-# client_id>   (leave blank)
-# client_secret>   (leave blank)
-# scope> drive
-# service_account_file> /path/to/service-account-key.json
-# Use auto config? n</code></pre>
-
-    <h3>B.6 — Configure in broodforge</h3>
-    <pre><code>Provider:      Google Drive (rclone remote — service account)
+# n) New remote
+# name&gt; gdrive-sa
+# Storage&gt; drive
+# client_id&gt;   (leave blank)
+# client_secret&gt;   (leave blank)
+# scope&gt; drive
+# root_folder_id&gt;   (leave blank, or paste the folder ID from the URL)
+# service_account_file&gt;   /path/to/service-account-key.json
+# Edit advanced config? n
+# Use auto config? n    (service account; no browser needed)
+# Configure as Shared Drive? n   (unless using Google Workspace Shared Drive)
+# y</code></pre></div>
+<h4>Step B.6 — Configure in broodforge</h4>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>Provider:      Google Drive (rclone remote — service account)
 rclone remote: gdrive-sa
-Path:          broodforge-backup/restic</code></pre>
-  </div>
-  </details>
-
-</div>
-</details>
-
-<!-- ── MinIO ──────────────────────────────────────────────────────────────── -->
-<h2 id="minio" style="margin-top:16px">Self-Hosted MinIO</h2>
-
-<details class="provider minio">
-<summary>Self-Hosted MinIO — S3-compatible, zero cloud dependency</summary>
-<div class="detail-body">
-
-  <p style="color:var(--muted);font-size:.88em">Run on a spare node, NAS, or separate machine. Preferred over running on the Proxmox host itself for independence during recovery scenarios.</p>
-
-  <details class="section" open>
-  <summary>Step 1 — Install MinIO</summary>
-  <div class="detail-body">
-    <pre><code># On the MinIO host (Debian/Ubuntu)
+Path:          broodforge-backup/restic</code></pre></div>
+<hr>
+<h2>Self-Hosted MinIO</h2>
+<p>*S3-compatible object storage you run yourself. Zero cloud dependency; good for operators who want the restic deduplication and encryption benefits without any external service.*</p>
+<p><strong>What you need:</strong> A machine to run MinIO on (a spare node, a NAS, or even the Proxmox host itself — though a separate machine is preferred for independence).</p>
+<h3>Step 1 — Install MinIO</h3>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code># On the MinIO host (Debian/Ubuntu):
 wget https://dl.min.io/server/minio/release/linux-amd64/minio -O /usr/local/bin/minio
 chmod +x /usr/local/bin/minio
+
+# Create data directory
 mkdir -p /opt/minio/data
-useradd -r -s /sbin/nologin minio</code></pre>
-    <p>Create <code>/etc/systemd/system/minio.service</code>:</p>
-    <pre><code>[Unit]
+
+# Create a systemd unit (/etc/systemd/system/minio.service):
+[Unit]
 Description=MinIO Object Storage
 After=network.target
 
 [Service]
 User=minio
-EnvironmentFile=/etc/minio/config
+Environment="MINIO_ROOT_USER=admin"
+Environment="MINIO_ROOT_PASSWORD=change-me-on-first-run"
 ExecStart=/usr/local/bin/minio server /opt/minio/data --console-address :9001
 Restart=always
 
 [Install]
-WantedBy=multi-user.target</code></pre>
-    <p>Create <code>/etc/minio/config</code> (chmod 600):</p>
-    <pre><code>MINIO_ROOT_USER=admin
-MINIO_ROOT_PASSWORD=Change-Me-On-First-Run-1</code></pre>
-    <pre><code>systemctl enable --now minio</code></pre>
-    <div class="tip">Store the MinIO root password in KeePass immediately after first login.</div>
-  </div>
-  </details>
+WantedBy=multi-user.target
 
-  <details class="section">
-  <summary>Step 2 — Create a bucket and access key via the console</summary>
-  <div class="detail-body">
-    <ol>
-      <li>Open <code>http://{minio-host}:9001</code> → log in → <strong>change the root password immediately</strong></li>
-      <li><strong>Buckets</strong> → <strong>Create Bucket</strong> · Name: <code>broodforge-backup</code></li>
-      <li><strong>Access Keys</strong> → <strong>Create Access Key</strong> · Name: <code>broodforge-backup</code></li>
-      <li>Copy Access Key and Secret Key</li>
-    </ol>
-  </div>
-  </details>
-
-  <details class="section">
-  <summary>Step 3 — Configure in broodforge</summary>
-  <div class="detail-body">
-    <pre><code>Provider:        MinIO (S3-compatible)
-Endpoint:        http://{minio-host}:9000  (use https if TLS is configured)
-Access Key ID:   (from step 2)
-Secret Key:      (from step 2)
+systemctl enable --now minio</code></pre></div>
+<h3>Step 2 — Access the MinIO console</h3>
+<p>Open <code>http://{minio-host}:9001</code> in your browser. Log in with the root credentials.</p>
+<p><strong>Change the root password immediately</strong> via <strong>Identity</strong> → <strong>Users</strong> → root account. Use a readable passphrase (the broodforge format <code>Capital.word.phrase.9</code> is suitable).</p>
+<h3>Step 3 — Create a bucket and access key</h3>
+<ol>
+<li><strong>Buckets</strong> → <strong>Create Bucket</strong></li>
+<li>Name: <code>broodforge-backup</code></li>
+<li>Versioning: off (restic manages versioning)</li>
+<li>Object locking: off</li>
+<li><strong>Access Keys</strong> → <strong>Create Access Key</strong></li>
+<li>Name: <code>broodforge-backup</code></li>
+<li>Copy Access Key and Secret Key</li>
+<li>Restrict to your bucket if MinIO version supports bucket-scoped keys</li>
+</ol>
+<h3>Step 4 — Configure in broodforge</h3>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>Provider:        MinIO (S3-compatible)
+Endpoint:        http://{minio-host}:9000    (use https if TLS is configured)
+Access Key ID:   (from step 3)
+Secret Key:      (from step 3)
 Bucket:          broodforge-backup
-Path:            restic</code></pre>
-    <p>Broodforge configures rclone with <code>type = s3</code>, <code>provider = Minio</code>, and the endpoint URL.</p>
-  </div>
-  </details>
-
-</div>
-</details>
-
-<!-- ── Keeping Current ────────────────────────────────────────────────────── -->
-<h2 id="keeping-current" style="margin-top:20px">Keeping This Document Current</h2>
-
-<div class="tip">
-  Cloud provider UIs and API processes change. Review this document when a provider announces changes, when a setup step shows a different screen than described, or annually (date at top). To update: edit the source Markdown or HTML, update the date, and commit to Forgejo.
-</div>
-
+Path:            restic</code></pre></div>
+<p>MinIO is configured as an S3-compatible provider in rclone with <code>provider = Minio</code> and <code>endpoint = http://{minio-host}:9000</code>.</p>
+<hr>
+<h2>Keeping This Document Current</h2>
+<p>Cloud provider UIs and API processes change. This document should be reviewed:</p>
+<ul>
+<li>When a provider announces a console or API change</li>
+<li>When a setup step produces a different screen than described</li>
+<li>On an annual schedule (date at top of document)</li>
+</ul>
+<p>To update: edit this file, update the date at the top, and commit to Forgejo. The assessment engine does not monitor this file for staleness — it is a manual maintenance responsibility.</p>
+<p>If you encounter a step that has changed significantly, open an issue in the broodforge Forgejo repository with the updated steps so other operators benefit.</p>
+<div class="session-notes"><h2>Session Notes</h2><p style="color:var(--muted);font-size:.85em">Anything unexpected, or that did not fit the steps above. Saved in your browser.</p><textarea id="bf-session-notes" placeholder="notes…"></textarea></div>
+<script>
+(function(){
+  var ns = 'bf:' + (document.body.dataset.doc || 'doc') + ':';
+  // ---- theme ----
+  try{ if(localStorage.getItem('bf:theme')==='light') document.body.classList.add('light'); }catch(e){}
+  var tb = document.getElementById('bf-theme-btn');
+  function lbl(){ tb.textContent = document.body.classList.contains('light') ? '☾ Dark' : '☀ Light'; }
+  if(tb){ lbl(); tb.addEventListener('click', function(){
+    document.body.classList.toggle('light');
+    try{ localStorage.setItem('bf:theme', document.body.classList.contains('light')?'light':'dark'); }catch(e){}
+    lbl();
+  }); }
+  // ---- live template parameters ----
+  function applyVar(name, val){
+    var slots = document.querySelectorAll('.tpl[data-var="'+name+'"]');
+    for(var i=0;i<slots.length;i++){ slots[i].textContent = val; }
+  }
+  var inputs = document.querySelectorAll('.param-input');
+  for(var i=0;i<inputs.length;i++){
+    (function(inp){
+      var name = inp.dataset.var, k = ns+'param:'+name;
+      try{ var s = localStorage.getItem(k); if(s!==null) inp.value = s; }catch(e){}
+      applyVar(name, inp.value);
+      inp.addEventListener('input', function(){
+        applyVar(name, inp.value);
+        try{ localStorage.setItem(k, inp.value); }catch(e){}
+      });
+    })(inputs[i]);
+  }
+  // ---- note fields + session notes (persisted) ----
+  var notes = document.querySelectorAll('.note-input,.note-area,#bf-session-notes');
+  for(var j=0;j<notes.length;j++){
+    (function(el){
+      var id = el.dataset.note || el.id, k = ns+'note:'+id;
+      try{ var s = localStorage.getItem(k); if(s!==null) el.value = s; }catch(e){}
+      el.addEventListener('input', function(){ try{ localStorage.setItem(k, el.value); }catch(e){} });
+    })(notes[j]);
+  }
+  // ---- copy buttons ----
+  var btns = document.querySelectorAll('.copy-btn');
+  for(var b=0;b<btns.length;b++){
+    btns[b].addEventListener('click', function(){
+      var btn = this, pre = btn.parentElement.querySelector('pre');
+      var text = pre.innerText;
+      var done = function(){ var o=btn.textContent; btn.textContent='Copied!'; setTimeout(function(){btn.textContent=o;},1200); };
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(text).then(done, function(){ done(); });
+      } else {
+        var ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta);
+        ta.select(); try{document.execCommand('copy');}catch(e){} document.body.removeChild(ta); done();
+      }
+    });
+  }
+})();
+</script>
 </body>
 </html>

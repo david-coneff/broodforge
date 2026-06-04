@@ -3,190 +3,137 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DuckDNS Setup — Broodforge</title>
+<title>DuckDNS Setup Guide</title>
 <style>
   :root{--bg:#1a1d23;--bg2:#22262e;--bg3:#2a2f3a;--border:#3a3f4d;--text:#cdd6f4;--muted:#7f8498;
     --accent:#89b4fa;--green:#a6e3a1;--yellow:#f9e2af;--orange:#fab387;--red:#f38ba8;
-    --code-bg:#181b21;--radius:6px}
+    --code-bg:#181b21;--code-text:#a6e3a1;--radius:6px;--btn-bg:#2a2f3a}
+  body.light{--bg:#ffffff;--bg2:#f4f5f7;--bg3:#eceff2;--border:#d0d7de;--text:#1f2328;--muted:#57606a;
+    --accent:#0969da;--green:#1a7f37;--yellow:#9a6700;--orange:#bc4c00;--red:#cf222e;
+    --code-bg:#f6f8fa;--code-text:#0a3069;--btn-bg:#eaeef2}
   *{box-sizing:border-box;margin:0;padding:0}
   body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
-    font-size:14px;line-height:1.6;padding:24px;max-width:960px;margin:0 auto}
-  h1{color:var(--accent);font-size:1.6em;margin-bottom:4px}
-  h2{color:var(--accent);font-size:1.05em;margin:20px 0 6px;text-transform:uppercase;letter-spacing:.05em}
+    font-size:14px;line-height:1.6;padding:24px 24px 80px;max-width:1100px;margin:0 auto;
+    transition:background .15s,color .15s}
+  h1{color:var(--accent);font-size:1.7em;margin:18px 0 4px}
+  h2{color:var(--accent);font-size:1.05em;margin:24px 0 8px;text-transform:uppercase;letter-spacing:.05em;
+    border-bottom:1px solid var(--border);padding-bottom:4px}
   h3{color:var(--accent);font-size:.95em;margin:14px 0 6px}
-  .subtitle{color:var(--muted);margin-bottom:20px;font-size:.9em}
-  .meta{color:var(--muted);font-size:.8em;margin-bottom:24px}
-  p{margin:8px 0}ul,ol{margin:8px 0 8px 20px}li{margin:3px 0}
-  code{background:var(--code-bg);color:var(--green);padding:1px 5px;border-radius:3px;
+  h4{color:var(--muted);font-size:.82em;margin:10px 0 4px;text-transform:uppercase;letter-spacing:.08em}
+  h5,h6{color:var(--muted);font-size:.8em;margin:8px 0 4px}
+  a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+  p{margin:8px 0}ul,ol{margin:8px 0 8px 22px}li{margin:4px 0}
+  li>ul,li>ol{margin:4px 0 4px 18px}
+  strong{color:var(--text);font-weight:600}
+  hr{border:none;border-top:1px solid var(--border);margin:20px 0}
+  blockquote{border-left:3px solid var(--accent);background:var(--bg2);margin:10px 0;
+    padding:8px 14px;border-radius:0 var(--radius) var(--radius) 0;color:var(--text)}
+  code{background:var(--code-bg);color:var(--code-text);padding:1px 5px;border-radius:3px;
     font-family:'Cascadia Code','Fira Code',Consolas,monospace;font-size:.9em}
   pre{background:var(--code-bg);border:1px solid var(--border);border-radius:var(--radius);
-    padding:12px 14px;overflow-x:auto;margin:10px 0}
-  pre code{background:none;padding:0;display:block;white-space:pre}
+    padding:12px 14px;overflow-x:auto;margin:0;font-family:'Cascadia Code','Fira Code',Consolas,monospace;
+    font-size:.85em;color:var(--code-text);white-space:pre}
+  pre code{background:none;padding:0;color:inherit}
   table{width:100%;border-collapse:collapse;margin:10px 0;font-size:.88em}
   th{background:var(--bg2);color:var(--muted);text-align:left;padding:6px 8px;
     border-bottom:1px solid var(--border);font-weight:600;font-size:.8em;text-transform:uppercase;letter-spacing:.05em}
   td{padding:5px 8px;border-bottom:1px solid var(--bg3);vertical-align:top}
   tr:last-child td{border-bottom:none}
-  .tip{background:#1e2d3a;border-left:3px solid var(--accent);padding:8px 12px;
-    border-radius:0 var(--radius) var(--radius) 0;margin:10px 0}
-  .warn{background:#3a2e1a;border-left:3px solid var(--yellow);padding:8px 12px;
-    border-radius:0 var(--radius) var(--radius) 0;margin:10px 0}
-  details{margin:6px 0}
-  details[open]>summary{border-radius:var(--radius) var(--radius) 0 0}
-  summary{cursor:pointer;user-select:none;padding:9px 14px;border-radius:var(--radius);
-    list-style:none;display:flex;align-items:center;gap:8px;font-weight:600}
-  summary::-webkit-details-marker{display:none}
-  summary::before{content:'▶';font-size:.7em;color:var(--muted);transition:transform .15s;flex-shrink:0}
-  details[open]>summary::before{transform:rotate(90deg)}
-  .detail-body{padding:14px 18px 14px 36px}
-  details.part>summary{background:#1e3040;color:#89dceb;border:1px solid #2e5060}
-  details.part>.detail-body{background:#1b2a34;border:1px solid #2a4050;border-top:none;
-    border-radius:0 0 var(--radius) var(--radius)}
-  details.section>summary{background:var(--bg2);color:var(--text);border:1px solid var(--border);
-    font-weight:600;font-size:.92em;padding:7px 12px}
-  details.section>.detail-body{background:var(--bg3);border:1px solid var(--border);border-top:none;
-    border-radius:0 0 var(--radius) var(--radius);padding:12px 16px 12px 32px}
-  .toc{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px 18px;margin-bottom:24px}
-  .toc h2{font-size:.85em;margin:0 0 8px}.toc a{color:var(--muted);text-decoration:none}
-  .toc a:hover{color:var(--accent)}.toc li{margin:3px 0}
-  .badge-opt{display:inline-block;background:#1e3a22;color:var(--green);border:1px solid #2e5a32;
-    border-radius:99px;padding:2px 10px;font-size:.72em;font-weight:700;margin-left:4px;vertical-align:middle}
-  .controls{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
-  .ctrl-btn{background:var(--bg2);border:1px solid var(--border);color:var(--muted);
-    padding:5px 14px;border-radius:var(--radius);cursor:pointer;font-size:.82em}
-  .ctrl-btn:hover{border-color:var(--accent);color:var(--accent)}
-  @media print{body{background:#fff;color:#000}.controls{display:none!important}
-    details{display:block!important}summary::before{display:none}}
+  .doc-meta{color:var(--muted);font-size:.8em;margin:4px 0 20px}
+  /* theme toggle */
+  #bf-theme-btn{position:fixed;top:14px;right:16px;z-index:50;background:var(--btn-bg);color:var(--text);
+    border:1px solid var(--border);border-radius:var(--radius);padding:5px 12px;cursor:pointer;
+    font-size:.8em;font-family:inherit}
+  #bf-theme-btn:hover{border-color:var(--accent);color:var(--accent)}
+  /* code block + copy */
+  .codewrap{position:relative;margin:10px 0}
+  .copy-btn{position:absolute;top:6px;right:6px;background:var(--btn-bg);color:var(--muted);
+    border:1px solid var(--border);border-radius:4px;padding:2px 9px;cursor:pointer;font-size:.72em;
+    font-family:inherit;opacity:.55;transition:opacity .12s}
+  .codewrap:hover .copy-btn{opacity:1}
+  .copy-btn:hover{border-color:var(--accent);color:var(--accent)}
+  .tpl{color:var(--orange);background:rgba(250,179,135,.13);border-radius:3px;padding:0 2px}
+  body.light .tpl{background:rgba(188,76,0,.10)}
+  /* parameters panel */
+  .params{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+    padding:12px 16px;margin:14px 0 18px}
+  .params h3{margin:0 0 8px;color:var(--accent)}
+  .params .hint{color:var(--muted);font-size:.8em;margin-bottom:10px}
+  .param-row{display:flex;align-items:center;gap:10px;margin:6px 0;flex-wrap:wrap}
+  .param-row label{min-width:200px;font-family:monospace;font-size:.85em;color:var(--muted)}
+  .param-input,.note-input,.note-area,#bf-session-notes{background:var(--code-bg);color:var(--text);
+    border:1px solid var(--border);border-radius:4px;padding:5px 8px;font-family:'Cascadia Code',Consolas,monospace;
+    font-size:.85em;flex:1;min-width:220px}
+  .param-input:focus,.note-input:focus,.note-area:focus,#bf-session-notes:focus{outline:none;border-color:var(--accent)}
+  /* note fields */
+  .notefield{margin:10px 0}
+  .notefield label{display:block;font-size:.82em;color:var(--muted);margin-bottom:3px;font-weight:600}
+  .note-area,#bf-session-notes{width:100%;min-height:70px;resize:vertical;flex:none}
+  .session-notes{margin-top:36px;border-top:1px solid var(--border);padding-top:14px}
+  @media print{body{padding:12px;max-width:none}#bf-theme-btn,.copy-btn{display:none}
+    .param-input,.note-input,.note-area,#bf-session-notes{border:1px solid #999}}
 </style>
 </head>
-<body>
+<body data-doc="duckdns-setup-guide">
+<button id="bf-theme-btn" type="button">☀ Light</button>
+<div class="doc-meta">Generated from <code>DUCKDNS-SETUP.md</code> — self-contained · print-friendly · values saved in your browser</div>
 
-<h1>DuckDNS Setup</h1>
-<p class="subtitle">Free DDNS and Let's Encrypt TLS for the broodforge hatchery</p>
-<p class="meta">Created: 2026-05-31 · Review by: 2027-05-31 · See also: <a href="CLOUDFLARE-SETUP.html" style="color:var(--accent)">Cloudflare Setup</a> (recommended if you have your own domain)</p>
-
-<div class="controls">
-  <button class="ctrl-btn" onclick="document.querySelectorAll('details').forEach(d=>d.open=true)">⊞ Expand all</button>
-  <button class="ctrl-btn" onclick="document.querySelectorAll('details').forEach(d=>d.open=false)">⊟ Collapse all</button>
-  <button class="ctrl-btn" onclick="window.print()">🖨 Print</button>
-</div>
-
-<div class="warn">
-  <strong>Trade-off vs Cloudflare:</strong> DuckDNS is free and simple, but your hatchery address will be <code>myhatchery.duckdns.org</code> rather than a subdomain of your own domain. cert-manager does not natively support DuckDNS — certs are synced via a shell script. If you have your own domain, the <a href="CLOUDFLARE-SETUP.html" style="color:var(--accent)">Cloudflare path</a> is recommended.
-</div>
-
-<div class="toc">
-  <h2>Contents</h2>
-  <ul>
-    <li><a href="#overview">Overview — what DuckDNS provides</a></li>
-    <li><a href="#part1">Part 1 — DuckDNS DDNS setup</a></li>
-    <li><a href="#part2a">Part 2a — Host certificate via acme.sh</a></li>
-    <li><a href="#part2b">Part 2b — k3s workload certs (cert sync)</a></li>
-    <li><a href="#part3">Part 3 — bootstrap-state.json fields</a></li>
-    <li><a href="#forge-summary">Forge-time summary</a></li>
-    <li><a href="#limits">Limitations vs Cloudflare</a></li>
-    <li><a href="#troubleshooting">Troubleshooting</a></li>
-  </ul>
-</div>
-
-<h2 id="overview">What DuckDNS provides for broodforge</h2>
-<table>
-  <tr><th>Feature</th><th>Notes</th></tr>
-  <tr><td>Free subdomain</td><td><code>myhatchery.duckdns.org</code> → your WAN IP</td></tr>
-  <tr><td>DDNS auto-update</td><td>Simple HTTPS GET — no client library required</td></tr>
-  <tr><td>Let's Encrypt DNS-01</td><td>Via acme.sh with built-in <code>dns_duckdns</code> solver</td></tr>
-  <tr><td>Wildcard certificates</td><td><code>*.myhatchery.duckdns.org</code> supported via DNS-01</td></tr>
-  <tr><td>cert-manager integration</td><td>No native support — wildcard cert synced as a k8s secret</td></tr>
-</table>
-
-<!-- ── Part 1 ───────────────────────────────────────────────────────────── -->
-<h2 id="part1" style="margin-top:24px">Part 1 — DuckDNS DDNS Setup</h2>
-
-<details class="part" open>
-<summary>Part 1 — DuckDNS Account and DDNS</summary>
-<div class="detail-body">
-
-  <details class="section" open>
-  <summary>Step 1.1 — Create a DuckDNS account and subdomain</summary>
-  <div class="detail-body">
-    <ol>
-      <li>Go to <a href="https://www.duckdns.org" style="color:var(--accent)">duckdns.org</a></li>
-      <li>Sign in with GitHub, Google, Twitter, or Reddit</li>
-      <li>In the <strong>sub domain</strong> field, enter your chosen name (e.g. <code>myhatchery</code>) → <strong>add domain</strong></li>
-      <li>Your subdomain is now <code>myhatchery.duckdns.org</code></li>
-      <li>Copy your <strong>token</strong> — shown on the main dashboard (a UUID)</li>
-    </ol>
-    <div class="tip">Store your token in KeePass at: <code>Infrastructure/duckdns/token</code></div>
-  </div>
-  </details>
-
-  <details class="section">
-  <summary>Step 1.2 — Test the DDNS update</summary>
-  <div class="detail-body">
-    <p>DuckDNS updates via a single HTTPS GET — no client software required.</p>
-    <pre><code># Update to your current WAN IP (ip= blank = auto-detect)
-curl -s "https://www.duckdns.org/update?domains=myhatchery&token=YOUR-TOKEN&ip="</code></pre>
-    <p>Expected response: <code>OK</code><br>
-    If you see <code>KO</code>, the token is wrong or the subdomain doesn't exist in your account.</p>
-  </div>
-  </details>
-
-  <details class="section">
-  <summary>Step 1.3 — Configure via broodforge (or manually)</summary>
-  <div class="detail-body">
-    <p>During forging, forge.sh runs setup_ddns.py automatically. For manual setup:</p>
-    <pre><code>python3 proxmox-bootstrap/setup_ddns.py \
-  --state proxmox-bootstrap/bootstrap-state.json</code></pre>
-    <p>Select <strong>DuckDNS</strong>, enter your subdomain name and KeePass path for the token.</p>
-  </div>
-  </details>
-
-  <details class="section">
-  <summary>Step 1.4 — Monitor the auto-update timer</summary>
-  <div class="detail-body">
-    <p>Broodforge installs a systemd timer that updates DuckDNS every 5 minutes when the WAN IP changes.</p>
-    <pre><code># Check timer status
+<h1>DuckDNS Setup Guide</h1>
+<p><strong>Document created:</strong> 2026-05-31 <strong>Review by:</strong> 2027-05-31</p>
+<p>This guide covers using DuckDNS as the dynamic DNS (DDNS) provider for your broodforge hatchery. DuckDNS is a free service that provides subdomains under <code>duckdns.org</code> (e.g. <code>myhatchery.duckdns.org</code>). It is a good option if you do not have your own domain or want the simplest possible setup.</p>
+<p><strong>Trade-off vs Cloudflare:</strong> DuckDNS is free and simple, but your hatchery's address will be <code>myhatchery.duckdns.org</code> rather than a subdomain of your own domain. If you have your own domain, consider the Cloudflare path (see <code>docs/CLOUDFLARE-SETUP.md</code>) for a cleaner address and wildcard certificate support.</p>
+<hr>
+<h2>What DuckDNS provides for broodforge</h2>
+<table><thead><tr><th>Feature</th><th>Notes</th></tr></thead><tbody><tr><td>Free subdomain</td><td><code>myhatchery.duckdns.org</code> → your WAN IP</td></tr><tr><td>DDNS auto-update</td><td>Simple HTTPS GET, no library required</td></tr><tr><td>Let's Encrypt DNS-01</td><td>Via acme.sh — DNS-01 challenge supported</td></tr><tr><td>Wildcard certificates</td><td><code>*.myhatchery.duckdns.org</code> — supported via DNS-01</td></tr><tr><td>cert-manager integration</td><td>Via acme-dns relay or manual cert sync</td></tr></tbody></table>
+<hr>
+<h2>Part 1 — DuckDNS DDNS setup</h2>
+<h3>Step 1.1 — Create a DuckDNS account and subdomain</h3>
+<ol>
+<li>Go to <a href="https://www.duckdns.org">duckdns.org</a></li>
+<li>Sign in with GitHub, Google, Twitter, or Reddit (any works)</li>
+<li>In the <strong>sub domain</strong> field, enter your chosen name (e.g. <code>myhatchery</code>)</li>
+<li>Click <strong>add domain</strong></li>
+<li>Your subdomain is now <code>myhatchery.duckdns.org</code></li>
+<li>Copy your <strong>token</strong> — shown on the main dashboard (a UUID like <code>xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx</code>)</li>
+</ol>
+<p>Your token is the only credential DuckDNS requires. Store it in KeePass at: <code>Infrastructure/duckdns/token</code></p>
+<h3>Step 1.2 — Test the update</h3>
+<p>DuckDNS updates via a single HTTPS GET. No client software required for the update itself.</p>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code># Update to your current WAN IP (leave ip= blank for auto-detect)
+curl -s "https://www.duckdns.org/update?domains=myhatchery&amp;token=YOUR-TOKEN&amp;ip="</code></pre></div>
+<p>Expected response: <code>OK</code></p>
+<p>If you see <code>KO</code>, your token is wrong or the subdomain doesn't exist in your account.</p>
+<h3>Step 1.3 — Configure via broodforge wizard</h3>
+<p>During forging, <code>forge.sh</code> runs <code>setup-ddns.py</code> which handles configuration. To configure manually afterwards:</p>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>python3 proxmox-bootstrap/setup-ddns.py \
+  --state proxmox-bootstrap/bootstrap-state.json</code></pre></div>
+<p>Select <strong>DuckDNS</strong>, enter your subdomain name and the KeePass path for your token. The wizard tests the connection before saving.</p>
+<h3>Step 1.4 — How broodforge runs the auto-update</h3>
+<p>Broodforge installs a systemd timer that calls the DuckDNS update URL every 5 minutes:</p>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code># Check timer status
 systemctl status broodforge-ddns.timer
 
 # Check recent update runs
 journalctl -u broodforge-ddns.service -n 20
 
 # Force an immediate update
-systemctl start broodforge-ddns.service</code></pre>
-  </div>
-  </details>
-
-</div>
-</details>
-
-<!-- ── Part 2a ──────────────────────────────────────────────────────────── -->
-<h2 id="part2a" style="margin-top:24px">Part 2 — Let's Encrypt TLS Certificates</h2>
-
-<p>Broodforge uses <strong>acme.sh</strong> for Let's Encrypt when DuckDNS is selected. acme.sh has first-class DuckDNS DNS-01 support and no Python dependencies.</p>
-
-<table>
-  <tr><th>Layer</th><th>Tool</th><th>Cert covers</th></tr>
-  <tr><td>Proxmox host (Headscale, nginx)</td><td>acme.sh</td><td><code>myhatchery.duckdns.org</code>, <code>*.myhatchery.duckdns.org</code></td></tr>
-  <tr><td>k3s workloads</td><td>Cert synced as k8s TLS secret</td><td>Same wildcard cert — no cert-manager needed</td></tr>
-</table>
-
-<details class="part" open>
-<summary id="part2a">Part 2a — Host certificate via acme.sh</summary>
-<div class="detail-body">
-
-  <details class="section" open>
-  <summary>Install acme.sh</summary>
-  <div class="detail-body">
-    <pre><code>curl https://get.acme.sh | sh -s email=admin@myhatchery.duckdns.org
-source ~/.bashrc</code></pre>
-    <p style="color:var(--muted);font-size:.88em">acme.sh installs to <code>~/.acme.sh/</code> and sets up a cron job for auto-renewal.</p>
-  </div>
-  </details>
-
-  <details class="section">
-  <summary>Issue the certificate</summary>
-  <div class="detail-body">
-    <pre><code>export DuckDNS_Token="YOUR-DUCKDNS-TOKEN"
+systemctl start broodforge-ddns.service</code></pre></div>
+<p>The update script (<code>update-dns.py</code>) fetches your current WAN IP, compares to the cached last IP, and only calls DuckDNS when the IP has changed.</p>
+<hr>
+<h2>Part 2 — Let's Encrypt TLS certificates</h2>
+<p>Broodforge uses <strong>acme.sh</strong> for Let's Encrypt certificates when DuckDNS is selected. acme.sh is a shell script with no dependencies that has built-in DuckDNS DNS-01 challenge support.</p>
+<p><strong>Why acme.sh instead of certbot for DuckDNS:</strong> certbot's DuckDNS plugin is a third-party community plugin with inconsistent maintenance. acme.sh has first-class DuckDNS support and is actively maintained. For the Cloudflare path, certbot is used (it has an official Cloudflare plugin). For DuckDNS, acme.sh is used.</p>
+<h3>Certificate architecture</h3>
+<table><thead><tr><th>Layer</th><th>Tool</th><th>Cert covers</th></tr></thead><tbody><tr><td>Proxmox host services (Headscale, nginx)</td><td>acme.sh</td><td><code>myhatchery.duckdns.org</code>, <code>*.myhatchery.duckdns.org</code></td></tr><tr><td>k3s workloads</td><td>Cert synced as k8s secret</td><td>Same cert mounted in cluster</td></tr></tbody></table>
+<p>Unlike the Cloudflare path, cert-manager's DNS-01 solver does not natively support DuckDNS. Broodforge handles k3s certificate distribution by syncing the acme.sh-issued cert into a Kubernetes TLS secret and refreshing it on renewal.</p>
+<h3>Part 2a — Host-level certificate (acme.sh)</h3>
+<h4>Install acme.sh</h4>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>curl https://get.acme.sh | sh -s email=admin@myhatchery.duckdns.org
+# Reload shell to get acme.sh in PATH:
+source ~/.bashrc</code></pre></div>
+<p>acme.sh installs to <code>~/.acme.sh/</code> and sets up a cron job for auto-renewal.</p>
+<h4>Issue the certificate</h4>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>export DuckDNS_Token="YOUR-DUCKDNS-TOKEN"
 
 ~/.acme.sh/acme.sh --issue \
   --dns dns_duckdns \
@@ -194,79 +141,60 @@ source ~/.bashrc</code></pre>
   -d "*.myhatchery.duckdns.org" \
   --server letsencrypt \
   --keylength 2048 \
-  --dnssleep 60</code></pre>
-    <div class="tip"><code>--dnssleep 60</code> gives DuckDNS time to propagate the TXT record before Let's Encrypt checks it. If the challenge fails, increase to 120.</div>
-  </div>
-  </details>
-
-  <details class="section">
-  <summary>Install cert to a stable path</summary>
-  <div class="detail-body">
-    <pre><code>mkdir -p /etc/broodforge/ssl
+  --dnssleep 60</code></pre></div>
+<p><code>--dnssleep 60</code> gives DuckDNS time to propagate the TXT record before Let's Encrypt checks it. If the challenge fails, increase to 120.</p>
+<p>This creates a wildcard cert covering <code>myhatchery.duckdns.org</code> and all subdomains (<code>*.myhatchery.duckdns.org</code>). Even though broodforge may use subdomains internally, they all resolve to the same IP, so the wildcard covers them.</p>
+<h4>Install the certificate to a stable location</h4>
+<p>acme.sh keeps certs in its own directory but can copy them to a stable path and run a command after each renewal:</p>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>mkdir -p /etc/broodforge/ssl
 
 ~/.acme.sh/acme.sh --install-cert \
   -d myhatchery.duckdns.org \
-  --cert-file      /etc/broodforge/ssl/cert.pem \
-  --key-file       /etc/broodforge/ssl/key.pem \
+  --cert-file     /etc/broodforge/ssl/cert.pem \
+  --key-file      /etc/broodforge/ssl/key.pem \
   --fullchain-file /etc/broodforge/ssl/fullchain.pem \
-  --reloadcmd "systemctl reload headscale nginx 2>/dev/null || systemctl restart headscale"</code></pre>
-    <p>After every successful renewal, acme.sh copies the cert files and runs the reload command.</p>
-  </div>
-  </details>
-
-  <details class="section">
-  <summary>Configure Headscale</summary>
-  <div class="detail-body">
-    <p>In <code>/etc/headscale/config.yaml</code>:</p>
-    <pre><code>tls_cert_path: /etc/broodforge/ssl/fullchain.pem
-tls_key_path: /etc/broodforge/ssl/key.pem</code></pre>
-    <pre><code>systemctl restart headscale</code></pre>
-  </div>
-  </details>
-
-  <details class="section">
-  <summary>Verify auto-renewal</summary>
-  <div class="detail-body">
-    <pre><code># Test without actually renewing
+  --reloadcmd "systemctl reload headscale nginx 2&gt;/dev/null || systemctl restart headscale"</code></pre></div>
+<p>After every successful renewal, acme.sh copies the cert files and runs the reload command.</p>
+<h4>Configure Headscale to use the certificate</h4>
+<p>In <code>/etc/headscale/config.yaml</code>:</p>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>tls_cert_path: /etc/broodforge/ssl/fullchain.pem
+tls_key_path: /etc/broodforge/ssl/key.pem</code></pre></div>
+<p>Restart Headscale:</p>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>systemctl restart headscale</code></pre></div>
+<h4>Verify auto-renewal</h4>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code># Test renewal without actually renewing
 ~/.acme.sh/acme.sh --renew -d myhatchery.duckdns.org --force --staging
 
-# Check cron entry
-crontab -l | grep acme</code></pre>
-    <p>acme.sh renews automatically when within 30 days of expiry.</p>
-  </div>
-  </details>
+# Check the cron job acme.sh installed
+crontab -l | grep acme
 
-</div>
-</details>
-
-<!-- ── Part 2b ──────────────────────────────────────────────────────────── -->
-<details class="part" id="part2b">
-<summary>Part 2b — k3s workload certificates (cert sync)</summary>
-<div class="detail-body">
-
-  <p>cert-manager has no native DuckDNS DNS-01 support. Broodforge syncs the wildcard cert issued by acme.sh into a Kubernetes TLS secret and refreshes it on renewal.</p>
-
-  <details class="section" open>
-  <summary>Create the Kubernetes TLS secret</summary>
-  <div class="detail-body">
-    <pre><code>kubectl create secret tls duckdns-wildcard-tls \
+# View cron logs
+journalctl -u cron -n 20</code></pre></div>
+<p>acme.sh renews automatically when the cert is within 30 days of expiry.</p>
+<h3>Part 2b — k3s workload certificates (cert sync)</h3>
+<p>cert-manager does not have native DuckDNS DNS-01 support. Broodforge takes a simpler approach: the wildcard cert issued by acme.sh on the Proxmox host is synced into a Kubernetes TLS secret and refreshed whenever acme.sh renews.</p>
+<h4>Create the Kubernetes TLS secret</h4>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>kubectl create secret tls duckdns-wildcard-tls \
   --namespace default \
   --cert=/etc/broodforge/ssl/fullchain.pem \
-  --key=/etc/broodforge/ssl/key.pem</code></pre>
-    <p>For other namespaces (monitoring, applications):</p>
-    <pre><code>kubectl get secret duckdns-wildcard-tls -o yaml \
+  --key=/etc/broodforge/ssl/key.pem</code></pre></div>
+<p>For other namespaces (monitoring, applications), copy the secret:</p>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>kubectl get secret duckdns-wildcard-tls -o yaml \
   | sed 's/namespace: default/namespace: monitoring/' \
-  | kubectl apply -f -</code></pre>
-  </div>
-  </details>
-
-  <details class="section">
-  <summary>Auto-sync the secret on cert renewal</summary>
-  <div class="detail-body">
-    <p>Create <code>/opt/broodforge/sync-cert-to-k8s.sh</code>:</p>
-    <pre><code>#!/bin/bash
+  | kubectl apply -f -</code></pre></div>
+<h4>Auto-sync the secret on cert renewal</h4>
+<p>Add a sync step to the acme.sh reload command:</p>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>~/.acme.sh/acme.sh --install-cert \
+  -d myhatchery.duckdns.org \
+  --cert-file     /etc/broodforge/ssl/cert.pem \
+  --key-file      /etc/broodforge/ssl/key.pem \
+  --fullchain-file /etc/broodforge/ssl/fullchain.pem \
+  --reloadcmd "/opt/broodforge/sync-cert-to-k8s.sh"</code></pre></div>
+<p>Create <code>/opt/broodforge/sync-cert-to-k8s.sh</code>:</p>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>#!/bin/bash
 # Sync renewed DuckDNS wildcard cert into Kubernetes TLS secrets
 set -e
+
 for NS in default monitoring applications; do
   kubectl create secret tls duckdns-wildcard-tls \
     --namespace "$NS" \
@@ -274,22 +202,12 @@ for NS in default monitoring applications; do
     --key=/etc/broodforge/ssl/key.pem \
     --dry-run=client -o yaml | kubectl apply -f -
 done
-echo "[cert-sync] Wildcard cert synced to namespaces: default monitoring applications"</code></pre>
-    <pre><code>chmod +x /opt/broodforge/sync-cert-to-k8s.sh</code></pre>
-    <p>Wire the sync script to acme.sh renewal:</p>
-    <pre><code>~/.acme.sh/acme.sh --install-cert \
-  -d myhatchery.duckdns.org \
-  --cert-file      /etc/broodforge/ssl/cert.pem \
-  --key-file       /etc/broodforge/ssl/key.pem \
-  --fullchain-file /etc/broodforge/ssl/fullchain.pem \
-  --reloadcmd "/opt/broodforge/sync-cert-to-k8s.sh"</code></pre>
-  </div>
-  </details>
 
-  <details class="section">
-  <summary>Use the cert in Ingress resources</summary>
-  <div class="detail-body">
-    <pre><code>apiVersion: networking.k8s.io/v1
+echo "[cert-sync] Wildcard cert synced to namespaces: default monitoring applications"</code></pre></div>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>chmod +x /opt/broodforge/sync-cert-to-k8s.sh</code></pre></div>
+<h4>Use the cert in Ingress resources</h4>
+<p>k3s Ingress resources reference the pre-existing TLS secret rather than requesting a cert from cert-manager:</p>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: forgejo
@@ -309,21 +227,12 @@ spec:
           service:
             name: forgejo
             port:
-              number: 3000</code></pre>
-    <p>When acme.sh renews the cert, sync-cert-to-k8s.sh updates the secret and Kubernetes serves the new cert on the next request — no Ingress restart needed.</p>
-  </div>
-  </details>
-
-</div>
-</details>
-
-<!-- ── Part 3 ───────────────────────────────────────────────────────────── -->
-<h2 id="part3" style="margin-top:24px">Part 3 — bootstrap-state.json Fields</h2>
-
-<details class="section">
-<summary>Fields written by setup_ddns.py (DuckDNS path)</summary>
-<div class="detail-body">
-  <pre><code>"network_topology": {
+              number: 3000</code></pre></div>
+<p>When acme.sh renews the cert, <code>sync-cert-to-k8s.sh</code> updates the secret, and Kubernetes serves the new cert on the next request (no Ingress restart needed).</p>
+<hr>
+<h2>Part 3 — Configuration in bootstrap-state.json</h2>
+<p>After <code>setup-ddns.py</code> completes, these fields are set in bootstrap-state.json:</p>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>"network_topology": {
   "ddns_provider":              "duckdns",
   "ddns_zone":                  "duckdns.org",
   "ddns_record":                "myhatchery",
@@ -332,85 +241,104 @@ spec:
   "ssl_method":                 "dns-01-duckdns",
   "ssl_cert_path":              "/etc/broodforge/ssl/fullchain.pem",
   "ssl_key_path":               "/etc/broodforge/ssl/key.pem"
-}</code></pre>
-  <p>The documentation engine uses these fields to pre-populate recovery runbook steps for certificate retrieval and renewal.</p>
-</div>
-</details>
-
-<!-- ── Forge summary ────────────────────────────────────────────────────── -->
-<h2 id="forge-summary" style="margin-top:24px">Forge-Time Summary</h2>
-
-<p>When <code>forge.sh</code> runs, you provide once, at forge time:</p>
+}</code></pre></div>
+<p>The documentation engine uses these fields to pre-populate recovery runbook steps for certificate retrieval and renewal.</p>
+<hr>
+<h2>Forge-time setup summary</h2>
+<p>When <code>forge.sh</code> runs, it handles all of the above automatically. The operator provides (once, at forge time):</p>
 <ol>
-  <li>DuckDNS subdomain name → stored in <code>bootstrap-state.json host_identity.fqdn</code></li>
-  <li>KeePass path for DuckDNS token → retrieved at each step automatically</li>
-  <li>Email for Let's Encrypt account → stored in bootstrap-state.json</li>
+<li>DuckDNS subdomain name → stored in <code>bootstrap-state.json host_identity.fqdn</code></li>
 </ol>
-<p>Everything else — acme.sh install, cert issuance, Headscale config, k8s secret, sync script, DDNS timer — is automated.</p>
-
-<!-- ── Limits ───────────────────────────────────────────────────────────── -->
-<h2 id="limits" style="margin-top:24px">Limitations vs Cloudflare</h2>
-
-<table>
-  <tr><th>Feature</th><th>DuckDNS</th><th>Cloudflare</th></tr>
-  <tr><td>Own domain</td><td>No — <code>*.duckdns.org</code> only</td><td>Yes — your domain</td></tr>
-  <tr><td>cert-manager native integration</td><td>No — manual sync</td><td>Yes — ClusterIssuer</td></tr>
-  <tr><td>Wildcard cert</td><td>Yes (via acme.sh)</td><td>Yes (via certbot or acme.sh)</td></tr>
-  <tr><td>Additional DNS records</td><td>No</td><td>Yes</td></tr>
-  <tr><td>API reliability</td><td>Good</td><td>Excellent</td></tr>
-</table>
-
-<details class="section">
-<summary>Migrating from DuckDNS → Cloudflare (when you acquire your own domain)</summary>
-<div class="detail-body">
-  <ol>
-    <li>Set up Cloudflare following <a href="CLOUDFLARE-SETUP.html" style="color:var(--accent)">CLOUDFLARE-SETUP.html</a></li>
-    <li>Update <code>host_identity.fqdn</code> and <code>network_topology.*</code> in bootstrap-state.json</li>
-    <li>Re-issue certs with certbot (or keep acme.sh with Cloudflare)</li>
-    <li>Update the ClusterIssuer to Cloudflare DNS-01</li>
-    <li>Update any external references to the old duckdns.org address</li>
-    <li>Re-generate forge-time documentation: <code>engine.py --mode bootstrap --manifest proxmox-bootstrap/bootstrap-state.json</code></li>
-  </ol>
-</div>
-</details>
-
-<!-- ── Troubleshooting ──────────────────────────────────────────────────── -->
-<h2 id="troubleshooting" style="margin-top:24px">Troubleshooting</h2>
-
-<details class="section">
-<summary>acme.sh: DuckDNS DNS-01 challenge fails</summary>
-<div class="detail-body">
-  <p>Increase <code>--dnssleep</code> to 120 seconds. Check the TXT record was created:</p>
-  <pre><code>dig TXT _acme-challenge.myhatchery.duckdns.org +short</code></pre>
-  <p>If empty, the DuckDNS token may be wrong or the API call failed. Check: <code>journalctl -u cron -n 20</code></p>
-</div>
-</details>
-
-<details class="section">
-<summary>k8s secret not updating after cert renewal</summary>
-<div class="detail-body">
-  <pre><code>journalctl -u cron -n 20 | grep acme
-# Run manually:
-/opt/broodforge/sync-cert-to-k8s.sh</code></pre>
-</div>
-</details>
-
-<details class="section">
-<summary>Headscale shows expired cert</summary>
-<div class="detail-body">
-  <pre><code>~/.acme.sh/acme.sh --renew -d myhatchery.duckdns.org --force
-systemctl restart headscale</code></pre>
-</div>
-</details>
-
-<details class="section">
-<summary>DDNS update failing</summary>
-<div class="detail-body">
-  <pre><code># Test directly — should return OK
-curl -s "https://www.duckdns.org/update?domains=myhatchery&token=YOUR-TOKEN&ip="</code></pre>
-  <p>Check that your token in KeePass matches the one on the DuckDNS dashboard.</p>
-</div>
-</details>
-
+<p>(becomes <code>{subdomain}.duckdns.org</code>)</p>
+<ol>
+<li>KeePass path for DuckDNS token → retrieved at each step</li>
+<li>Email for Let's Encrypt account → stored in bootstrap-state.json</li>
+</ol>
+<p>Everything else — acme.sh install, cert issuance, Headscale config, k8s secret creation, sync script, DDNS timer — is automated.</p>
+<hr>
+<h2>Troubleshooting</h2>
+<p><strong>acme.sh: DuckDNS DNS-01 challenge fails</strong> Increase <code>--dnssleep</code> to 120 seconds. DuckDNS propagation is usually fast but Let's Encrypt's validation servers occasionally poll before the TXT record is visible.</p>
+<p><strong>acme.sh: "Verify error: DNS problem"</strong> Check that the TXT record was actually created:</p>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>dig TXT _acme-challenge.myhatchery.duckdns.org +short</code></pre></div>
+<p>If empty, the DuckDNS token may be wrong or the API call failed.</p>
+<p><strong>k8s secret not updating after cert renewal</strong> Check the sync script ran:</p>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>journalctl -u cron -n 20 | grep acme</code></pre></div>
+<p>Run manually: <code>/opt/broodforge/sync-cert-to-k8s.sh</code></p>
+<p><strong>Headscale shows expired cert</strong> acme.sh's reload command should handle this. Force:</p>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>~/.acme.sh/acme.sh --renew -d myhatchery.duckdns.org --force
+systemctl restart headscale</code></pre></div>
+<p><strong>DDNS update failing</strong></p>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code># Test directly
+curl -s "https://www.duckdns.org/update?domains=myhatchery&amp;token=YOUR-TOKEN&amp;ip="
+# Should return OK</code></pre></div>
+<p>Check that your token in KeePass matches the one on the DuckDNS dashboard.</p>
+<hr>
+<h2>Limitations compared to Cloudflare</h2>
+<table><thead><tr><th>Feature</th><th>DuckDNS</th><th>Cloudflare</th></tr></thead><tbody><tr><td>Own domain</td><td>No — <code>*.duckdns.org</code> only</td><td>Yes — your domain</td></tr><tr><td>cert-manager native integration</td><td>No — manual sync</td><td>Yes — ClusterIssuer</td></tr><tr><td>Wildcard cert</td><td>Yes (via acme.sh)</td><td>Yes (via certbot)</td></tr><tr><td>DDNS for your own domain</td><td>No</td><td>Yes</td></tr><tr><td>Additional DNS records</td><td>No</td><td>Yes</td></tr><tr><td>API reliability</td><td>Good</td><td>Excellent</td></tr></tbody></table>
+<p>If you outgrow DuckDNS and acquire your own domain, migrating to Cloudflare involves:</p>
+<ol>
+<li>Setting up Cloudflare (this guide → CLOUDFLARE-SETUP.md)</li>
+<li>Updating <code>host_identity.fqdn</code> and <code>network_topology.*</code> in bootstrap-state.json</li>
+<li>Re-issuing certs with certbot</li>
+<li>Updating the ClusterIssuer to Cloudflare DNS-01</li>
+<li>Updating any external references to the old duckdns.org address</li>
+</ol>
+<p>Broodforge forge-time documentation should be re-generated after this migration (<code>engine.py --mode bootstrap --manifest proxmox-bootstrap/bootstrap-state.json</code>).</p>
+<div class="session-notes"><h2>Session Notes</h2><p style="color:var(--muted);font-size:.85em">Anything unexpected, or that did not fit the steps above. Saved in your browser.</p><textarea id="bf-session-notes" placeholder="notes…"></textarea></div>
+<script>
+(function(){
+  var ns = 'bf:' + (document.body.dataset.doc || 'doc') + ':';
+  // ---- theme ----
+  try{ if(localStorage.getItem('bf:theme')==='light') document.body.classList.add('light'); }catch(e){}
+  var tb = document.getElementById('bf-theme-btn');
+  function lbl(){ tb.textContent = document.body.classList.contains('light') ? '☾ Dark' : '☀ Light'; }
+  if(tb){ lbl(); tb.addEventListener('click', function(){
+    document.body.classList.toggle('light');
+    try{ localStorage.setItem('bf:theme', document.body.classList.contains('light')?'light':'dark'); }catch(e){}
+    lbl();
+  }); }
+  // ---- live template parameters ----
+  function applyVar(name, val){
+    var slots = document.querySelectorAll('.tpl[data-var="'+name+'"]');
+    for(var i=0;i<slots.length;i++){ slots[i].textContent = val; }
+  }
+  var inputs = document.querySelectorAll('.param-input');
+  for(var i=0;i<inputs.length;i++){
+    (function(inp){
+      var name = inp.dataset.var, k = ns+'param:'+name;
+      try{ var s = localStorage.getItem(k); if(s!==null) inp.value = s; }catch(e){}
+      applyVar(name, inp.value);
+      inp.addEventListener('input', function(){
+        applyVar(name, inp.value);
+        try{ localStorage.setItem(k, inp.value); }catch(e){}
+      });
+    })(inputs[i]);
+  }
+  // ---- note fields + session notes (persisted) ----
+  var notes = document.querySelectorAll('.note-input,.note-area,#bf-session-notes');
+  for(var j=0;j<notes.length;j++){
+    (function(el){
+      var id = el.dataset.note || el.id, k = ns+'note:'+id;
+      try{ var s = localStorage.getItem(k); if(s!==null) el.value = s; }catch(e){}
+      el.addEventListener('input', function(){ try{ localStorage.setItem(k, el.value); }catch(e){} });
+    })(notes[j]);
+  }
+  // ---- copy buttons ----
+  var btns = document.querySelectorAll('.copy-btn');
+  for(var b=0;b<btns.length;b++){
+    btns[b].addEventListener('click', function(){
+      var btn = this, pre = btn.parentElement.querySelector('pre');
+      var text = pre.innerText;
+      var done = function(){ var o=btn.textContent; btn.textContent='Copied!'; setTimeout(function(){btn.textContent=o;},1200); };
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(text).then(done, function(){ done(); });
+      } else {
+        var ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta);
+        ta.select(); try{document.execCommand('copy');}catch(e){} document.body.removeChild(ta); done();
+      }
+    });
+  }
+})();
+</script>
 </body>
 </html>

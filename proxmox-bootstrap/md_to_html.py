@@ -1,23 +1,29 @@
 #!/usr/bin/env python3
 """
-md_to_html.py — Minimal, stdlib-only Markdown → HTML converter.
+md_to_html.py — Minimal, stdlib-only Markdown → HTML converter for Broodforge.
 
-Renders a self-contained HTML document in the Broodforge dark theme (the same
-palette as docs/ARCHITECTURE.html, the dashboard, and the setup guide). Used to
-give every long-form Markdown doc (README, ROADMAP, RECONSTRUCTION-DRILL,
-DESIGN-HISTORY, …) a browser-viewable, print-friendly HTML equivalent.
+Renders a self-contained, interactive HTML document in the Broodforge theme.
+Every generated page includes:
 
-Supported Markdown:
-  - ATX headings (# … ######)
-  - Fenced code blocks (``` …), preserved verbatim (box-drawing diagrams included)
-  - GitHub-style tables (| a | b | with a |---|---| separator row)
-  - Unordered (-, *, +) and ordered (1.) lists, with one level of nesting
-  - Blockquotes (>), horizontal rules (---), paragraphs
-  - Inline: `code`, **bold**, and [text](url) links
+  * a light/dark theme toggle (top-right, persisted in localStorage);
+  * a "Copy" button on every code block;
+  * live-templated commands — any `{{VAR}}` / `{{VAR=default}}` placeholder inside
+    a code block becomes an editable parameter. A "Parameters" panel at the top
+    of the page collects them; editing a value rewrites every command that uses
+    it, and the Copy button copies the resolved command;
+  * walkthrough note fields — `@field[Label]` (single line) / `@area[Label]`
+    (multi-line) render labeled inputs the operator can fill while following the
+    steps, so a drill or forge has a traceable record;
+  * an always-present "Session Notes" textarea at the bottom for anything that
+    didn't fit the structured flow.
 
-Deliberately conservative: single-`*`/`_` italics are NOT interpreted, because
-these technical docs are full of identifiers like __main__ and network_topology.ssl_*
-that would otherwise be mangled.
+All note/parameter values persist per-document in localStorage.
+
+Supported Markdown: ATX headings, fenced code blocks (verbatim, box-drawing safe),
+GitHub tables, ordered/unordered lists (one level of nesting), blockquotes,
+horizontal rules, paragraphs, and inline `code` / **bold** / [text](url). Single
+`*`/`_` italics are intentionally NOT interpreted (they would mangle identifiers
+like __main__ and network_topology.ssl_*).
 
 Usage:
     python3 md_to_html.py INPUT.md OUTPUT.html [--title "Title"]
@@ -31,13 +37,22 @@ import re
 import sys
 from pathlib import Path
 
+# ---------------------------------------------------------------------------
+# Theme + interaction assets (shared by every generated doc, and exported for
+# injection into hand-authored HTML via theme_assets()).
+# ---------------------------------------------------------------------------
+
 _CSS = """
   :root{--bg:#1a1d23;--bg2:#22262e;--bg3:#2a2f3a;--border:#3a3f4d;--text:#cdd6f4;--muted:#7f8498;
     --accent:#89b4fa;--green:#a6e3a1;--yellow:#f9e2af;--orange:#fab387;--red:#f38ba8;
-    --code-bg:#181b21;--radius:6px}
+    --code-bg:#181b21;--code-text:#a6e3a1;--radius:6px;--btn-bg:#2a2f3a}
+  body.light{--bg:#ffffff;--bg2:#f4f5f7;--bg3:#eceff2;--border:#d0d7de;--text:#1f2328;--muted:#57606a;
+    --accent:#0969da;--green:#1a7f37;--yellow:#9a6700;--orange:#bc4c00;--red:#cf222e;
+    --code-bg:#f6f8fa;--code-text:#0a3069;--btn-bg:#eaeef2}
   *{box-sizing:border-box;margin:0;padding:0}
   body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
-    font-size:14px;line-height:1.6;padding:24px;max-width:1100px;margin:0 auto}
+    font-size:14px;line-height:1.6;padding:24px 24px 80px;max-width:1100px;margin:0 auto;
+    transition:background .15s,color .15s}
   h1{color:var(--accent);font-size:1.7em;margin:18px 0 4px}
   h2{color:var(--accent);font-size:1.05em;margin:24px 0 8px;text-transform:uppercase;letter-spacing:.05em;
     border-bottom:1px solid var(--border);padding-bottom:4px}
@@ -49,13 +64,13 @@ _CSS = """
   li>ul,li>ol{margin:4px 0 4px 18px}
   strong{color:var(--text);font-weight:600}
   hr{border:none;border-top:1px solid var(--border);margin:20px 0}
-  blockquote{border-left:3px solid var(--accent);background:#1e2d3a;margin:10px 0;
+  blockquote{border-left:3px solid var(--accent);background:var(--bg2);margin:10px 0;
     padding:8px 14px;border-radius:0 var(--radius) var(--radius) 0;color:var(--text)}
-  code{background:var(--code-bg);color:var(--green);padding:1px 5px;border-radius:3px;
+  code{background:var(--code-bg);color:var(--code-text);padding:1px 5px;border-radius:3px;
     font-family:'Cascadia Code','Fira Code',Consolas,monospace;font-size:.9em}
   pre{background:var(--code-bg);border:1px solid var(--border);border-radius:var(--radius);
-    padding:12px 14px;overflow-x:auto;margin:10px 0;font-family:'Cascadia Code','Fira Code',Consolas,monospace;
-    font-size:.85em;color:var(--green);white-space:pre}
+    padding:12px 14px;overflow-x:auto;margin:0;font-family:'Cascadia Code','Fira Code',Consolas,monospace;
+    font-size:.85em;color:var(--code-text);white-space:pre}
   pre code{background:none;padding:0;color:inherit}
   table{width:100%;border-collapse:collapse;margin:10px 0;font-size:.88em}
   th{background:var(--bg2);color:var(--muted);text-align:left;padding:6px 8px;
@@ -63,14 +78,108 @@ _CSS = """
   td{padding:5px 8px;border-bottom:1px solid var(--bg3);vertical-align:top}
   tr:last-child td{border-bottom:none}
   .doc-meta{color:var(--muted);font-size:.8em;margin:4px 0 20px}
-  @media print{body{padding:12px;max-width:none}}
+  /* theme toggle */
+  #bf-theme-btn{position:fixed;top:14px;right:16px;z-index:50;background:var(--btn-bg);color:var(--text);
+    border:1px solid var(--border);border-radius:var(--radius);padding:5px 12px;cursor:pointer;
+    font-size:.8em;font-family:inherit}
+  #bf-theme-btn:hover{border-color:var(--accent);color:var(--accent)}
+  /* code block + copy */
+  .codewrap{position:relative;margin:10px 0}
+  .copy-btn{position:absolute;top:6px;right:6px;background:var(--btn-bg);color:var(--muted);
+    border:1px solid var(--border);border-radius:4px;padding:2px 9px;cursor:pointer;font-size:.72em;
+    font-family:inherit;opacity:.55;transition:opacity .12s}
+  .codewrap:hover .copy-btn{opacity:1}
+  .copy-btn:hover{border-color:var(--accent);color:var(--accent)}
+  .tpl{color:var(--orange);background:rgba(250,179,135,.13);border-radius:3px;padding:0 2px}
+  body.light .tpl{background:rgba(188,76,0,.10)}
+  /* parameters panel */
+  .params{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+    padding:12px 16px;margin:14px 0 18px}
+  .params h3{margin:0 0 8px;color:var(--accent)}
+  .params .hint{color:var(--muted);font-size:.8em;margin-bottom:10px}
+  .param-row{display:flex;align-items:center;gap:10px;margin:6px 0;flex-wrap:wrap}
+  .param-row label{min-width:200px;font-family:monospace;font-size:.85em;color:var(--muted)}
+  .param-input,.note-input,.note-area,#bf-session-notes{background:var(--code-bg);color:var(--text);
+    border:1px solid var(--border);border-radius:4px;padding:5px 8px;font-family:'Cascadia Code',Consolas,monospace;
+    font-size:.85em;flex:1;min-width:220px}
+  .param-input:focus,.note-input:focus,.note-area:focus,#bf-session-notes:focus{outline:none;border-color:var(--accent)}
+  /* note fields */
+  .notefield{margin:10px 0}
+  .notefield label{display:block;font-size:.82em;color:var(--muted);margin-bottom:3px;font-weight:600}
+  .note-area,#bf-session-notes{width:100%;min-height:70px;resize:vertical;flex:none}
+  .session-notes{margin-top:36px;border-top:1px solid var(--border);padding-top:14px}
+  @media print{body{padding:12px;max-width:none}#bf-theme-btn,.copy-btn{display:none}
+    .param-input,.note-input,.note-area,#bf-session-notes{border:1px solid #999}}
+"""
+
+_JS = r"""
+(function(){
+  var ns = 'bf:' + (document.body.dataset.doc || 'doc') + ':';
+  // ---- theme ----
+  try{ if(localStorage.getItem('bf:theme')==='light') document.body.classList.add('light'); }catch(e){}
+  var tb = document.getElementById('bf-theme-btn');
+  function lbl(){ tb.textContent = document.body.classList.contains('light') ? '☾ Dark' : '☀ Light'; }
+  if(tb){ lbl(); tb.addEventListener('click', function(){
+    document.body.classList.toggle('light');
+    try{ localStorage.setItem('bf:theme', document.body.classList.contains('light')?'light':'dark'); }catch(e){}
+    lbl();
+  }); }
+  // ---- live template parameters ----
+  function applyVar(name, val){
+    var slots = document.querySelectorAll('.tpl[data-var="'+name+'"]');
+    for(var i=0;i<slots.length;i++){ slots[i].textContent = val; }
+  }
+  var inputs = document.querySelectorAll('.param-input');
+  for(var i=0;i<inputs.length;i++){
+    (function(inp){
+      var name = inp.dataset.var, k = ns+'param:'+name;
+      try{ var s = localStorage.getItem(k); if(s!==null) inp.value = s; }catch(e){}
+      applyVar(name, inp.value);
+      inp.addEventListener('input', function(){
+        applyVar(name, inp.value);
+        try{ localStorage.setItem(k, inp.value); }catch(e){}
+      });
+    })(inputs[i]);
+  }
+  // ---- note fields + session notes (persisted) ----
+  var notes = document.querySelectorAll('.note-input,.note-area,#bf-session-notes');
+  for(var j=0;j<notes.length;j++){
+    (function(el){
+      var id = el.dataset.note || el.id, k = ns+'note:'+id;
+      try{ var s = localStorage.getItem(k); if(s!==null) el.value = s; }catch(e){}
+      el.addEventListener('input', function(){ try{ localStorage.setItem(k, el.value); }catch(e){} });
+    })(notes[j]);
+  }
+  // ---- copy buttons ----
+  var btns = document.querySelectorAll('.copy-btn');
+  for(var b=0;b<btns.length;b++){
+    btns[b].addEventListener('click', function(){
+      var btn = this, pre = btn.parentElement.querySelector('pre');
+      var text = pre.innerText;
+      var done = function(){ var o=btn.textContent; btn.textContent='Copied!'; setTimeout(function(){btn.textContent=o;},1200); };
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(text).then(done, function(){ done(); });
+      } else {
+        var ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta);
+        ta.select(); try{document.execCommand('copy');}catch(e){} document.body.removeChild(ta); done();
+      }
+    });
+  }
+})();
 """
 
 
+def theme_assets() -> tuple:
+    """Return (css, js, toggle_button_html) for injection into bespoke HTML docs."""
+    return _CSS, _JS, '<button id="bf-theme-btn" type="button">☀ Light</button>'
+
+
+# ---------------------------------------------------------------------------
+# Inline rendering
+# ---------------------------------------------------------------------------
+
 def _inline(text: str) -> str:
-    """Render inline Markdown on a line of already-plain text."""
     text = html.escape(text, quote=False)
-    # Protect inline code spans from further processing.
     spans: list = []
 
     def _stash(m: "re.Match") -> str:
@@ -78,14 +187,37 @@ def _inline(text: str) -> str:
         return f"\x00{len(spans) - 1}\x00"
 
     text = re.sub(r"`([^`]+)`", _stash, text)
-    # Links: [text](url)
     text = re.sub(r"\[([^\]]+)\]\(([^)\s]+)\)", r'<a href="\2">\1</a>', text)
-    # Bold: **text**  (single * / _ intentionally left literal)
     text = re.sub(r"\*\*([^*]+?)\*\*", r"<strong>\1</strong>", text)
-    # Restore code spans.
     text = re.sub(r"\x00(\d+)\x00", lambda m: f"<code>{spans[int(m.group(1))]}</code>", text)
     return text
 
+
+# ---------------------------------------------------------------------------
+# Template placeholders inside code blocks
+# ---------------------------------------------------------------------------
+
+_TPL_RE = re.compile(r"\{\{\s*([A-Za-z][\w-]*)\s*(?:=([^}]*))?\}\}")
+
+
+def _render_code(raw: str, tpl_vars: dict) -> str:
+    """HTML-escape code, then turn {{VAR}} / {{VAR=default}} into live slots."""
+    escaped = html.escape(raw, quote=False)
+
+    def _repl(m: "re.Match") -> str:
+        name = m.group(1)
+        default = (m.group(2) or "").strip()
+        if name not in tpl_vars:
+            tpl_vars[name] = default
+        shown = tpl_vars[name] or name
+        return f'<span class="tpl" data-var="{html.escape(name)}">{html.escape(shown)}</span>'
+
+    return _TPL_RE.sub(_repl, escaped)
+
+
+# ---------------------------------------------------------------------------
+# Block rendering
+# ---------------------------------------------------------------------------
 
 def _is_table_sep(line: str) -> bool:
     s = line.strip()
@@ -109,18 +241,36 @@ def _split_row(line: str) -> list:
     return [c.strip() for c in s.split("|")]
 
 
-def _render_blocks(md: str) -> str:
+def _render_blocks(md: str, tpl_vars: dict) -> str:
     lines = md.split("\n")
     out: list = []
-    i = 0
-    n = len(lines)
+    i, n = 0, len(lines)
 
     while i < n:
         line = lines[i]
         stripped = line.strip()
 
-        # Blank
         if not stripped:
+            i += 1
+            continue
+
+        # Note-field markers: @field[Label]  /  @area[Label]
+        m = re.match(r"^@(field|area)\[(.+?)\]\s*$", stripped)
+        if m:
+            kind, label = m.group(1), m.group(2)
+            slug = re.sub(r"[^a-z0-9]+", "-", label.lower()).strip("-")[:48] or "note"
+            if kind == "field":
+                out.append(
+                    f'<div class="notefield"><label>{html.escape(label)}</label>'
+                    f'<input type="text" class="note-input" data-note="{slug}" '
+                    f'placeholder="record here…"></div>'
+                )
+            else:
+                out.append(
+                    f'<div class="notefield"><label>{html.escape(label)}</label>'
+                    f'<textarea class="note-area" data-note="{slug}" '
+                    f'placeholder="record here…"></textarea></div>'
+                )
             i += 1
             continue
 
@@ -133,9 +283,12 @@ def _render_blocks(md: str) -> str:
             while i < n and not re.match(rf"^\s*{fence}{{3,}}\s*$", lines[i]):
                 buf.append(lines[i])
                 i += 1
-            i += 1  # skip closing fence
-            code = html.escape("\n".join(buf), quote=False)
-            out.append(f"<pre><code>{code}</code></pre>")
+            i += 1
+            code = _render_code("\n".join(buf), tpl_vars)
+            out.append(
+                '<div class="codewrap"><button class="copy-btn" type="button">Copy</button>'
+                f"<pre><code>{code}</code></pre></div>"
+            )
             continue
 
         # Heading
@@ -152,10 +305,10 @@ def _render_blocks(md: str) -> str:
             i += 1
             continue
 
-        # Table: current line has a pipe and the next line is a separator row
+        # Table
         if "|" in line and i + 1 < n and _is_table_sep(lines[i + 1]):
             header = _split_row(line)
-            i += 2  # skip header + separator
+            i += 2
             body: list = []
             while i < n and "|" in lines[i] and lines[i].strip():
                 body.append(_split_row(lines[i]))
@@ -163,7 +316,6 @@ def _render_blocks(md: str) -> str:
             thead = "".join(f"<th>{_inline(c)}</th>" for c in header)
             rows_html = ""
             for row in body:
-                # pad/truncate to header width
                 cells = (row + [""] * len(header))[: len(header)]
                 rows_html += "<tr>" + "".join(f"<td>{_inline(c)}</td>" for c in cells) + "</tr>"
             out.append(f"<table><thead><tr>{thead}</tr></thead><tbody>{rows_html}</tbody></table>")
@@ -179,12 +331,12 @@ def _render_blocks(md: str) -> str:
             out.append(f"<blockquote>{_inline(inner)}</blockquote>")
             continue
 
-        # Lists (unordered or ordered), with one level of nesting by indent
+        # Lists
         if re.match(r"^\s*([-*+]|\d+\.)\s+", line):
             i = _render_list(lines, i, out)
             continue
 
-        # Paragraph: accumulate consecutive non-blank, non-special lines
+        # Paragraph
         buf = []
         while i < n and lines[i].strip() and not _starts_block(lines[i], lines, i):
             buf.append(lines[i].strip())
@@ -195,7 +347,6 @@ def _render_blocks(md: str) -> str:
 
 
 def _starts_block(line: str, lines: list, idx: int) -> bool:
-    """True if line begins a non-paragraph block (so paragraph accumulation stops)."""
     if re.match(r"^(\s*)(`{3,}|~{3,})", line):
         return True
     if re.match(r"^#{1,6}\s+", line):
@@ -203,6 +354,8 @@ def _starts_block(line: str, lines: list, idx: int) -> bool:
     if re.match(r"^\s*([-*+]|\d+\.)\s+", line):
         return True
     if re.match(r"^\s*>\s?", line):
+        return True
+    if re.match(r"^@(field|area)\[", line.strip()):
         return True
     if re.fullmatch(r"(\s*[-*_]){3,}\s*", line) and set(line.strip()) <= {"-", "*", "_", " "}:
         return True
@@ -212,7 +365,6 @@ def _starts_block(line: str, lines: list, idx: int) -> bool:
 
 
 def _render_list(lines: list, i: int, out: list) -> int:
-    """Render a (possibly one-level-nested) list starting at lines[i]. Returns new i."""
     n = len(lines)
     base_indent = len(lines[i]) - len(lines[i].lstrip())
     ordered = bool(re.match(r"^\s*\d+\.\s+", lines[i]))
@@ -221,7 +373,6 @@ def _render_list(lines: list, i: int, out: list) -> int:
     while i < n:
         line = lines[i]
         if not line.strip():
-            # allow a single blank line within a list
             if i + 1 < n and re.match(r"^\s*([-*+]|\d+\.)\s+", lines[i + 1]):
                 i += 1
                 continue
@@ -233,8 +384,6 @@ def _render_list(lines: list, i: int, out: list) -> int:
         if indent < base_indent:
             break
         if indent >= base_indent + 2 and out and not out[-1].endswith("</li>"):
-            # nested list — recurse, attach inside the open <li>
-            # close the current item text first by recursing for the nested block
             i = _render_list(lines, i, out)
             continue
         out.append(f"<li>{_inline(m.group(3))}</li>")
@@ -243,19 +392,56 @@ def _render_list(lines: list, i: int, out: list) -> int:
     return i
 
 
+# ---------------------------------------------------------------------------
+# Document assembly
+# ---------------------------------------------------------------------------
+
+def _doc_slug(title: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-")[:48] or "doc"
+
+
 def render_html(md: str, title: str, source_name: str = "") -> str:
-    """Render a full standalone HTML document from Markdown text."""
-    body = _render_blocks(md)
+    tpl_vars: dict = {}
+    body = _render_blocks(md, tpl_vars)
+
     meta = (f'<div class="doc-meta">Generated from <code>{html.escape(source_name)}</code> '
-            f'— self-contained · print-friendly</div>') if source_name else ""
+            f'— self-contained · print-friendly · values saved in your browser</div>'
+            ) if source_name else ""
+
+    params_panel = ""
+    if tpl_vars:
+        rows = ""
+        for name, default in tpl_vars.items():
+            rows += (
+                f'<div class="param-row"><label for="p-{html.escape(name)}">{html.escape(name)}</label>'
+                f'<input class="param-input" id="p-{html.escape(name)}" data-var="{html.escape(name)}" '
+                f'type="text" value="{html.escape(default)}" placeholder="{html.escape(name)}"></div>'
+            )
+        params_panel = (
+            '<div class="params"><h3>Parameters</h3>'
+            '<div class="hint">Fill these in — every command below updates live, and the '
+            'Copy button copies the resolved command.</div>'
+            f"{rows}</div>"
+        )
+
+    session_notes = (
+        '<div class="session-notes"><h2>Session Notes</h2>'
+        '<p style="color:var(--muted);font-size:.85em">Anything unexpected, or that did not fit the '
+        'steps above. Saved in your browser.</p>'
+        '<textarea id="bf-session-notes" placeholder="notes…"></textarea></div>'
+    )
+
+    _, js, toggle = theme_assets()
     return (
         "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n"
         '<meta charset="UTF-8">\n'
         '<meta name="viewport" content="width=device-width, initial-scale=1.0">\n'
         f"<title>{html.escape(title)}</title>\n"
         f"<style>{_CSS}</style>\n"
-        "</head>\n<body>\n"
-        f"{meta}\n{body}\n"
+        "</head>\n"
+        f'<body data-doc="{_doc_slug(title)}">\n'
+        f"{toggle}\n{meta}\n{params_panel}\n{body}\n{session_notes}\n"
+        f"<script>{js}</script>\n"
         "</body>\n</html>\n"
     )
 
@@ -269,7 +455,7 @@ def convert_file(src: Path, dst: Path, title: str = "") -> None:
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description="Convert a Markdown file to themed HTML")
+    ap = argparse.ArgumentParser(description="Convert a Markdown file to themed, interactive HTML")
     ap.add_argument("input", help="Input .md file")
     ap.add_argument("output", help="Output .html file")
     ap.add_argument("--title", default="", help="Document title (default: first H1)")

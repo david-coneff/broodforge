@@ -7,10 +7,14 @@
 <style>
   :root{--bg:#1a1d23;--bg2:#22262e;--bg3:#2a2f3a;--border:#3a3f4d;--text:#cdd6f4;--muted:#7f8498;
     --accent:#89b4fa;--green:#a6e3a1;--yellow:#f9e2af;--orange:#fab387;--red:#f38ba8;
-    --code-bg:#181b21;--radius:6px}
+    --code-bg:#181b21;--code-text:#a6e3a1;--radius:6px;--btn-bg:#2a2f3a}
+  body.light{--bg:#ffffff;--bg2:#f4f5f7;--bg3:#eceff2;--border:#d0d7de;--text:#1f2328;--muted:#57606a;
+    --accent:#0969da;--green:#1a7f37;--yellow:#9a6700;--orange:#bc4c00;--red:#cf222e;
+    --code-bg:#f6f8fa;--code-text:#0a3069;--btn-bg:#eaeef2}
   *{box-sizing:border-box;margin:0;padding:0}
   body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
-    font-size:14px;line-height:1.6;padding:24px;max-width:1100px;margin:0 auto}
+    font-size:14px;line-height:1.6;padding:24px 24px 80px;max-width:1100px;margin:0 auto;
+    transition:background .15s,color .15s}
   h1{color:var(--accent);font-size:1.7em;margin:18px 0 4px}
   h2{color:var(--accent);font-size:1.05em;margin:24px 0 8px;text-transform:uppercase;letter-spacing:.05em;
     border-bottom:1px solid var(--border);padding-bottom:4px}
@@ -22,13 +26,13 @@
   li>ul,li>ol{margin:4px 0 4px 18px}
   strong{color:var(--text);font-weight:600}
   hr{border:none;border-top:1px solid var(--border);margin:20px 0}
-  blockquote{border-left:3px solid var(--accent);background:#1e2d3a;margin:10px 0;
+  blockquote{border-left:3px solid var(--accent);background:var(--bg2);margin:10px 0;
     padding:8px 14px;border-radius:0 var(--radius) var(--radius) 0;color:var(--text)}
-  code{background:var(--code-bg);color:var(--green);padding:1px 5px;border-radius:3px;
+  code{background:var(--code-bg);color:var(--code-text);padding:1px 5px;border-radius:3px;
     font-family:'Cascadia Code','Fira Code',Consolas,monospace;font-size:.9em}
   pre{background:var(--code-bg);border:1px solid var(--border);border-radius:var(--radius);
-    padding:12px 14px;overflow-x:auto;margin:10px 0;font-family:'Cascadia Code','Fira Code',Consolas,monospace;
-    font-size:.85em;color:var(--green);white-space:pre}
+    padding:12px 14px;overflow-x:auto;margin:0;font-family:'Cascadia Code','Fira Code',Consolas,monospace;
+    font-size:.85em;color:var(--code-text);white-space:pre}
   pre code{background:none;padding:0;color:inherit}
   table{width:100%;border-collapse:collapse;margin:10px 0;font-size:.88em}
   th{background:var(--bg2);color:var(--muted);text-align:left;padding:6px 8px;
@@ -36,11 +40,44 @@
   td{padding:5px 8px;border-bottom:1px solid var(--bg3);vertical-align:top}
   tr:last-child td{border-bottom:none}
   .doc-meta{color:var(--muted);font-size:.8em;margin:4px 0 20px}
-  @media print{body{padding:12px;max-width:none}}
+  /* theme toggle */
+  #bf-theme-btn{position:fixed;top:14px;right:16px;z-index:50;background:var(--btn-bg);color:var(--text);
+    border:1px solid var(--border);border-radius:var(--radius);padding:5px 12px;cursor:pointer;
+    font-size:.8em;font-family:inherit}
+  #bf-theme-btn:hover{border-color:var(--accent);color:var(--accent)}
+  /* code block + copy */
+  .codewrap{position:relative;margin:10px 0}
+  .copy-btn{position:absolute;top:6px;right:6px;background:var(--btn-bg);color:var(--muted);
+    border:1px solid var(--border);border-radius:4px;padding:2px 9px;cursor:pointer;font-size:.72em;
+    font-family:inherit;opacity:.55;transition:opacity .12s}
+  .codewrap:hover .copy-btn{opacity:1}
+  .copy-btn:hover{border-color:var(--accent);color:var(--accent)}
+  .tpl{color:var(--orange);background:rgba(250,179,135,.13);border-radius:3px;padding:0 2px}
+  body.light .tpl{background:rgba(188,76,0,.10)}
+  /* parameters panel */
+  .params{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+    padding:12px 16px;margin:14px 0 18px}
+  .params h3{margin:0 0 8px;color:var(--accent)}
+  .params .hint{color:var(--muted);font-size:.8em;margin-bottom:10px}
+  .param-row{display:flex;align-items:center;gap:10px;margin:6px 0;flex-wrap:wrap}
+  .param-row label{min-width:200px;font-family:monospace;font-size:.85em;color:var(--muted)}
+  .param-input,.note-input,.note-area,#bf-session-notes{background:var(--code-bg);color:var(--text);
+    border:1px solid var(--border);border-radius:4px;padding:5px 8px;font-family:'Cascadia Code',Consolas,monospace;
+    font-size:.85em;flex:1;min-width:220px}
+  .param-input:focus,.note-input:focus,.note-area:focus,#bf-session-notes:focus{outline:none;border-color:var(--accent)}
+  /* note fields */
+  .notefield{margin:10px 0}
+  .notefield label{display:block;font-size:.82em;color:var(--muted);margin-bottom:3px;font-weight:600}
+  .note-area,#bf-session-notes{width:100%;min-height:70px;resize:vertical;flex:none}
+  .session-notes{margin-top:36px;border-top:1px solid var(--border);padding-top:14px}
+  @media print{body{padding:12px;max-width:none}#bf-theme-btn,.copy-btn{display:none}
+    .param-input,.note-input,.note-area,#bf-session-notes{border:1px solid #999}}
 </style>
 </head>
-<body>
-<div class="doc-meta">Generated from <code>RECONSTRUCTION-DRILL.md</code> — self-contained · print-friendly</div>
+<body data-doc="reconstruction-drill-guide">
+<button id="bf-theme-btn" type="button">☀ Light</button>
+<div class="doc-meta">Generated from <code>RECONSTRUCTION-DRILL.md</code> — self-contained · print-friendly · values saved in your browser</div>
+<div class="params"><h3>Parameters</h3><div class="hint">Fill these in — every command below updates live, and the Copy button copies the resolved command.</div><div class="param-row"><label for="p-PLAYBOOK">PLAYBOOK</label><input class="param-input" id="p-PLAYBOOK" data-var="PLAYBOOK" type="text" value="reconstruction/phoenix-playbook-latest.json" placeholder="PLAYBOOK"></div><div class="param-row"><label for="p-STATE">STATE</label><input class="param-input" id="p-STATE" data-var="STATE" type="text" value="proxmox-bootstrap/bootstrap-state.json" placeholder="STATE"></div><div class="param-row"><label for="p-OUTCOME">OUTCOME</label><input class="param-input" id="p-OUTCOME" data-var="OUTCOME" type="text" value="success" placeholder="OUTCOME"></div><div class="param-row"><label for="p-REPORT">REPORT</label><input class="param-input" id="p-REPORT" data-var="REPORT" type="text" value="drill-report.md" placeholder="REPORT"></div></div>
 <h1>Reconstruction Drill Guide</h1>
 <p><strong>Document created:</strong> 2026-06-01 <strong>Recommended frequency:</strong> Every 90 days (quarterly)</p>
 <p>A reconstruction drill validates that your phoenix playbook accurately describes the real recovery procedure, measures actual vs. estimated restoration time, and surfaces gaps that only appear during live execution. The drill record is committed to Forgejo as auditable evidence of tested recoverability.</p>
@@ -50,7 +87,7 @@
 <p>A drill run against a test environment (cloned VMs, isolated network) catches these gaps before a real incident forces you to discover them under time pressure.</p>
 <hr>
 <h2>Pre-drill checklist</h2>
-<pre><code>☐ Obtain a phoenix playbook for the drill target.
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>☐ Obtain a phoenix playbook for the drill target.
     The playbook is embedded in the phoenix package generated by assemble-phoenix-package.py.
     To generate one ad-hoc from bootstrap-state.json:
     python3 -c "
@@ -74,15 +111,18 @@
     Option B — Proxmox VE in a VM (nested virtualization, performance limited)
     Option C — Tabletop walkthrough (paper drill — no live execution)
 
-☐ Notify any affected stakeholders of the drill window</code></pre>
+☐ Notify any affected stakeholders of the drill window</code></pre></div>
 <hr>
 <h2>Running the drill</h2>
 <h3>Step 1 — Start the drill record</h3>
-<p>Register the drill in bootstrap-state.json before you begin:</p>
-<pre><code>python3 proxmox-bootstrap/reconstruction-drill.py start \
-  --playbook reconstruction/phoenix-playbook-latest.json \
-  --state proxmox-bootstrap/bootstrap-state.json</code></pre>
-<p>This prints a <code>drill_id</code> and estimated total time. Note the drill_id — you'll need it to find the record if needed.</p>
+<p>Register the drill in bootstrap-state.json before you begin. Set the paths in the <strong>Parameters</strong> panel at the top once — every command on this page then uses them.</p>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>python3 proxmox-bootstrap/reconstruction-drill.py start \
+  --playbook <span class="tpl" data-var="PLAYBOOK">reconstruction/phoenix-playbook-latest.json</span> \
+  --state <span class="tpl" data-var="STATE">proxmox-bootstrap/bootstrap-state.json</span></code></pre></div>
+<p>This prints a <code>drill_id</code> and estimated total time. Record them here so you have a traceable record of this drill run:</p>
+<div class="notefield"><label>drill_id (printed by the start command)</label><input type="text" class="note-input" data-note="drill-id-printed-by-the-start-command" placeholder="record here…"></div>
+<div class="notefield"><label>Estimated total time (minutes)</label><input type="text" class="note-input" data-note="estimated-total-time-minutes" placeholder="record here…"></div>
+<div class="notefield"><label>Drill start time (UTC)</label><input type="text" class="note-input" data-note="drill-start-time-utc" placeholder="record here…"></div>
 <h3>Step 2 — Execute the playbook (live or tabletop)</h3>
 <p>Work through the phoenix playbook waves manually, timing each wave and noting any gaps:</p>
 <ul>
@@ -90,34 +130,37 @@
 <li>For a <strong>tabletop drill</strong>: walk through each wave's steps on paper, recording issues found</li>
 </ul>
 <p>Keep notes on: actual time taken, steps that were unclear, anything that differed from the playbook.</p>
+<div class="notefield"><label>Per-wave actual times, unclear steps, and gaps observed during execution</label><textarea class="note-area" data-note="per-wave-actual-times-unclear-steps-and-gaps-obs" placeholder="record here…"></textarea></div>
 <h3>Step 3 — Complete the drill record</h3>
 <p>When finished, record the outcome and generate a report:</p>
-<pre><code>python3 proxmox-bootstrap/reconstruction-drill.py complete \
-  --state proxmox-bootstrap/bootstrap-state.json \
-  --outcome success \
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>python3 proxmox-bootstrap/reconstruction-drill.py complete \
+  --state <span class="tpl" data-var="STATE">proxmox-bootstrap/bootstrap-state.json</span> \
+  --outcome <span class="tpl" data-var="OUTCOME">success</span> \
   --gaps "Bridge vmbr1 pre-flight step was unclear" "Wave 3 restore took 2× longer than estimated" \
-  --output drill-report.md</code></pre>
+  --output <span class="tpl" data-var="REPORT">drill-report.md</span></code></pre></div>
 <p><code>--outcome</code> choices: <code>success</code> (default), <code>partial</code>, <code>failed</code>, <code>aborted</code> <code>--gaps</code> (optional): one or more gap descriptions appended to <code>gaps_found</code> in the drill record</p>
+<div class="notefield"><label>Final outcome recorded (success / partial / failed / aborted)</label><input type="text" class="note-input" data-note="final-outcome-recorded-success-partial-failed-ab" placeholder="record here…"></div>
+<div class="notefield"><label>Actual total time (minutes)</label><input type="text" class="note-input" data-note="actual-total-time-minutes" placeholder="record here…"></div>
 <hr>
 <h2>Viewing drill results</h2>
-<pre><code># Print the most recent drill record as JSON
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code># Print the most recent drill record as JSON
 python3 proxmox-bootstrap/reconstruction-drill.py last \
-  --state proxmox-bootstrap/bootstrap-state.json
+  --state <span class="tpl" data-var="STATE">proxmox-bootstrap/bootstrap-state.json</span>
 
 # Regenerate the Markdown report for the last drill
 python3 proxmox-bootstrap/reconstruction-drill.py report \
-  --state proxmox-bootstrap/bootstrap-state.json \
-  --output drill-report.md</code></pre>
+  --state <span class="tpl" data-var="STATE">proxmox-bootstrap/bootstrap-state.json</span> \
+  --output <span class="tpl" data-var="REPORT">drill-report.md</span></code></pre></div>
 <hr>
 <h2>After the drill</h2>
-<pre><code>☐ Review gaps_found in the drill record
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>☐ Review gaps_found in the drill record
 ☐ For each gap:
     - If it affects the playbook: update phoenix_playbook.py generator and re-generate
     - If it affects bootstrap-state.json: update and commit
     - If it affects metadata YAML: update and commit
 ☐ Re-run readiness report to verify gaps are resolved
 ☐ Commit the updated bootstrap-state.json (now includes drill record) to Forgejo
-☐ The Assessment Engine will detect the commit and regenerate documentation</code></pre>
+☐ The Assessment Engine will detect the commit and regenerate documentation</code></pre></div>
 <hr>
 <h2>Interpreting the drill report</h2>
 <p>The drill report compares estimated vs. actual time per wave:</p>
@@ -125,18 +168,74 @@ python3 proxmox-bootstrap/reconstruction-drill.py report \
 <p>If outcome is <code>partial</code> or <code>failed</code>, the recovery readiness score drops to ORANGE until a successful drill is recorded. This is intentional: a failed drill is important safety information and should not be hidden.</p>
 <hr>
 <h2>Scheduling quarterly drills</h2>
-<pre><code># Install a systemd timer for quarterly drill reminders:
-sudo bash proxmox-bootstrap/schedule-reconstruction-drill.sh</code></pre>
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code># Install a systemd timer for quarterly drill reminders:
+sudo bash proxmox-bootstrap/schedule-reconstruction-drill.sh</code></pre></div>
 <p>The timer sends a journal log reminder every 90 days. It does not automatically run the drill — drills require operator involvement by design.</p>
 <hr>
 <h2>Drill history</h2>
 <p>All drill records are stored in <code>bootstrap-state.json</code> under <code>reconstruction_drills[]</code>. They are never pruned — the full history is preserved as a permanent audit trail.</p>
 <p>To view drill history:</p>
-<pre><code>python3 -c "
+<div class="codewrap"><button class="copy-btn" type="button">Copy</button><pre><code>python3 -c "
 import json
 state = json.load(open('proxmox-bootstrap/bootstrap-state.json'))
 for d in state.get('reconstruction_drills', []):
     print(d['drill_id'], d['outcome'], d.get('total_actual_minutes','?'),'min')
-"</code></pre>
+"</code></pre></div>
+<div class="session-notes"><h2>Session Notes</h2><p style="color:var(--muted);font-size:.85em">Anything unexpected, or that did not fit the steps above. Saved in your browser.</p><textarea id="bf-session-notes" placeholder="notes…"></textarea></div>
+<script>
+(function(){
+  var ns = 'bf:' + (document.body.dataset.doc || 'doc') + ':';
+  // ---- theme ----
+  try{ if(localStorage.getItem('bf:theme')==='light') document.body.classList.add('light'); }catch(e){}
+  var tb = document.getElementById('bf-theme-btn');
+  function lbl(){ tb.textContent = document.body.classList.contains('light') ? '☾ Dark' : '☀ Light'; }
+  if(tb){ lbl(); tb.addEventListener('click', function(){
+    document.body.classList.toggle('light');
+    try{ localStorage.setItem('bf:theme', document.body.classList.contains('light')?'light':'dark'); }catch(e){}
+    lbl();
+  }); }
+  // ---- live template parameters ----
+  function applyVar(name, val){
+    var slots = document.querySelectorAll('.tpl[data-var="'+name+'"]');
+    for(var i=0;i<slots.length;i++){ slots[i].textContent = val; }
+  }
+  var inputs = document.querySelectorAll('.param-input');
+  for(var i=0;i<inputs.length;i++){
+    (function(inp){
+      var name = inp.dataset.var, k = ns+'param:'+name;
+      try{ var s = localStorage.getItem(k); if(s!==null) inp.value = s; }catch(e){}
+      applyVar(name, inp.value);
+      inp.addEventListener('input', function(){
+        applyVar(name, inp.value);
+        try{ localStorage.setItem(k, inp.value); }catch(e){}
+      });
+    })(inputs[i]);
+  }
+  // ---- note fields + session notes (persisted) ----
+  var notes = document.querySelectorAll('.note-input,.note-area,#bf-session-notes');
+  for(var j=0;j<notes.length;j++){
+    (function(el){
+      var id = el.dataset.note || el.id, k = ns+'note:'+id;
+      try{ var s = localStorage.getItem(k); if(s!==null) el.value = s; }catch(e){}
+      el.addEventListener('input', function(){ try{ localStorage.setItem(k, el.value); }catch(e){} });
+    })(notes[j]);
+  }
+  // ---- copy buttons ----
+  var btns = document.querySelectorAll('.copy-btn');
+  for(var b=0;b<btns.length;b++){
+    btns[b].addEventListener('click', function(){
+      var btn = this, pre = btn.parentElement.querySelector('pre');
+      var text = pre.innerText;
+      var done = function(){ var o=btn.textContent; btn.textContent='Copied!'; setTimeout(function(){btn.textContent=o;},1200); };
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(text).then(done, function(){ done(); });
+      } else {
+        var ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta);
+        ta.select(); try{document.execCommand('copy');}catch(e){} document.body.removeChild(ta); done();
+      }
+    });
+  }
+})();
+</script>
 </body>
 </html>
