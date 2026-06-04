@@ -263,6 +263,15 @@ def assemble_spawn_package(
         _add_str("lib/checkpoint.sh",    CHECKPOINT_SH)
         _add_str("lib/keepass-gate.sh",  KEEPASS_GATE_SH)
 
+        # Conflict re-validator — phase-00-preflight.sh runs
+        #   python3 "$SCRIPT_DIR/validate-spawn.py" --manifest ... --plan ...
+        # on the broodling. Bundle the CLI plus its (small, stdlib-only) import
+        # closure at the package root so that pre-flight conflict check actually
+        # executes rather than being silently skipped by its [ -f ] guard.
+        _src_dir = Path(__file__).parent
+        for _mod in ("validate-spawn.py", "validate_spawn.py", "hatchery_state.py"):
+            _add_file(_mod, _src_dir / _mod)
+
         if artifacts_dir is not None:
             # Use pre-generated artifacts from disk
             artifacts_dir = Path(artifacts_dir)

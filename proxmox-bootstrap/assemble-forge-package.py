@@ -14,6 +14,7 @@ Produces:
 """
 
 import argparse
+import hashlib
 import json
 import sys
 from pathlib import Path
@@ -39,7 +40,8 @@ def main() -> None:
     )
     parser.add_argument(
         "--repo", default=None,
-        help="Path to broodforge repo (to bundle library code; optional)",
+        help="Path to broodforge repo to bundle library code "
+             "(default: inferred from this script's location)",
     )
     parser.add_argument(
         "--kdbx", default=None,
@@ -60,7 +62,20 @@ def main() -> None:
         print(f"[error] KeePass database not found: {kdbx_path}", file=sys.stderr)
         sys.exit(1)
 
-    repo_dir = Path(args.repo) if args.repo else None
+    # The forge phase scripts invoke python3 "$SCRIPT_DIR/proxmox-bootstrap/*.py"
+    # at runtime, so the package MUST bundle the library code. When --repo is not
+    # given, infer the repo root from this script's location (it lives in
+    # proxmox-bootstrap/) so the documented happy path produces a self-contained
+    # package rather than one that fails at phase-00.
+    if args.repo:
+        repo_dir = Path(args.repo)
+    else:
+        inferred = _HERE.parent
+        repo_dir = inferred if (inferred / "proxmox-bootstrap").is_dir() else None
+        if repo_dir is None:
+            print("[warn] Could not infer repo root; package will NOT bundle "
+                  "library code. Pass --repo to bundle proxmox-bootstrap/, "
+                  "data-model/, and doc-gen/.", file=sys.stderr)
 
     pkg = assemble_forge_package(
         manifest=manifest,
@@ -77,6 +92,7 @@ def main() -> None:
     print(f"  Forge Package Assembled")
     print(f"{'=' * 64}")
     print(f"  Package:  {pkg}")
+    print(f"  SHA-256:  {hashlib.sha256(pkg.read_bytes()).hexdigest()}")
     print(f"  Cell:     {cell_id}")
     print(f"  Host:     {hostname}")
     print(f"  Profile:  {profile}")

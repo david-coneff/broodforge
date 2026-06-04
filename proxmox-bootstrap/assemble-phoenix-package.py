@@ -13,6 +13,7 @@ Produces:
 """
 
 import argparse
+import hashlib
 import json
 import sys
 from pathlib import Path
@@ -71,6 +72,7 @@ def main() -> None:
     print(f"  Phoenix Package Assembled")
     print(f"{'=' * 64}")
     print(f"  Package:  {pkg}")
+    print(f"  SHA-256:  {hashlib.sha256(pkg.read_bytes()).hexdigest()}")
     print(f"  Cell:     {cell_id}")
     print(f"  Node:     {node}")
     print(f"  Scope:    {scope}")

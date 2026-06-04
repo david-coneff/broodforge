@@ -171,6 +171,39 @@ def _read_bootstrap_state(cfg: DashboardConfig) -> dict:
     return state
 
 
+# Key-name fragments that imply a secret value. bootstrap-state.json stores
+# k3s join tokens (k3s.worker_join_token / k3s.server_join_token) and may grow
+# other secret-bearing fields over time. The read-only GET endpoints are
+# unauthenticated by design ("state, not secrets"), so any secret-bearing value
+# must be masked before it leaves the process — otherwise a LAN-adjacent client
+# could read a k3s join token from /api/state and join a rogue cluster node.
+_SECRET_KEY_PARTS = (
+    "token", "password", "passphrase", "secret",
+    "private_key", "api_key", "apikey", "auth_key", "authkey",
+)
+_REDACTED = "***REDACTED***"
+
+
+def _redact_secrets(obj):
+    """Return a deep copy of obj with secret-bearing values masked.
+
+    A value is masked when its key name contains a known secret fragment.
+    Non-secret containers are recursed into so nested secrets are also caught.
+    Empty values are left as-is so the UI can still show "not set".
+    """
+    if isinstance(obj, dict):
+        out = {}
+        for k, v in obj.items():
+            if any(part in str(k).lower() for part in _SECRET_KEY_PARTS):
+                out[k] = _REDACTED if v not in (None, "", [], {}, 0, False) else v
+            else:
+                out[k] = _redact_secrets(v)
+        return out
+    if isinstance(obj, list):
+        return [_redact_secrets(x) for x in obj]
+    return obj
+
+
 def _read_readiness(cfg: DashboardConfig) -> dict:
     """Read the latest Readiness-Report.json from the reports directory."""
     candidates = [
@@ -751,10 +784,10 @@ class _DashboardHandler(http.server.BaseHTTPRequestHandler):
         if path == "/":
             self._serve_dashboard()
         elif path == "/api/state":
-            self._serve_json(_read_bootstrap_state(self._cfg))
+            self._serve_json(_redact_secrets(_read_bootstrap_state(self._cfg)))
         elif path == "/api/nodes":
             state = _read_bootstrap_state(self._cfg)
-            self._serve_json(_nodes_from_state(state))
+            self._serve_json(_redact_secrets(_nodes_from_state(state)))
         elif path == "/api/readiness":
             self._serve_json(_read_readiness(self._cfg))
         elif path == "/api/failures":
@@ -764,17 +797,17 @@ class _DashboardHandler(http.server.BaseHTTPRequestHandler):
             self._serve_json(_backup_status_from_state(state))
         elif path == "/api/security":
             state = _read_bootstrap_state(self._cfg)
-            self._serve_json(state.get("security_scan") or {})
+            self._serve_json(_redact_secrets(state.get("security_scan") or {}))
         elif path == "/api/remediations":
             state = _read_bootstrap_state(self._cfg)
-            self._serve_json(state.get("remediations") or [])
+            self._serve_json(_redact_secrets(state.get("remediations") or []))
         elif path.startswith("/api/remediations/") and not path.endswith(("/approve", "/reject")):
             pid   = path[len("/api/remediations/"):]
             state = _read_bootstrap_state(self._cfg)
             props = state.get("remediations") or []
             match = next((p for p in props if p.get("proposal_id") == pid), None)
             if match:
-                self._serve_json(match)
+                self._serve_json(_redact_secrets(match))
             else:
                 self.send_error(HTTPStatus.NOT_FOUND)
         elif path.startswith("/docs/"):
