@@ -700,15 +700,74 @@ of what this transition exists to make durable.
      suite 4292 passed, 1 skipped (same 4 pre-existing `test_opentofu.py`
      failures). `docs/FEATURE-HISTORY.md`/`.html` updated.
 
-  **Remaining, in the operator's given order**: Phase 1.J (AD-060,
-  Hypervisor Recovery — the final phase, must respect the **firm AD-060
-  constraint**: no autonomous pathway may read/wield full root against
-  live hypervisors; only node-spawn and phoenix-setup temporary
-  credentials are exempt, time-limited, and require operator rotation
-  afterward). After it: update FEATURE-HISTORY (+ HTML twin) and
-  PAP-state, run the full suite, commit, push — per the operator's
-  standing `feature_revision_process` / "push on commit" preferences —
-  then report a summary of everything implemented this milestone.
+  5. **Phase 1.J / AD-060 (Hypervisor Recovery: Constrained Accounts and
+     Pre-Generated Spawn Media) — DONE**, commit pending — the FOURTH AND
+     FINAL phase, closing the milestone. AD-060 is a firm architectural
+     SHALL-NOT ("no autonomous pathway may read or wield a permanent
+     hypervisor root credential and act on a live hypervisor — root has
+     no boundary by definition"), with exactly two narrow named
+     exceptions (node-spawn discovery, phoenix-setup), both time-limited
+     and requiring operator rotation after. Implemented all three
+     accepted-design parts plus the phoenix extension:
+     **(a)** `_recovery_accounts.py` (+ `setup_recovery_account.py` CLI,
+     `build_recovery_account_plan_html` AD-051 twin) generates a
+     `command="<menu-script>"`-gated `authorized_keys` line (plus
+     `no-pty,no-port-forwarding,no-X11-forwarding,no-agent-forwarding`)
+     and a fixed-menu POSIX-`sh` script (status/logs/vmlist/vmstart/
+     vmstop) — structurally incapable of an arbitrary-shell escape:
+     `$SSH_ORIGINAL_COMMAND` is matched against a fixed enumerated `case`
+     of literal verbs only (never `eval`/`sh -c`/backticks), and the only
+     operator-influenced value (VMID) is regex-validated
+     (`^[0-9]{1,6}$`) before reaching `exec qm start/stop`; broodforge
+     generates strings only, never installs/runs/connects through it.
+     **(b)** `secret-registry.yaml` gains an optional
+     `access_policy: break-glass-human-only` annotation (documented in
+     its header schema) on `pve01-root-password`;
+     `describe_break_glass_pointer()` surfaces only `id`/`keepass_path`/
+     `description` (a location, never a value) for runbook display — "the
+     runbook tells the operator where to look," the existing AD-042
+     human-unlock gate unchanged. **(c)** `_image_builder.py` gains
+     `build_pregenerated_spawn_media_record()` (runs the existing AD-043
+     `generate_install_passphrase()` at *build* time, AD-060(c)) paired
+     with a `pending_join_authorizations` state record (in
+     `bootstrap-state.json`, the same recorded-operator-decision shape
+     AD-041's autonomous-mode confirmation uses) that stores only a
+     SHA-256 `passphrase_hash`, defaults `authorized: false`, and is
+     flippable ONLY by the new human-operated `authorize-spawn-media-
+     join.py` CLI (`--operator` required, refuses unknown/already-
+     authorized bundles, never auto-flips). **(d)** `phoenix_playbook.py`
+     gains `generate_phoenix_session_credential()` (mirrors
+     `generate_temp_password`/`generate_install_passphrase` —
+     `Capital.phoenix.word.N`) and `phoenix_session_credential_section()`,
+     wired into `PhoenixPlaybookGenerator.build()` as a new
+     `temporary_session_credential` section recording `scope:
+     "phoenix-setup-session-only"`, a bounded `valid_window`, and a
+     `rotation_requirement` stating *in the generated output itself* —
+     "ROTATE THIS CREDENTIAL THE MOMENT THIS RECOVERY SESSION COMPLETES…
+     broodforge does not and cannot autonomously verify or perform
+     rotation (doing so would itself be the autonomous full-root pathway
+     AD-060 forbids)." **Constraint-honored confirmation**: grepped
+     `pve0.*root.*password|root-password|root_password` across
+     `proxmox-bootstrap/*.py` (excl. tests) — every match is pre-existing
+     (KeePass path-name generation, the AD-039 temp-credential exception,
+     the AD-043 single-use discovery passphrase); no new/modified code
+     reads a permanent root-credential value, confirmed by both the grep
+     and structural guard tests in all three new test files
+     (`TestConstraintHonoredNoRootCredentialReads`). 96 new tests
+     (`test_recovery_accounts.py` 46, `test_spawn_media_authorization.py`
+     27, `test_phoenix_session_credential.py` 23); full suite 4388
+     passed, 1 skipped (same 4 pre-existing `test_opentofu.py` failures).
+     `docs/FEATURE-HISTORY.md`/`.html` updated.
+
+  **MILESTONE CLOSED** — all five operator-directed items now done in
+  the specified order: datetime sweep, Phase 1.H (AD-057), Phase 1.I
+  (AD-059), Phase 1.K (AD-061), Phase 1.J (AD-060). Remaining for this
+  session: commit + push the Phase 1.J work and PAP-state updates (per
+  the operator's standing `feature_revision_process` / "push on commit"
+  preferences), then report a closing summary of everything implemented
+  across the whole milestone — the operator's explicitly requested final
+  action ("report a summary of what was implemented and committed vs.
+  what remains").
 
   **`ROADMAP.md` "Proposed Future Work"** held zero items in "draft sketch,
   awaiting operator reaction" status entering this milestone — all four

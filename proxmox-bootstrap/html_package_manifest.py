@@ -14,6 +14,7 @@ Provides:
   build_bootstrap_image_manifest_html(manifest, image_manifest) → str
   build_recovery_readiness_certificate_html(certificate) → str
   build_scoped_vault_plan_html(plan_dict) → str
+  build_recovery_account_plan_html(plan) → str
 
 All outputs are self-contained HTML files using broodforge's standard dark theme.
 They include: what's inside the package, what each component does, key settings,
@@ -921,6 +922,106 @@ def build_scoped_vault_plan_html(plan_dict: dict, now_fn=None) -> str:
         title=f"Derived Vault Plan — {role}",
         cell_id=role,
         subtitle=f"Scoped Vault Plan · role: {role} · tier: {tier}",
+        body=body,
+        gen_at=gen_at,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Recovery account provisioning plan HTML twin (Phase 1.J, AD-060)
+# ---------------------------------------------------------------------------
+
+def build_recovery_account_plan_html(plan: dict, now_fn=None) -> str:
+    """
+    Build a human-readable HTML twin for a recovery-account-provisioning-plan
+    (Phase 1.J, AD-060 — AD-051 manifest/HTML-twin pattern, mirrors
+    build_scoped_vault_plan_html).
+
+    plan: dict produced by _recovery_accounts.build_recovery_account_plan().
+
+    Explains: what a constrained, forced-command recovery account is and why
+    its blast radius is bounded by construction (the `authorized_keys`
+    restricted-command line and its standard OpenSSH restriction flags), the
+    fixed read-only/bounded diagnostic menu and its structural command-
+    injection-safety invariant, and — critically — the break-glass root
+    pointer table that displays ONLY KeePass paths (never values), annotated
+    AD-060(b)/AD-042 human-unlock-gated. broodforge generates these strings;
+    it never installs, runs, or connects with them — see _recovery_accounts.py.
+    """
+    gen_at = (now_fn() if now_fn else plan.get("generated_at")
+              or datetime.now(timezone.utc).isoformat())
+    cell_id = plan.get("cell_id") or "unknown-cell"
+    node = plan.get("node_hostname") or "unknown-node"
+    account = plan.get("account") or {}
+    menu = plan.get("menu_script") or {}
+
+    body = ""
+    body += "<h2>Constrained Recovery Account</h2>"
+    body += '<div class="section-wrap">'
+    body += '<div class="tip">A dedicated, narrowly-scoped account per hypervisor, ' \
+            'forced through a fixed read-only/bounded diagnostic menu via ' \
+            '<code>command=</code> in <code>authorized_keys</code> — never an arbitrary ' \
+            'shell. Because its blast radius is bounded <b>by construction</b>, AD-060 ' \
+            'names this as the one piece of the recovery surface safe to query ' \
+            'autonomously. broodforge generates these strings; it does not install, run, ' \
+            'or connect with them — see README/phase-03 for the provisioning step.</div>'
+    body += _kv([
+        ("Cell",              cell_id),
+        ("Node",              node),
+        ("Generated",         (gen_at or "")[:19]),
+        ("Account name",      account.get("name")),
+        ("Login shell",       account.get("shell_restriction")),
+        ("Menu script path",  account.get("menu_script_path")),
+        ("authorized_keys restrictions", ", ".join(account.get("authorized_keys_restrictions") or [])),
+    ])
+    body += "</div>"
+
+    body += "<h2>authorized_keys Restricted-Command Line</h2>"
+    body += '<div class="section-wrap">'
+    body += '<div class="warn">Install this single line into the account\'s ' \
+            '<code>~/.ssh/authorized_keys</code>. The <code>command=</code> clause forces ' \
+            'every session through the fixed-menu script regardless of what the client ' \
+            'requests; the remaining flags disable port/X11/agent forwarding and pty ' \
+            'allocation — there is no path back to an interactive shell.</div>'
+    body += (f'<pre style="white-space:pre-wrap;word-break:break-all">'
+             f'{_e(account.get("authorized_keys_line") or "")}</pre>')
+    body += "</div>"
+
+    body += "<h2>Fixed Diagnostic Menu</h2>"
+    body += '<div class="section-wrap">'
+    body += _kv([("VMID validation pattern", menu.get("vmid_validation_pattern"))])
+    rows = [[c] for c in (menu.get("menu_commands") or [])]
+    if rows:
+        body += _table(["Menu command"], rows)
+    body += '<div class="tip">The script never evaluates client input as shell — see its ' \
+            'STRUCTURAL SAFETY INVARIANT header comment in the generated script. ' \
+            'Numeric-only vmid validation is the entire guarantee against ' \
+            'command-injection via vmstart/vmstop.</div>'
+    body += "</div>"
+
+    bg = plan.get("break_glass_pointers") or []
+    body += "<h2>Break-Glass Root — Pointer Only (never read by broodforge)</h2>"
+    body += '<div class="section-wrap">'
+    if bg:
+        rows = [[p.get("id"), p.get("keepass_path"), p.get("description")] for p in bg]
+        body += _table(["ID", "KeePass path (lookup only)", "Description"], rows)
+    body += '<div class="warn"><b>broodforge never reads these entries\' VALUES, here or ' \
+            'anywhere else.</b> They are human-unlock-gated break-glass root (AD-042 gate, ' \
+            'AD-060(b) annotation in secret-registry.yaml) — this table exists only so the ' \
+            'operator knows where to look in KeePass. They open it and type the password ' \
+            'themselves.</div>'
+    body += "</div>"
+
+    constraint = plan.get("constraint") or {}
+    body += "<h2>AD-060 Constraint</h2>"
+    body += '<div class="section-wrap">'
+    body += f'<div class="tip">{_e(constraint.get("statement") or "")}</div>'
+    body += "</div>"
+
+    return _page(
+        title=f"Recovery Account Plan — {node}",
+        cell_id=cell_id,
+        subtitle=f"Constrained recovery account · generated {((gen_at or '')[:19])} UTC",
         body=body,
         gen_at=gen_at,
     )

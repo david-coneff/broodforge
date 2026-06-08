@@ -374,6 +374,134 @@ FORGING.md "Step 0 — Build pre-install media (optional)" for the full picture.
 
 
 # ---------------------------------------------------------------------------
+# Pre-generated spawn-media credentials + pending join authorization
+# (Phase 1.J, AD-060(c) — additive extension to the Phase 1.H / AD-057 image
+# builder, running the AD-043 passphrase-generation pattern at BUILD time and
+# embedding the result on install media instead of generating it at install
+# time.)
+#
+# THE GATE: a node installed from such pre-made media must NOT be allowed to
+# join the cell until a human operator explicitly authorizes it — recorded as
+# a state entry, the same shape AD-041's autonomous-mode service-selection
+# confirmation already uses (a RECORDED OPERATOR DECISION broodforge reads
+# back, never a live interactive prompt broodforge runs against a hypervisor).
+# `authorize-spawn-media-join.py` is the only thing that flips `authorized`,
+# and it is a human-operated CLI step — broodforge never auto-authorizes.
+#
+# Only a SHA-256 HASH of the passphrase is recorded — never the passphrase
+# itself (mirrors AD-039/AD-043: shown once, at build time, to the operator;
+# never written to KeePass or any broodforge-managed store).
+# ---------------------------------------------------------------------------
+
+def hash_install_passphrase(passphrase: str) -> str:
+    """SHA-256 hex digest of an install passphrase — for record/verification only; never reversible, never the value itself."""
+    return hashlib.sha256((passphrase or "").encode("utf-8")).hexdigest()
+
+
+def build_pending_join_authorization(
+    manifest: dict,
+    image_bundle_name_str: str,
+    passphrase: str,
+    now: Optional[datetime] = None,
+) -> dict:
+    """
+    Build a single "pending join authorization" record for a pre-generated
+    spawn-media bundle — the AD-041-shaped gate AD-060(c) requires: a state
+    record an operator must explicitly flip to `authorized: true` before a
+    node installed from this media may join the cell.
+
+    This is a STATE RECORD ONLY — generation-time bookkeeping, never a live
+    decision broodforge makes about itself. `authorized` always starts False;
+    only `authorize-spawn-media-join.py`, run by a human operator, may set it
+    True (recorded with `authorized_at` / `authorized_by`).
+
+    The passphrase itself is never embedded here — only its SHA-256 hash, so
+    the record can later be cross-checked against what the operator noted down
+    at build time without the record itself becoming a secret.
+    """
+    gen_at = (now or datetime.now(timezone.utc)).isoformat()
+    return {
+        "schema_version": "1.0",
+        "record_type": "pending_join_authorization",
+        "cell_id": manifest.get("cell_id") or "unknown-cell",
+        "image_bundle_name": image_bundle_name_str,
+        "generated_at": gen_at,
+        "passphrase_hash": hash_install_passphrase(passphrase),
+        "passphrase_hash_algorithm": "sha256",
+        "authorized": False,
+        "authorized_at": None,
+        "authorized_by": None,
+        "notes": [
+            "The passphrase itself is NEVER recorded here — only its SHA-256 "
+            "hash, for later cross-check against the value the operator noted "
+            "down once, at build time (AD-039/AD-043 shown-once convention).",
+            "A node installed from this bundle must NOT be allowed to join the "
+            "cell until `authorized` is explicitly flipped to true by a human "
+            "operator via authorize-spawn-media-join.py — mirrors how AD-041's "
+            "autonomous-mode service-selection confirmation is a RECORDED "
+            "decision broodforge reads back, never a live prompt it runs.",
+            "broodforge never sets `authorized: true` on its own initiative.",
+        ],
+    }
+
+
+def pending_join_authorizations_path(repo_dir: Optional[Path] = None) -> Path:
+    """Path to bootstrap-state.json's home — pending_join_authorizations lives in that file's top-level dict."""
+    base = Path(repo_dir) if repo_dir else Path(__file__).resolve().parent
+    return base / "bootstrap-state.json"
+
+
+def record_pending_join_authorization(
+    state: dict,
+    authorization_record: dict,
+) -> dict:
+    """
+    Append `authorization_record` to `state["pending_join_authorizations"]`
+    (creating the list if absent) and return the updated state dict.
+
+    Pure data transformation — does not read or write any file; callers that
+    persist `bootstrap-state.json` do so through the existing state-write path
+    (this mirrors how the rest of `_image_builder` only ever returns dicts/
+    strings for the assembler to place — see `build_image_manifest`).
+    """
+    records = list(state.get("pending_join_authorizations") or [])
+    records.append(authorization_record)
+    state = dict(state)
+    state["pending_join_authorizations"] = records
+    return state
+
+
+def build_pregenerated_spawn_media_record(
+    manifest: dict,
+    image_bundle_name_str: Optional[str] = None,
+    passphrase: Optional[str] = None,
+    seed: Optional[int] = None,
+    now: Optional[datetime] = None,
+) -> dict:
+    """
+    Generate the build-time passphrase (AD-043 pattern, run early per
+    AD-060(c)) and its paired pending-join-authorization record in one step.
+
+    Returns a dict with BOTH the plaintext `passphrase` (for the caller to
+    surface to the operator ONCE, at build time — e.g. embedded in
+    `answer.toml` and printed to the build console, exactly like
+    `generate_install_passphrase` already is) and the `authorization_record`
+    (which carries only the passphrase's hash — see
+    `build_pending_join_authorization`). Callers MUST NOT persist the
+    plaintext `passphrase` value anywhere broodforge manages.
+    """
+    passphrase = passphrase or generate_install_passphrase(seed=seed)
+    bundle_name = image_bundle_name_str or image_bundle_name(manifest, now=now)
+    return {
+        "passphrase": passphrase,
+        "image_bundle_name": bundle_name,
+        "authorization_record": build_pending_join_authorization(
+            manifest, bundle_name, passphrase, now=now,
+        ),
+    }
+
+
+# ---------------------------------------------------------------------------
 # Bundle naming
 # ---------------------------------------------------------------------------
 

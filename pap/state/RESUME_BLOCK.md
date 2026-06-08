@@ -284,23 +284,75 @@ behavior, not its development process, and is out of scope for this artifact
   pre-existing `test_opentofu.py` failures). FEATURE-HISTORY updated;
   commit pending alongside this PAP-state update.
 
-  **Remaining in the operator's given order**: (5) **Phase 1.J** (AD-060,
-  Hypervisor Recovery Constrained Accounts + Pre-Generated Spawn Media —
-  the final phase; must respect the **firm AD-060 constraint**: no
-  autonomous pathway may read/wield full root against live hypervisors;
-  only node-spawn and phoenix-setup temporary credentials are exempted,
-  time-limited, operator-rotation-required afterward). After it: update
-  FEATURE-HISTORY + HTML twin and PAP-state (this file, SESSION_HANDOFF,
-  CURRENT_STATE), run full suite, commit, push — then report a summary of
-  everything implemented this milestone (per the operator's closing
-  instruction: "report a summary of what was implemented and committed").
+  (5) **Phase 1.J** (AD-060, Hypervisor Recovery: Constrained Accounts +
+  Pre-Generated Spawn Media) — **DONE**, the FOURTH AND FINAL phase,
+  closing the milestone. AD-060 is a firm SHALL-NOT (no autonomous
+  pathway may read/wield a permanent hypervisor root credential against
+  a live hypervisor — "root has no boundary by definition"), with
+  exactly two narrow named exceptions (node-spawn discovery,
+  phoenix-setup), both time-limited and operator-rotation-required.
+  Implemented all three accepted-design parts + the phoenix extension:
+  **(a)** `_recovery_accounts.py` (+ `setup_recovery_account.py` CLI,
+  `build_recovery_account_plan_html` AD-051 twin) — `command="<menu-
+  script>"`-gated `authorized_keys` line (`no-pty,no-port-forwarding,
+  no-X11-forwarding,no-agent-forwarding`) + a fixed-menu POSIX-`sh`
+  script (status/logs/vmlist/vmstart/vmstop), structurally incapable of
+  an arbitrary-shell escape — `$SSH_ORIGINAL_COMMAND` matched against a
+  fixed enumerated `case` of literal verbs only (never `eval`/`sh -c`/
+  backticks), VMID regex-validated (`^[0-9]{1,6}$`) before `exec qm
+  start/stop`; broodforge generates strings only, never installs/runs/
+  connects. **(b)** `secret-registry.yaml` gains `access_policy:
+  break-glass-human-only` (documented header-schema annotation) on
+  `pve01-root-password`; `describe_break_glass_pointer()` surfaces only
+  `id`/`keepass_path`/`description` for runbook display — never a value
+  — "the runbook tells the operator where to look" (existing AD-042
+  human-unlock gate unchanged). **(c)** `_image_builder.py` gains
+  `build_pregenerated_spawn_media_record()` (build-time AD-043
+  passphrase, AD-060(c)) paired with a `pending_join_authorizations`
+  state record (`bootstrap-state.json`, AD-041's recorded-decision
+  shape) storing only a SHA-256 `passphrase_hash`, default `authorized:
+  false`, flippable ONLY by the new human-operated `authorize-spawn-
+  media-join.py` CLI (`--operator` required, refuses unknown/already-
+  authorized bundles, never auto-flips). **(d)** `phoenix_playbook.py`
+  gains `generate_phoenix_session_credential()` (`Capital.phoenix.word.N`,
+  mirrors `generate_temp_password`/`generate_install_passphrase`) +
+  `phoenix_session_credential_section()`, wired into
+  `PhoenixPlaybookGenerator.build()` as `temporary_session_credential`
+  recording `scope: "phoenix-setup-session-only"`, a bounded
+  `valid_window`, and a `rotation_requirement` stating *in the generated
+  output itself* — "ROTATE THIS CREDENTIAL THE MOMENT THIS RECOVERY
+  SESSION COMPLETES… broodforge does not and cannot autonomously verify
+  or perform rotation (doing so would itself be the autonomous full-root
+  pathway AD-060 forbids)." **Constraint-honored confirmation**: grepped
+  `pve0.*root.*password|root-password|root_password` across
+  `proxmox-bootstrap/*.py` (excl. tests) — every match pre-existing
+  (KeePass path-name generation, AD-039 temp-credential exception, AD-043
+  single-use discovery passphrase); no new/modified code reads a
+  permanent root-credential value — confirmed by grep AND by structural
+  guard tests (`TestConstraintHonoredNoRootCredentialReads`) in all three
+  new test files. 96 new tests (`test_recovery_accounts.py` 46,
+  `test_spawn_media_authorization.py` 27,
+  `test_phoenix_session_credential.py` 23); full suite 4388 passed, 1
+  skipped (same 4 pre-existing `test_opentofu.py` failures).
+  FEATURE-HISTORY + HTML twin updated; commit pending alongside this
+  PAP-state update.
+
+  **MILESTONE CLOSED — all five operator-directed items done in the
+  specified order**: datetime sweep (`c1aef50`), Phase 1.H/AD-057
+  (`072112e`), Phase 1.I/AD-059 (`3b32137`), Phase 1.K/AD-061 (`c750ed6`),
+  Phase 1.J/AD-060 (commit pending). **Remaining for this session**:
+  commit + push the Phase 1.J work and this PAP-state update (per the
+  operator's standing `feature_revision_process` / "push on commit"
+  preferences), then deliver the closing summary report the operator
+  explicitly requested: "report a summary of what was implemented and
+  committed vs. what remains."
 
   No open audit finding remains that requires action (F1/F2/F3/the
   Recovery-Readiness open-thread all closed and committed; F4 is an
-  observation requiring no action). If the operator gives new direction on
-  any of the four scoped phases, treat it the same way AD-058's gap was
-  handled: pick it up, scope it precisely to what was asked, write the
-  cycle into `docs/FEATURE-HISTORY.md`, and update this corpus again.
+  observation requiring no action). If the operator gives new direction
+  on any future phase, treat it the same way AD-058's gap was handled:
+  pick it up, scope it precisely to what was asked, write the cycle into
+  `docs/FEATURE-HISTORY.md`, and update this corpus again.
 
 ---
 

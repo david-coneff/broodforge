@@ -23,6 +23,7 @@ Phase 9 milestones (9.4, 9.5).
 Stdlib only. SSH commands in generated playbooks use the system ssh binary.
 """
 
+import random
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -33,6 +34,124 @@ from typing import Optional
 
 def _now_utc() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+# ---------------------------------------------------------------------------
+# Phoenix session temporary credential (Phase 1.J, AD-060(d))
+#
+# AD-060 names phoenix recovery as the SECOND of its two narrow, explicitly-
+# bounded exceptions to the firm "no autonomous full-root pathway" constraint
+# — by direct operator instruction, the SAME pattern as node-spawning's
+# Cloud-Init temporary credential (AD-039: generated pre-install, used only
+# for discovery, discarded the instant the KeePass-managed replacement lands)
+# extended to phoenix: a temporary root credential SCOPED TO THE PHOENIX
+# SETUP SESSION ONLY, with a hard, generated-runbook-recorded requirement
+# that the operator rotates it the moment the session completes.
+#
+# This mirrors spawn_planner.generate_temp_password / _image_builder.
+# generate_install_passphrase: a fresh, readable, single-use Capital.word.
+# word.N passphrase, `random.Random(seed)`-seeded only for deterministic
+# tests. It is NEVER written to KeePass, NEVER the cell's permanent root
+# credential, and NEVER reused across sessions.
+# ---------------------------------------------------------------------------
+
+_PHOENIX_SESSION_WORDS = [
+    "anchor", "beacon", "cinder", "dawn", "ember", "flare", "grove", "haven",
+    "iris", "jet", "knoll", "loom", "moss", "nest", "oak", "pine",
+    "quill", "reed", "sage", "thorn", "urn", "vale", "wren", "yarrow",
+]
+
+
+def generate_phoenix_session_credential(seed: Optional[int] = None) -> str:
+    """
+    Generate a fresh, readable, single-use root passphrase scoped to ONE
+    phoenix recovery session (AD-060(d)).
+
+    Mirrors spawn_planner.generate_temp_password (AD-039) and
+    _image_builder.generate_install_passphrase (AD-043/Phase 1.H) — same
+    Capital.word.word.N shape, same `random.Random(seed)` test-determinism
+    convention. `seed` exists only for tests; production callers must never
+    pass one. This value is valid for THIS recovery session only — see
+    `phoenix_session_credential_section` for the rotation-requirement record
+    that travels with it in the generated playbook.
+    """
+    rng = random.Random(seed)
+    w1 = _PHOENIX_SESSION_WORDS[rng.randint(0, len(_PHOENIX_SESSION_WORDS) - 1)]
+    w2 = _PHOENIX_SESSION_WORDS[rng.randint(0, len(_PHOENIX_SESSION_WORDS) - 1)]
+    n = rng.randint(1, 9)
+    return f"{w1.capitalize()}.phoenix.{w2}.{n}"
+
+
+def phoenix_session_credential_section(
+    hostname: str,
+    credential: Optional[str] = None,
+    seed: Optional[int] = None,
+    now_fn=None,
+) -> dict:
+    """
+    Build the `temporary_session_credential` playbook section AD-060(d)
+    requires: the freshly-generated session-scoped passphrase plus an
+    explicit, generated-output rotation-requirement record.
+
+    THE BOUNDARY THIS ENFORCES (read before editing): this credential is
+    (a) generated fresh per phoenix session — never reused, never the cell's
+    permanent KeePass-managed root, (b) valid only for the bounded phoenix
+    setup-phase window named here, (c) required — IN THE GENERATED OUTPUT,
+    not merely in a side document — to be rotated the instant the session
+    ends, before the operator resumes normal operations. broodforge records
+    this requirement; it does not, and structurally cannot, perform the
+    rotation itself (that would require exactly the autonomous full-root
+    pathway AD-060 forbids) — rotation is the operator's action, via the
+    cell's normal KeePass-managed credential-rotation flow.
+    """
+    cred = credential if credential is not None else generate_phoenix_session_credential(seed=seed)
+    gen_at = (now_fn or _now_utc)()
+    return {
+        "schema_version": "1.0",
+        "scope": "phoenix-setup-session-only",
+        "hostname": hostname,
+        "generated_at": gen_at,
+        "credential": cred,
+        "credential_format": "Capital.phoenix.word.N (AD-039/AD-043 readable-passphrase pattern)",
+        "valid_window": (
+            "From the start of this phoenix recovery session until the "
+            "replacement node's KeePass-managed root credential is restored "
+            "(Wave 2 — host configuration). NEVER valid before or after."
+        ),
+        "rotation_requirement": {
+            "required": True,
+            "statement": (
+                "ROTATE THIS CREDENTIAL THE MOMENT THIS RECOVERY SESSION "
+                "COMPLETES — before resuming normal operations. This is a "
+                "session-scoped temporary credential (AD-060(d)), never the "
+                "cell's permanent root keystore. Use the cell's normal "
+                "KeePass-managed root-credential rotation flow (the same one "
+                "phase-03 installs during forging) to replace it."
+            ),
+            "mechanism": "operator-run KeePass-managed root-credential rotation (forge phase-03 flow)",
+            "enforced_by": "operator discipline + this recorded requirement — broodforge "
+                           "does not and cannot autonomously verify or perform rotation "
+                           "(doing so would itself be the autonomous full-root pathway "
+                           "AD-060 forbids)",
+        },
+        "constraint": {
+            "ad": "AD-060",
+            "statement": (
+                "This is one of AD-060's two narrow, explicitly-named exceptions "
+                "to the firm 'no autonomous full-root pathway' constraint — a "
+                "temporary, single-session, soon-discarded credential, never "
+                "the cell's permanent keystore. broodforge generates and records "
+                "it; it never reads or wields a permanent hypervisor root "
+                "credential against a live hypervisor."
+            ),
+        },
+        "notes": [
+            "Never written to KeePass. Never reused across sessions. Shown once, "
+            "in this generated output, for the operator to use during recovery only.",
+            "Mirrors AD-039's Cloud-Init discovery password: generated pre-use, "
+            "used only for the bounded recovery window, discarded/rotated immediately.",
+        ],
+    }
 
 
 def _zfs_topology_from_disk_count(disk_count: int) -> str:
@@ -709,8 +828,21 @@ class PhoenixPlaybookGenerator:
         self,
         restoration_scope: str = "full",
         deferred_services: Optional[list[str]] = None,
+        include_session_credential: bool = True,
+        session_credential_seed: Optional[int] = None,
     ) -> dict:
-        """Build and return the complete phoenix playbook dict."""
+        """
+        Build and return the complete phoenix playbook dict.
+
+        `include_session_credential` (default True) adds the
+        `temporary_session_credential` section AD-060(d) requires — a fresh,
+        session-scoped temporary root passphrase plus its hard,
+        generated-output rotation requirement (see
+        `phoenix_session_credential_section`). Set False only for callers
+        that manage that section themselves; broodforge's own generation
+        paths should always include it. `session_credential_seed` exists only
+        for deterministic tests — production callers must never pass one.
+        """
         hostname = self._hostname()
         vms      = self._vms()
         vmids    = [vm["vmid"] for vm in vms if vm.get("vmid") is not None]
@@ -740,6 +872,13 @@ class PhoenixPlaybookGenerator:
 
         total_minutes = sum(w.get("estimated_minutes") or 0 for w in waves)
 
+        session_credential = (
+            phoenix_session_credential_section(
+                hostname, seed=session_credential_seed, now_fn=self._now,
+            )
+            if include_session_credential else None
+        )
+
         return {
             "schema_version":          "1.0",
             "cell_id":                 self._cell_id,
@@ -764,6 +903,7 @@ class PhoenixPlaybookGenerator:
             "hardware_profile":        self._hw or None,
             "restoration_scope":       restoration_scope,
             "deferred_services":       deferred_services or [],
+            "temporary_session_credential": session_credential,
             "waves":                   waves,
             "estimated_total_minutes": total_minutes,
             "validation_checklist":    self._validation_checklist(vms),
@@ -782,6 +922,8 @@ def build_phoenix_playbook(
     cell_id: Optional[str] = None,
     generated_by: Optional[str] = None,
     now_fn=None,
+    include_session_credential: bool = True,
+    session_credential_seed: Optional[int] = None,
 ) -> dict:
     """
     Build a phoenix playbook from a bootstrap-state.json manifest.
@@ -793,6 +935,9 @@ def build_phoenix_playbook(
         deferred_services:  service names to exclude from this pass (partial scope)
         cell_id:            override cell_id (uses manifest value if None)
         generated_by:       attribution string for the playbook header
+        include_session_credential: include the AD-060(d) `temporary_session_credential`
+                            section (default True — see PhoenixPlaybookGenerator.build)
+        session_credential_seed: deterministic-test seed only; never set in production
 
     Returns:
         Phoenix playbook dict conforming to phoenix-playbook-schema.json
@@ -807,4 +952,6 @@ def build_phoenix_playbook(
     return gen.build(
         restoration_scope=restoration_scope,
         deferred_services=deferred_services,
+        include_session_credential=include_session_credential,
+        session_credential_seed=session_credential_seed,
     )

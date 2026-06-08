@@ -194,3 +194,57 @@ per-user role layer).
 > Full suite: **4292 passed, 1 skipped** (same 4 pre-existing unrelated
 > `test_opentofu.py` failures, confirmed unchanged from clean `main`). New
 > tests: 40 (`test_vault_hierarchy.py`).
+
+---
+
+**Cycle: 2026-06-08_21_40_00 UTC**
+
+## Phase 1.J — Hypervisor Recovery: Constrained Accounts and Pre-Generated Spawn Media (AD-060) implemented
+
+Fourth and final of the four scoped phases the operator directed be
+implemented in order — closing the milestone. AD-060 is a firm
+architectural SHALL-NOT ("no autonomous pathway may read or wield full
+root credentials against live hypervisors — root has no boundary by
+definition"), with exactly two narrow, named, time-limited exceptions
+(node-spawn discovery and phoenix-setup credentials, both requiring
+operator rotation after). Every artifact below was built and reviewed
+against that boundary first; feature completeness was secondary to it.
+
+| Feature | Origin | Status | Verification |
+|---|---|---|---|
+| **(a) Constrained, forced-command recovery accounts** — `_recovery_accounts.py` (+ `setup_recovery_account.py` CLI, `build_recovery_account_plan_html` AD-051 twin): generates an `authorized_keys` line gated by `command="<menu-script>"` plus the standard forced-command restriction set (`no-pty,no-port-forwarding,no-X11-forwarding,no-agent-forwarding`), and the fixed-menu POSIX-`sh` script string itself (status/logs/vmlist/vmstart/vmstop/help). Structurally incapable of becoming a shell: `$SSH_ORIGINAL_COMMAND` is matched against a fixed enumerated `case` of literal verbs only — never `eval`/`sh -c`/backticks — and the one operator-influenced value (VMID) is regex-validated (`^[0-9]{1,6}$`) before reaching `exec qm start/stop`. broodforge generates strings only; it never installs, runs, or connects through this account itself | USER-REQUESTED (Roadmap Phase 1.J checklist item (a), AD-060) | Implemented | unit (`test_recovery_accounts.py`: 46 passed, incl. shell-metacharacter-rejection and "no eval/exec-of-input" structural assertions) |
+| **(b) Break-glass root — documentation/storage annotation only** — `secret-registry.yaml` gains an optional `access_policy: break-glass-human-only` field (documented in the file's header-comment schema) on `pve01-root-password`; `_recovery_accounts.describe_break_glass_pointer()` surfaces only `id`/`keepass_path`/`description` (a location, never a value) for display in generated recovery runbooks/menus — "the runbook tells the operator where to look, they unlock KeePass and type it themselves" (the existing AD-042 human-unlock gate, unchanged) | USER-REQUESTED (Roadmap Phase 1.J checklist item (b), AD-060) | Implemented | unit (structural guard asserting the function reads only location/description fields, never a `value`/`password`/`secret` field, and that no KeePass/SSH-client import or connection call exists anywhere in the module) |
+| **(c) Pre-generated spawn-media credentials + human authorization gate** — `_image_builder.py` gains `build_pregenerated_spawn_media_record()` (runs the existing AD-043 `generate_install_passphrase()` at *build* time instead of install time, per AD-060(c)) paired with `build_pending_join_authorization()` — a `pending_join_authorizations` state-record entry (in `bootstrap-state.json`, the same recorded-operator-decision shape AD-041's autonomous-mode confirmation already uses) that stores only a SHA-256 `passphrase_hash`, defaults `authorized: false`, and can be flipped to `true` ONLY by the new human-operated `authorize-spawn-media-join.py` CLI (`--operator` required for audit attribution; refuses to authorize unknown bundles or re-authorize already-authorized ones; never auto-creates or auto-flips) | USER-REQUESTED (Roadmap Phase 1.J checklist item (c), AD-060) | Implemented | unit (`test_spawn_media_authorization.py`: 27 passed, incl. hash-only persistence, default-`authorized=false`, and CLI refusal-path assertions) |
+| **(d) Phoenix temporary-credential extension** — `phoenix_playbook.py` gains `generate_phoenix_session_credential()` (mirrors `spawn_planner.generate_temp_password`/`_image_builder.generate_install_passphrase` — same readable `Capital.phoenix.word.N` shape, `random.Random(seed)` test-determinism convention) and `phoenix_session_credential_section()`, wired into `PhoenixPlaybookGenerator.build()` as a new `temporary_session_credential` top-level section recording: `scope: "phoenix-setup-session-only"`, a bounded `valid_window` (ends when Wave 2 restores the KeePass-managed credential), and a `rotation_requirement` stating *in the generated output itself* — "ROTATE THIS CREDENTIAL THE MOMENT THIS RECOVERY SESSION COMPLETES… broodforge does not and cannot autonomously verify or perform rotation (doing so would itself be the autonomous full-root pathway AD-060 forbids)" | USER-REQUESTED (Roadmap Phase 1.J checklist item (d), AD-060) | Implemented | unit (`test_phoenix_session_credential.py`: 23 passed, incl. assertions that the rotation requirement and session-only scope appear in the generated playbook dict, and that the credential is never written to KeePass) |
+
+> **Constraint-honored confirmation** (the load-bearing fact of this cycle):
+> `grep -rn "pve0.*root.*password\|root-password\|root_password" --include="*.py" proxmox-bootstrap/`
+> (excluding tests) shows only pre-existing matches — KeePass *path-name*
+> generation (`suggest-names.py`, `setup-secrets.py`), the AD-039 named
+> temporary-credential exception (`spawn_planner.py`), and the AD-043
+> single-use *discovery* passphrase in `answer.toml` (`_image_builder.py`,
+> `html_package_manifest.py`, `generate-bootstrap-image.py`). **No new or
+> modified code in this cycle reads a permanent hypervisor root-credential
+> value or wields one against a live hypervisor** — every new module
+> generates strings/records for an operator (or an already-trusted phase-03
+> step) to install, exactly mirroring `_image_builder.generate_first_boot_install_sh`'s
+> established "broodforge writes the script, the operator/package runs it"
+> convention. Both temporary-credential exceptions (node-spawn, phoenix-setup)
+> are visibly bounded in their generated output as time-limited/session-scoped
+> with mandatory operator rotation after — never the cell's permanent keystore.
+
+> Full suite: **4388 passed, 1 skipped** (same 4 pre-existing unrelated
+> `test_opentofu.py` failures, confirmed unchanged from clean `main`). New
+> tests: 96 (46 + 27 + 23).
+
+---
+
+**Milestone closed.** All five operator-directed items from this session's
+ordered execution list are now implemented and committed: the `datetime.now()`
+clock-injection sweep, Phase 1.H (AD-057), Phase 1.I (AD-059), Phase 1.K
+(AD-061), and Phase 1.J (AD-060) — the latter four corresponding to AD-057/
+059/060/061, the four "ready-to-start" phases named in the operator's
+directive, implemented strictly in the specified order with Phase 1.J last
+per its explicit constraint-sensitivity. Full suite at milestone close:
+**4388 passed, 1 skipped, 4 deselected** (pre-existing, unrelated, unchanged
+from clean `main`).
