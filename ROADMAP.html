@@ -287,6 +287,43 @@
 <li>[ ] Documentation pass — write down, in plain language, what broodforge</li>
 </ul>
 <p>does *not* promise to recover automatically (the "Human Intervention Boundary," e.g., "if the KeePass database itself is lost, no amount of manifest replay restores secrets").</p>
+<h4>Human Intervention Boundary — what's autonomous vs. operator-required</h4>
+<p>The recovery-readiness conformance pipeline mixes autonomous, read-only composition with steps that genuinely require a human. Naming the line between them precisely is the documentation deliverable above; the line is:</p>
+<p><strong>Autonomous (no operator action required):</strong></p>
+<ul>
+<li>*Certificate generation* (<code>generate-recovery-readiness-certificate.py</code>) —</li>
+</ul>
+<p>pure read-only composition of evidence already on disk: hashes the manifest and dependency graph, reads the current <code>ReadinessReport</code>, the latest drift summary, and the latest recorded <code>DrillRecord</code>. Produces no side effects beyond writing the certificate JSON/HTML.</p>
+<ul>
+<li>*Hash recording* (<code>history/index.py::build_index</code>) — regenerates</li>
+</ul>
+<p><code>manifest_hash</code>/<code>graph_hash</code> for every snapshot already captured in <code>history/snapshots/</code>; reads raw snapshot manifests, writes only the derived index.</p>
+<ul>
+<li>*Replay / conformance check* (<code>replay-snapshot.py</code>) — re-derives a stored</li>
+</ul>
+<p>snapshot's hashes and readiness signal and asserts they match what was recorded; a verification pass over existing data — nothing is mutated.</p>
+<ul>
+<li>*Readiness scoring and drift detection* (<code>readiness.py</code>/<code>drift.py</code>,</li>
+</ul>
+<p>already existing) — both already run unattended as part of <code>doc-gen</code>'s bootstrap/recovery/operational report generation.</p>
+<p><strong>Requires an operator (broodforge will not do this for you, by design):</strong></p>
+<ul>
+<li>*Running a reconstruction drill* — <code>reconstruction_drill.py</code>'s <code>DrillRecord</code></li>
+</ul>
+<p>only exists because a human deliberately executed a drill (followed the generated phoenix playbook, timed the waves, recorded gaps). The certificate *reports* the latest drill's outcome; it cannot conjure a drill that wasn't run, and a certificate generated for a cell with no drill history says so plainly rather than implying readiness it hasn't demonstrated.</p>
+<ul>
+<li>*KeePass master-password entry* — every credential broodforge manages is a</li>
+</ul>
+<p>KeePass reference, not a plaintext value (AD-021/AD-040). If the KeePass database itself is lost or its master password forgotten, no amount of manifest replay, certificate verification, or graph-hash matching restores the secrets it held — this is the canonical "Human Intervention Boundary" example named in the operator's original framing of this phase.</p>
+<ul>
+<li>*restic/rclone restore execution* — broodforge documents and plans backups;</li>
+</ul>
+<p>an operator (or their break-glass procedure) actually runs the restore. The readiness score can say a backup is present and recent; it cannot perform the restore itself.</p>
+<ul>
+<li>*Acting on certificate findings* — if a certificate reports RED/BLOCKED</li>
+</ul>
+<p>components, single points of failure, or HIGH-severity drift, a human decides what to do about it (broodforge's remediation queue can *propose* actions per Phase 26, but operator approval gates anything destructive or credential-touching).</p>
+<p>This boundary is not a gap to be closed — it is the deliberate trust-model line AD-040 draws (git + KeePass + restic as the actual trust anchors, no autonomous full-root pathways). The certificate's job is to make today's *position relative to that boundary* visible and checkable, not to erase it.</p>
 <p><strong>Explicitly out of scope (do not expand into):</strong> the cryptographic apparatus named in the formal-proof-series corpus — Ed25519 root-of-trust chains, category-theoretic compositional proof objects, formal certification "levels" with externally-audited conformance. That apparatus is heavier than broodforge's actual threat model (a home-lab / small-cell operator using git + KeePass + restic as the trust anchors, per AD-040's SHALL-NOT scope); building it would be exactly the "implement the spec corpus verbatim" outcome the <code>new/</code> corpus deferral correctly avoided. This phase is additive scoring fields, one new generated artifact, and a documentation pass — not a rewrite.</p>
 <p>The analysis that produced this scope — including the full formal-concept → broodforge-mechanism translation table — follows below for reference.</p>
 <p><strong>Source of this analysis:</strong> operator follow-up, 2026-06-07. After the <code>new/</code> corpus deferral was recorded, the operator reconsidered one slice of it and asked for a draft of "what to do with these":</p>

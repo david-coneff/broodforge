@@ -621,13 +621,48 @@ of what this transition exists to make durable.
      failures, confirmed present on `main` before any of this work).
      `docs/FEATURE-HISTORY.md`/`.html` updated with a new cycle entry.
 
-  **Remaining, in the operator's given order**: Phase 1.I (AD-059,
-  Recovery-Readiness Conformance Certificate) — IN PROGRESS now; then
-  Phase 1.K (AD-061, Scoped Vault Hierarchy + User Provisioning); then
-  Phase 1.J (AD-060, Hypervisor Recovery — must respect the **firm AD-060
-  constraint**: no autonomous pathway may read/wield full root against live
-  hypervisors; only node-spawn and phoenix-setup temporary credentials are
-  exempt, time-limited, and require operator rotation afterward). After each:
+  3. **Phase 1.I / AD-059 (Recovery-Readiness Conformance Certificate) —
+     DONE**, commit pending. `_recovery_readiness_certificate.py` (module) +
+     `generate-recovery-readiness-certificate.py` (CLI) compose a
+     `recovery-readiness-certificate.json` + AD-051 HTML twin
+     (`build_recovery_readiness_certificate_html` in
+     `html_package_manifest.py`) out of evidence broodforge already
+     produces: `manifest_hash`/`graph_hash` (SHA-256 over canonical
+     sorted-key JSON of the manifest and `build_graph().to_dict()`), the
+     real readiness signal (`overall_score`/`overall_score_reason`/
+     component-score counts from `score_graph()`), a drift summary
+     (severity + diff counts from `compute_drift()`), and the latest
+     reconstruction-drill summary (outcome/accuracy/waves/gaps from
+     `DrillRecord.to_dict()`). `replay-snapshot.py` recomputes a stored
+     snapshot's hashes from its raw `manifest.json` and asserts they match
+     `history/index.json`'s recorded values (exit 0 = conformance holds);
+     ran it against the real `assessment_2026-05-29_02_05_00` snapshot —
+     `[PASS]`. `history/index.py::build_index()` now records
+     `manifest_hash`/`graph_hash` per snapshot entry (additive; lives in
+     the regenerated index, not the raw historical `manifest.json`
+     captures). `compute_drift()` gained `now_fn` injection for
+     `generated_at` (was a direct-clock call `doc-gen/` missed in the
+     sweep — fixed in passing, callers unaffected). A "Human Intervention
+     Boundary" subsection was added to `ROADMAP.md`'s Phase 1.I block.
+     **Premise correction, documented not chased**: AD-059 claimed
+     "RRS/ACS/DCS/CRS/OSS scores already exist in readiness.py" — they
+     don't; `score_graph()` produces one `overall_score` plus `components`,
+     and the five-letter scheme exists only as unpopulated defensive code
+     in `broodforge_dashboard.py`. The certificate composes the *real*
+     `overall_score` signal and states this finding inline (`_READINESS_NOTE`,
+     surfaced in the HTML) rather than inventing the five-category scheme
+     AD-059 itself says is unneeded. 56 new tests
+     (`test_recovery_readiness_certificate.py` + `test_replay_snapshot.py`);
+     full suite 4252 passed, 1 skipped (same 4 pre-existing
+     `test_opentofu.py` failures). `docs/FEATURE-HISTORY.md`/`.html` and
+     `ROADMAP.html` updated.
+
+  **Remaining, in the operator's given order**: Phase 1.K (AD-061, Scoped
+  Vault Hierarchy + User Provisioning) — UP NEXT; then Phase 1.J (AD-060,
+  Hypervisor Recovery — must respect the **firm AD-060 constraint**: no
+  autonomous pathway may read/wield full root against live hypervisors;
+  only node-spawn and phoenix-setup temporary credentials are exempt,
+  time-limited, and require operator rotation afterward). After each:
   update FEATURE-HISTORY (+ HTML twin) and PAP-state, run the full suite,
   commit, push — per the operator's standing `feature_revision_process` /
   "push on commit" preferences.
@@ -638,22 +673,16 @@ of what this transition exists to make durable.
   them in the operator's specified order, not re-scoping them.
 
   Worth naming to the operator if they ask "what's left" or "anything you
-  noticed": the **clock-injection bug class** named at the sixth milestone —
-  `verify_trust()` called a real-wall-clock property
-  (`relationship.is_expired` → `datetime.now(timezone.utc)`) instead of
-  comparing against its own injected `now_fn`. One instance is fixed; a
-  deliberate `datetime.now(`/`datetime.utcnow(` sweep across the codebase
-  (outside `now_fn` plumbing itself) remains a reasonable, scoped GAP-FILL
-  candidate if the operator wants the whole class hardened — **still not
-  done**, named rather than chased, per scope discipline.
-
-  Otherwise: **Phase 1.H, 1.I, 1.J, and 1.K** all remain **proposed, not
-  started** — candidates for a future session, not mandates, with no
-  priority order implied by their letters. A resuming agent should either
-  (a) wait for/follow new operator direction, or (b) — only if asked to find
-  something to do — offer any of the four scoped phases, the
-  clock-injection sweep, or the platform's own named operational next-step
-  ("deploy to hardware," per `.ai/NEXT_STEPS.md`).
+  noticed": the **clock-injection bug class** — `verify_trust()`
+  (sixth-milestone fix) and `compute_drift()` (this milestone's incidental
+  fix) were both real-wall-clock calls that should have threaded `now_fn`.
+  Both are now fixed; the original repo-wide sweep (commit `c1aef50`,
+  first item above) covered `proxmox-bootstrap/` exhaustively, and
+  `doc-gen/drift.py` is now also clean. No other instances are currently
+  known, but a resuming agent should treat any newly-written
+  `datetime.now(`/`utcnow(` call sharing a scope with an available
+  `now_fn` as suspect by default — this is the third confirmed instance
+  of the same class.
 
 - **resume_instructions**:
   1. Read `RESUME_BLOCK.md` (this file's `resume_block_ref`) for the

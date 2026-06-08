@@ -8,7 +8,9 @@
       "manifest_path": "history/snapshots/assessment_2026-05-29_02_05_00/manifest.json",
       "template_version": null,
       "doc_generation_ids": [],
-      "notes": ""
+      "notes": "",
+      "manifest_hash": "7b7d1e3eb6d1f1a8d6c5d8ebfea01b15dd6bf93a26c0cbf8e73cbe4355e3c330",
+      "graph_hash": "1d69cb42d7fe34514518ed93be6c95fb79bf086f49638dcce385ac53ce318732"
     },
     {
       "id": "bootstrap_2026-05-01_10_00_00",
@@ -18,7 +20,9 @@
       "manifest_path": "history/snapshots/bootstrap_2026-05-01_10_00_00/manifest.json",
       "template_version": "bootstrap-v1.0",
       "doc_generation_ids": [],
-      "notes": ""
+      "notes": "",
+      "manifest_hash": "16bb5872afd2dd08b8318998e38f129d64515b46a52fc8276fd9ca7e5fb4d3b2",
+      "graph_hash": "df1b16a9f7815c6cf2047fae0c4c1d19e5b050800d17a5acc5cb877ac90f0f21"
     }
   ],
   "latest_tier1_id": "bootstrap_2026-05-01_10_00_00",

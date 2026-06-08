@@ -145,3 +145,27 @@ instance), then Phase 1.H.
 > AD-040's reference-stack-only scope. Full suite: **4140 passed, 1 skipped**
 > (4 pre-existing unrelated `test_opentofu.py` failures, confirmed present on
 > `main` before any of this cycle's changes).
+
+---
+
+**Cycle: 2026-06-08_19_05_00 UTC**
+
+## Phase 1.I — Recovery-Readiness Conformance Certificate (AD-059) implemented
+
+Second of the four scoped phases the operator directed be implemented in
+order. Built as additive composition over existing evidence-producing
+modules — no new scoring system, no Ed25519/category-theoretic apparatus,
+exactly as AD-059 scopes it.
+
+| Feature | Origin | Status | Verification |
+|---|---|---|---|
+| `recovery-readiness-certificate.json` + AD-051 HTML twin (`_recovery_readiness_certificate.py`, `generate-recovery-readiness-certificate.py`, `build_recovery_readiness_certificate_html`): one timestamped record composing `manifest_hash`/`graph_hash` (SHA-256 over canonical sorted-key JSON), the real readiness signal (`overall_score`/`overall_score_reason`/component-score counts), a drift summary (severity + diff counts), and the latest reconstruction-drill summary (outcome/accuracy/waves/gaps) | USER-REQUESTED (Roadmap Phase 1.I checklist, promoted from AD-059) | Implemented | unit (`test_recovery_readiness_certificate.py`: 44 passed) |
+| **Correction to AD-059's premise, documented rather than perpetuated**: AD-059 claimed "RRS/ACS/DCS/CRS/OSS scores already exist in readiness.py" — investigation found this is aspirational, not actual. `readiness.py::score_graph()` produces a single `overall_score` (GREEN/YELLOW/ORANGE/RED/BLOCKED) + `overall_score_reason` + a `components` list; the five-letter abbreviation scheme exists only as defensive/unpopulated UI code in `broodforge_dashboard.py` (`_scores_from_readiness()` reads a `scores`/`summary` dict nothing ever assigns). The certificate composes the **real** `overall_score` signal and documents this finding inline (`_READINESS_NOTE`, rendered in the HTML twin) rather than inventing a five-category scoring system that AD-059 itself says is unnecessary | GAP-FILL (closes a premise gap discovered while implementing — avoids perpetuating dead-code-shaped fiction in a new conformance artifact) | Implemented | unit (`test_does_not_invent_rrs_acs_dcs_crs_oss_keys`, `test_correction_honored_no_invented_score_keys`, `test_does_not_render_invented_score_labels`) |
+| `replay-snapshot.py` — recomputes a stored snapshot's `manifest_hash`/`graph_hash`/`overall_score` from its raw `manifest.json` and asserts the recomputed hashes match the values recorded in `history/index.json` at snapshot-build time (exit 0 = conformance holds, exit 1 = mismatch + diff explanation); turns "snapshots are reproducible" from an assumption into a checked, reportable fact | USER-REQUESTED (Roadmap Phase 1.I checklist item (c)) | Implemented | unit (`test_replay_snapshot.py`: 12 passed) + smoke (ran against the real `assessment_2026-05-29_02_05_00` snapshot — `[PASS]`) |
+| `history/index.py::build_index()` now computes and records `manifest_hash`/`graph_hash` per snapshot entry in `history/index.json` (additive keys; hashes live in the regenerated index rather than mutating raw historical `manifest.json` captures) | USER-REQUESTED (Roadmap Phase 1.I checklist item (b)) | Implemented | unit + smoke (`history/index.json` regenerated; both existing snapshot entries now carry both hashes) |
+| `compute_drift()` (`doc-gen/drift.py`) gains `now_fn` clock injection for `generated_at` (was a direct `datetime.now(timezone.utc)` call — same latent-bug class the prior cycle's sweep fixed elsewhere, missed because `doc-gen/` wasn't in that sweep's grep scope; existing callers pass no `now_fn` so behavior is unchanged) | GAP-FILL (same class as the AD-058-follow-up `federation_state` fix and the prior cycle's sweep) | Implemented | unit (deterministic `generated_at` under injection + real-clock fallback asserted) |
+| "Human Intervention Boundary" documentation pass — new subsection in `ROADMAP.md`'s Phase 1.I scope block enumerating what's autonomous (certificate generation, hash recording, replay/conformance check, readiness/drift scoring — all read-only composition) vs. operator-required (running reconstruction drills, KeePass master-password entry, restic/rclone restore execution, acting on certificate findings) | USER-REQUESTED (Roadmap Phase 1.I checklist item (d)) | Implemented | static (`ROADMAP.html` regenerated, collapsible sections balanced) |
+
+> Full suite: **4252 passed, 1 skipped** (same 4 pre-existing unrelated
+> `test_opentofu.py` failures, confirmed unchanged from clean `main`). New
+> tests: 56 (44 + 12).

@@ -11,6 +11,8 @@ Provides:
   build_forge_manifest_html(manifest) → str
   build_spawn_manifest_html(manifest, plan) → str
   build_phoenix_manifest_html(playbook) → str
+  build_bootstrap_image_manifest_html(manifest, image_manifest) → str
+  build_recovery_readiness_certificate_html(certificate) → str
 
 All outputs are self-contained HTML files using broodforge's standard dark theme.
 They include: what's inside the package, what each component does, key settings,
@@ -662,6 +664,138 @@ def build_bootstrap_image_manifest_html(
         title=f"Bootstrap Image — {cell_id}",
         cell_id=cell_id,
         subtitle=f"Bootstrap Image Staging Bundle · {cell_id} · {hostname}",
+        body=body,
+        gen_at=gen_at,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Recovery-Readiness Conformance Certificate HTML twin (Phase 1.I, AD-059/AD-051)
+# ---------------------------------------------------------------------------
+
+_SCORE_BADGE_CLASS = {
+    "GREEN": "tip", "YELLOW": "warn", "ORANGE": "warn",
+    "RED": "danger", "BLOCKED": "danger", "UNKNOWN": "warn",
+}
+
+
+def build_recovery_readiness_certificate_html(certificate: dict, now_fn=None) -> str:
+    """
+    Build a human-readable HTML twin for recovery-readiness-certificate.json
+    (Phase 1.I, AD-059 — AD-051 manifest/HTML-twin pattern).
+
+    certificate: dict produced by
+                 _recovery_readiness_certificate.build_recovery_readiness_certificate
+
+    Explains: what this certificate is (a read-only composition of existing
+    evidence, not a new trust apparatus), the manifest/graph hashes and how to
+    independently verify them (replay-snapshot.py), the real readiness signal
+    (with the AD-059 correction note — see _recovery_readiness_certificate's
+    module docstring), the drift summary, and the latest reconstruction drill.
+    """
+    gen_at = (now_fn() if now_fn else certificate.get("generated_at")
+              or datetime.now(timezone.utc).isoformat())
+    cell_id = certificate.get("cell_id") or "unknown-cell"
+    cert_id = certificate.get("certificate_id") or ""
+
+    readiness = certificate.get("readiness") or {}
+    drift = certificate.get("drift") or {}
+    drill = certificate.get("latest_drill") or {}
+
+    overall = readiness.get("overall_score") or "UNKNOWN"
+    badge_class = _SCORE_BADGE_CLASS.get(overall, "warn")
+
+    body = ""
+
+    # Identity / hashes
+    body += "<h2>Certificate Identity</h2>"
+    body += '<div class="section-wrap">'
+    body += '<div class="tip">This certificate is a <b>read-only composition</b> of evidence ' \
+            'broodforge already produces — readiness scoring, drift detection, dependency-graph ' \
+            'hashing, and reconstruction drills. It introduces no new scoring system, signing ' \
+            'scheme, or trust apparatus (explicitly out of scope per AD-059). Trust anchors ' \
+            'remain git + KeePass + restic, exactly as AD-040 scopes them.</div>'
+    body += _kv([
+        ("Certificate ID", cert_id),
+        ("Cell ID",        cell_id),
+        ("Generated",      gen_at[:19]),
+        ("Schema version", certificate.get("schema_version")),
+        ("Manifest hash (SHA-256)", certificate.get("manifest_hash")),
+        ("Graph hash (SHA-256)",    certificate.get("graph_hash")),
+    ])
+    body += '<p style="color:var(--muted);font-size:.88em">Both hashes are SHA-256 over the ' \
+            'canonical (sorted-keys JSON) serialization of the manifest and dependency graph ' \
+            'respectively — independently recomputable at any later time via ' \
+            '<code>replay-snapshot.py</code>, which re-derives both and asserts they match what ' \
+            'was recorded in <code>history/index.json</code> at snapshot time.</p>'
+    body += "</div>"
+
+    # Readiness signal (with AD-059 correction note)
+    body += "<h2>Recovery Readiness Signal</h2>"
+    body += '<div class="section-wrap">'
+    body += f'<div class="{badge_class}"><b>Overall score: {_e(overall)}</b> — ' \
+            f'{_e(readiness.get("overall_score_reason") or "no reason recorded")}</div>'
+    body += _kv([
+        ("Components scored",        readiness.get("component_count")),
+        ("Single points of failure", readiness.get("single_points_of_failure_count")),
+        ("Recovery blockers",        readiness.get("recovery_blockers_count")),
+        ("Registry gaps",            readiness.get("registry_gaps_count")),
+    ])
+    counts = readiness.get("component_score_counts") or {}
+    if counts:
+        rows = [[score, str(n)] for score, n in sorted(counts.items())]
+        body += _table(["Component score", "Count"], rows)
+    body += '<div class="warn"><b>Note on terminology:</b> ' + _e(readiness.get("note") or "") + '</div>'
+    body += "</div>"
+
+    # Drift summary
+    body += "<h2>Drift Summary</h2>"
+    body += '<div class="section-wrap">'
+    if drift.get("available"):
+        body += _kv([
+            ("From snapshot",   drift.get("from_snapshot")),
+            ("To snapshot",     drift.get("to_snapshot")),
+            ("Generated",       (drift.get("generated_at") or "")[:19]),
+            ("Drift severity",  drift.get("drift_severity")),
+            ("Diff count",      drift.get("diff_count")),
+        ])
+        sev_counts = drift.get("diff_severity_counts") or {}
+        if sev_counts:
+            rows = [[sev, str(n)] for sev, n in sorted(sev_counts.items())]
+            body += _table(["Diff severity", "Count"], rows)
+        body += '<p style="color:var(--muted);font-size:.88em">This is a summary — see the full ' \
+                'drift record (doc-gen/drift.py output) for the field-level diff list.</p>'
+    else:
+        body += '<div class="tip">No drift summary available — fewer than two snapshots exist ' \
+                'in the history store, or no prior snapshot was found to compare against.</div>'
+    body += "</div>"
+
+    # Latest reconstruction drill
+    body += "<h2>Latest Reconstruction Drill</h2>"
+    body += '<div class="section-wrap">'
+    if drill.get("available"):
+        body += _kv([
+            ("Drill ID",          drill.get("drill_id")),
+            ("Outcome",           drill.get("outcome")),
+            ("Completed",         (drill.get("completed_at") or "")[:19]),
+            ("Waves completed",   f"{drill.get('completed_waves')} / {drill.get('total_waves')}"),
+            ("Timing accuracy",   f"{drill.get('accuracy_pct')}%" if drill.get("accuracy_pct") is not None else "n/a"),
+            ("Gaps found",        drill.get("gaps_found_count")),
+            ("Gaps remediated",   drill.get("gaps_remediated_count")),
+        ])
+        body += '<div class="operator-task">Reconstruction drills are operator-run exercises — ' \
+                'see "Human Intervention Boundary" documentation for which steps in this ' \
+                'pipeline are autonomous vs. require an operator to act.</div>'
+    else:
+        body += '<div class="warn">No reconstruction drill has been recorded for this cell yet. ' \
+                'A certificate composed without drill evidence documents readiness scoring and ' \
+                'drift posture, but not a demonstrated reconstruction.</div>'
+    body += "</div>"
+
+    return _page(
+        title=f"Recovery-Readiness Certificate — {cell_id}",
+        cell_id=cell_id,
+        subtitle=f"Recovery-Readiness Conformance Certificate · {cell_id} · {overall}",
         body=body,
         gen_at=gen_at,
     )

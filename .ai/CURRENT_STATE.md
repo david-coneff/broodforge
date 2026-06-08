@@ -1,6 +1,6 @@
 # Current State
 
-Last updated: 2026-06-08 UTC (operator directed full implementation of all four scoped phases in order — datetime.now()/utcnow() clock-injection sweep DONE (commit c1aef50) and Phase 1.H/AD-057 Pre-Install Forge Package and Image Builder DONE (`generate-bootstrap-image.py` + `_image_builder.py`, 62 new tests, full suite 4140 passed/1 skipped); Phase 1.I/AD-059 Recovery-Readiness Conformance Certificate now in progress, then 1.K/AD-061, then 1.J/AD-060)
+Last updated: 2026-06-08 UTC (operator directed full implementation of all four scoped phases in order — datetime.now()/utcnow() clock-injection sweep DONE (commit c1aef50), Phase 1.H/AD-057 Pre-Install Forge Package and Image Builder DONE (commit 072112e, `generate-bootstrap-image.py` + `_image_builder.py`, 62 new tests), and Phase 1.I/AD-059 Recovery-Readiness Conformance Certificate DONE (`_recovery_readiness_certificate.py` + `generate-recovery-readiness-certificate.py` + `replay-snapshot.py`, 56 new tests, full suite 4252 passed/1 skipped — also closed an AD-059-premise gap: RRS/ACS/DCS/CRS/OSS scores don't actually exist in readiness.py, certificate composes the real `overall_score` signal instead and documents the finding); Phase 1.K/AD-061 Scoped Vault Hierarchy now in progress, then 1.J/AD-060 last)
 
 ## Active Architecture: v7.1
 

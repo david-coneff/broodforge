@@ -213,8 +213,8 @@ behavior, not its development process, and is out of scope for this artifact
   cycles likewise show no open blocking item as of the last entry.)
 
 - **next_action**: **(Updated — eighth milestone: operator directed
-  implementation of all four scoped phases in order; sweep + Phase 1.H DONE
-  and committed/pushed, Phase 1.I is now in progress.)** Order given:
+  implementation of all four scoped phases in order; sweep + Phase 1.H +
+  Phase 1.I DONE and committed/pushed, Phase 1.K is up next.)** Order given:
   (1) repo-wide `datetime.now()`/`utcnow()` clock-injection sweep — **DONE**,
   commit `c1aef50` (fixed `remediation_executor.build_failure_package` + 9
   `_exec_*` handlers, `continuous_assessment.collect_pbs_state_update`,
@@ -232,10 +232,31 @@ behavior, not its development process, and is out of scope for this artifact
   failures, confirmed present on `main` beforehand). FEATURE-HISTORY
   updated; commit pending alongside this PAP-state update.
 
-  **Remaining in the operator's given order**: (3) **Phase 1.I** (AD-059,
-  Recovery-Readiness Conformance Certificate — additive to `readiness.py`/
-  `drift.py`/`dependencies.py`/snapshot store/Phase 12 drills) — IN PROGRESS;
-  (4) **Phase 1.K** (AD-061, Scoped Vault Hierarchy + User Provisioning);
+  (3) **Phase 1.I** (AD-059, Recovery-Readiness Conformance Certificate) —
+  **DONE**: `_recovery_readiness_certificate.py` +
+  `generate-recovery-readiness-certificate.py` compose
+  `recovery-readiness-certificate.json` + AD-051 HTML twin from existing
+  evidence (`manifest_hash`/`graph_hash` SHA-256 over canonical JSON, the
+  real `overall_score`/`overall_score_reason`/component-counts from
+  `score_graph()`, a drift summary from `compute_drift()`, and the latest
+  `DrillRecord` summary); `replay-snapshot.py` recomputes and asserts a
+  stored snapshot's recorded hashes still match (ran clean — `[PASS]` —
+  against the real `assessment_2026-05-29_02_05_00` snapshot);
+  `history/index.py::build_index()` now records both hashes per snapshot
+  entry; `compute_drift()` gained `now_fn` injection (an incidental
+  clock-injection fix — `doc-gen/` wasn't in the original sweep's grep
+  scope); a "Human Intervention Boundary" subsection was added to
+  `ROADMAP.md`. **Premise correction**: AD-059 claimed RRS/ACS/DCS/CRS/OSS
+  scores "already exist in readiness.py" — they don't (only a single
+  `overall_score` does; the five-letter scheme is unpopulated UI code in
+  `broodforge_dashboard.py`); the certificate composes the real signal and
+  documents this finding inline rather than inventing the scheme AD-059
+  itself says is unneeded. 56 new tests; full suite 4252 passed, 1 skipped
+  (same 4 pre-existing `test_opentofu.py` failures). FEATURE-HISTORY +
+  ROADMAP.html updated; commit pending alongside this PAP-state update.
+
+  **Remaining in the operator's given order**: (4) **Phase 1.K** (AD-061,
+  Scoped Vault Hierarchy + User Provisioning) — UP NEXT;
   (5) **Phase 1.J** (AD-060, Hypervisor Recovery Constrained Accounts +
   Pre-Generated Spawn Media — must respect the **firm AD-060 constraint**:
   no autonomous pathway may read/wield full root against live hypervisors;

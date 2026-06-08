@@ -6,7 +6,7 @@ Usage:
 """
 
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Callable, Optional
 
 
 # Paths matching these patterns get elevated severity
@@ -52,6 +52,7 @@ def compute_drift(
     to_manifest: dict,
     from_snapshot_id: str,
     to_snapshot_id: str,
+    now_fn: Optional[Callable[[], str]] = None,
 ) -> dict:
     """
     Compare two manifests and return a drift record.
@@ -62,6 +63,9 @@ def compute_drift(
         Raw manifest dicts.
     from_snapshot_id, to_snapshot_id : str
         Snapshot IDs for the drift record header.
+    now_fn : Optional[Callable[[], str]]
+        Injectable clock returning an ISO-8601 timestamp string, for
+        deterministic tests (datetime sweep convention — see ARCHITECTURE.md).
 
     Returns
     -------
@@ -116,7 +120,7 @@ def compute_drift(
     return {
         "from_snapshot": from_snapshot_id,
         "to_snapshot": to_snapshot_id,
-        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "generated_at": (now_fn or (lambda: datetime.now(timezone.utc).isoformat()))(),
         "diffs": diffs,
         "drift_severity": overall,
         "doc_fields_stale": [],

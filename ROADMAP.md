@@ -345,6 +345,57 @@ subsystem):**
       Boundary," e.g., "if the KeePass database itself is lost, no amount of
       manifest replay restores secrets").
 
+#### Human Intervention Boundary — what's autonomous vs. operator-required
+
+The recovery-readiness conformance pipeline mixes autonomous, read-only
+composition with steps that genuinely require a human. Naming the line
+between them precisely is the documentation deliverable above; the line is:
+
+**Autonomous (no operator action required):**
+- *Certificate generation* (`generate-recovery-readiness-certificate.py`) —
+  pure read-only composition of evidence already on disk: hashes the manifest
+  and dependency graph, reads the current `ReadinessReport`, the latest drift
+  summary, and the latest recorded `DrillRecord`. Produces no side effects
+  beyond writing the certificate JSON/HTML.
+- *Hash recording* (`history/index.py::build_index`) — regenerates
+  `manifest_hash`/`graph_hash` for every snapshot already captured in
+  `history/snapshots/`; reads raw snapshot manifests, writes only the
+  derived index.
+- *Replay / conformance check* (`replay-snapshot.py`) — re-derives a stored
+  snapshot's hashes and readiness signal and asserts they match what was
+  recorded; a verification pass over existing data — nothing is mutated.
+- *Readiness scoring and drift detection* (`readiness.py`/`drift.py`,
+  already existing) — both already run unattended as part of `doc-gen`'s
+  bootstrap/recovery/operational report generation.
+
+**Requires an operator (broodforge will not do this for you, by design):**
+- *Running a reconstruction drill* — `reconstruction_drill.py`'s `DrillRecord`
+  only exists because a human deliberately executed a drill (followed the
+  generated phoenix playbook, timed the waves, recorded gaps). The certificate
+  *reports* the latest drill's outcome; it cannot conjure a drill that wasn't
+  run, and a certificate generated for a cell with no drill history says so
+  plainly rather than implying readiness it hasn't demonstrated.
+- *KeePass master-password entry* — every credential broodforge manages is a
+  KeePass reference, not a plaintext value (AD-021/AD-040). If the KeePass
+  database itself is lost or its master password forgotten, no amount of
+  manifest replay, certificate verification, or graph-hash matching restores
+  the secrets it held — this is the canonical "Human Intervention Boundary"
+  example named in the operator's original framing of this phase.
+- *restic/rclone restore execution* — broodforge documents and plans backups;
+  an operator (or their break-glass procedure) actually runs the restore.
+  The readiness score can say a backup is present and recent; it cannot
+  perform the restore itself.
+- *Acting on certificate findings* — if a certificate reports RED/BLOCKED
+  components, single points of failure, or HIGH-severity drift, a human
+  decides what to do about it (broodforge's remediation queue can *propose*
+  actions per Phase 26, but operator approval gates anything destructive or
+  credential-touching).
+
+This boundary is not a gap to be closed — it is the deliberate trust-model
+line AD-040 draws (git + KeePass + restic as the actual trust anchors, no
+autonomous full-root pathways). The certificate's job is to make today's
+*position relative to that boundary* visible and checkable, not to erase it.
+
 **Explicitly out of scope (do not expand into):** the cryptographic apparatus
 named in the formal-proof-series corpus — Ed25519 root-of-trust chains,
 category-theoretic compositional proof objects, formal certification
