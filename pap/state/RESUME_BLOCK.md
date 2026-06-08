@@ -29,17 +29,24 @@ behavior, not its development process, and is out of scope for this artifact
   on a real Proxmox host; see `FORGING.md`). One *proposed* (not-started)
   development item now exists in `ROADMAP.md`: **Phase 1.H — Pre-Install
   Forge Package and Image Builder** — surfaced by the (now-completed) `new/`
-  corpus analysis; see `active_risks` and `key_decisions_and_insights` in
-  `SESSION_HANDOFF.md` for the full record. It is a candidate for a future
-  session, not a mandate.
+  corpus analysis. A second item exists at an earlier stage — a **draft
+  sketch** (not yet a scoped phase), "Recovery-Readiness Conformance,"
+  written in direct response to the operator reconsidering part of the F3
+  deferral and asking for a draft of "what to do with" the formal
+  axiomatic-kernel/proof-system series; see `active_risks` and
+  `key_decisions_and_insights` in `SESSION_HANDOFF.md` for the full record
+  of both. Both are candidates for a future session, not mandates — the
+  draft sketch additionally awaits operator reaction before it can even
+  become a candidate phase.
 
 - **active_milestone**: Post-Phase-26, pre-hardware-deployment, post-`new/`-
-  analysis. The intelligence/development side of the project is
+  analysis, **mid-draft-sketch** (Recovery-Readiness Conformance — awaiting
+  operator reaction). The intelligence/development side of the project is
   feature-complete per its own governance corpus; the next milestone named in
   that corpus is an *operational* one (a real hardware run), not a
   development one — though `ROADMAP.md` now also names one *proposed*
-  development item (Phase 1.H) for whenever the operator chooses to pick it
-  up.
+  development item (Phase 1.H) and one *draft* item (Recovery-Readiness
+  Conformance) for whenever the operator chooses to engage with them.
 
 - **active_risks**:
   - **(Updated 2026-06-07, second milestone — F1 and F2 now CLOSED):** The
@@ -85,6 +92,21 @@ behavior, not its development process, and is out of scope for this artifact
     broodforge's actual product. See `SESSION_HANDOFF.md`'s third
     `milestone_checklist` block and the audit's F3 "Resolution" annotation
     for the full record. **Do not re-run this analysis** — read its output.
+  - **(Added same day, follow-up to F3 closure — not itself a finding, an
+    open thread):** The operator partially walked back the formal
+    axiomatic-kernel deferral above — not asking to implement it, but
+    observing that beneath its category-theoretic framing it names two real
+    concerns (provable recovery readiness; observed-state ↔ intent-manifest
+    conformance) and asking for a draft of "what to do with these." A
+    **DRAFT SKETCH** ("Recovery-Readiness Conformance") now lives in
+    `ROADMAP.md`'s "Proposed Future Work" section: a translation table
+    mapping each formal construct to the broodforge mechanism that already
+    plays its role informally, plus identification of **one** genuinely new
+    artifact worth scoping further (a `recovery-readiness-certificate.json`
+    composing existing scores/hashes/drill results). It is explicitly marked
+    draft / not a phase / not an AD — **awaiting operator reaction** before
+    promotion. Re-running the 13-PDF read is unnecessary; the sketch is the
+    distilled output.
   - F4 (an OBSERVATION, not a finding requiring action) stands as recorded —
     see the audit's status banner.
   - One deferred technical item from the prior (now-superseded)
@@ -97,22 +119,29 @@ behavior, not its development process, and is out of scope for this artifact
   recent PAP-AUDIT of broodforge; broodforge's own `docs/AUDIT-FINDINGS.md`
   cycles likewise show no open blocking item as of the last entry.)
 
-- **next_action**: **(Updated — F1, F2, AND F3 now closed; this supersedes
-  all earlier "triage F1–F3" framing below.)** Concretely, for whoever next
-  picks up broodforge's *codebase-development* thread (as distinct from its
-  *operational* deployment thread, which `FORGING.md` already governs): there
-  is no mandatory next development action, and no open audit finding remains
-  that requires one (F1/F2/F3 closed, committed; F4 is an observation
-  requiring no action). One **proposed** (not mandatory) development item now
-  exists — **Phase 1.H, Pre-Install Forge Package and Image Builder** — the
-  single concrete idea the `new/` analysis surfaced; it sits in `ROADMAP.md`
-  as a candidate for whenever the operator chooses to schedule it, not as a
-  queued task. A resuming agent should: (a) wait for/follow new operator
-  direction (which may be "start Phase 1.H," "deploy to hardware," or
-  something else entirely), or (b) — only if asked to find something to do —
-  offer Phase 1.H or the platform's own named *operational* next step,
-  "deploy to hardware" (see `active_objective`, above, and `FORGING.md`), and
-  let the operator choose between a development thread and an operational one.
+- **next_action**: **(Updated — draft sketch written; awaiting operator
+  reaction; this supersedes the "no mandatory next action" framing below for
+  the *draft-sketch* thread specifically.)** The most recent concrete step is
+  the **Recovery-Readiness Conformance draft sketch** in `ROADMAP.md`
+  "Proposed Future Work," written because the operator asked to see one — the
+  correct next move is to **let the operator react to it**, not to
+  pre-emptively promote it to a phase or an AD. If the operator says
+  something like "scope the certificate idea as a phase," write it up the
+  same way Phase 1.H was (scoped roadmap entry + AD in `ARCHITECTURE.md` +
+  `.ai/decisions.md`). If they redirect or narrow it, edit the sketch in
+  place. Beyond that thread: for whoever picks up broodforge's
+  *codebase-development* thread generally (as distinct from its
+  *operational* deployment thread, which `FORGING.md` already governs) —
+  there is no other mandatory development action, and no open audit finding
+  remains that requires one (F1/F2/F3 closed, committed; F4 is an observation
+  requiring no action). **Phase 1.H, Pre-Install Forge Package and Image
+  Builder** also remains a **proposed** (not mandatory) candidate. A
+  resuming agent should: (a) wait for/follow new operator direction (which
+  may be reaction to the draft sketch, "start Phase 1.H," "deploy to
+  hardware," or something else entirely), or (b) — only if asked to find
+  something to do — offer the draft sketch's open question, Phase 1.H, or
+  the platform's own named *operational* next step, "deploy to hardware"
+  (see `active_objective`, above, and `FORGING.md`).
   ~~triage the three open audit findings above (F1–F3)~~ — superseded: all
   three are closed.
 

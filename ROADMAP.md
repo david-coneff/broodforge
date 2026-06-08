@@ -1,7 +1,9 @@
 # Broodforge — Roadmap
 
 Version: 7.1
-Last updated: 2026-06-07 (`new/` corpus analysis: Phase 1.H proposed — Pre-Install Forge Package and Image Builder; see "Proposed Future Work" below)
+Last updated: 2026-06-07 (`new/` corpus analysis: Phase 1.H proposed — Pre-Install
+Forge Package and Image Builder; plus a draft sketch reframing the formal-proof
+series as "Recovery-Readiness Conformance" — see "Proposed Future Work" below)
 Architecture: v7.1 (see ARCHITECTURE.md; design evolution in docs/DESIGN-HISTORY.md)
 
 ---
@@ -304,6 +306,80 @@ If a future operator wants any of this revisited, the entry points are
 `new/claude prompt.txt` (the original analysis brief) and
 `new/BroodForge_Synthesis_Entry_For_Claude_Analysis_v1.docx` (the corpus's
 own "how to analyze me" document) — both still present, untouched.
+
+### DRAFT SKETCH — Recovery-Readiness Conformance (operator follow-up, 2026-06-07)
+
+**Status: draft for discussion — NOT a scoped phase, NOT started, NOT yet an
+AD.** After the deferral above was recorded, the operator reconsidered one
+slice of it and asked for a draft of "what to do with these":
+
+> "the formal-proof series does in theory require software implementation of
+> how broodforge documents itself to accommodate the proof process... It's
+> about making sure that systems can prove their readiness to recover and/or
+> that the state observed matches the intent manifest on record."
+
+That is a narrower and more concrete claim than "implement the axiomatic
+kernel" — it says the ~13-document formal-proof/axiomatic-kernel series
+(`broodforge_formal_state_transition_proofs_v1_8`,
+`broodforge_compositional_proof_system_v1_11`,
+`broodforge_completeness_boundary_conditions_v1_7`,
+`broodforge_operational_validation_benchmarking_v1_23`,
+`broodforge_deployment_certification_conformance_v1_24`,
+`broodforge_root_manifest_crypto_spec_v0_4`,
+`broodforge_system_graph_schema_v0_5`,
+`broodforge_reconciliation_engine_spec_v0_6`,
+`broodforge_reconciliation_semantics_v0_2`,
+`broodforge_observability_audit_replay_v1_1`,
+`broodforge_security_proof_invariant_guarantees_v1_5`,
+`broodforge_failure_threat_model_hardening_v1_0`,
+`broodforge_action_runtime_idempotent_layer_v0_7`) names two real, narrow
+concerns underneath its category-theoretic dress:
+
+1. **Provable recovery readiness** — not just "we scored GREEN," but a
+   reproducible demonstration that reconstruction would succeed.
+2. **Observed-state ↔ intent-manifest conformance** — a defensible answer to
+   "does what's actually running match what we declared it should be?", with
+   evidence, not just a diff.
+
+broodforge already has *informal* versions of every formal construct in that
+series. None of this needs a from-scratch "axiomatic kernel" — it needs the
+existing mechanisms drawn into one place and given a verifiable, replayable
+output. Translation table (formal concept → broodforge today → possible
+extension):
+
+| Formal concept (PDF series) | broodforge today | Possible additive extension |
+|---|---|---|
+| Root Manifest (hashed, Ed25519-signed, chained) | `bootstrap-state.json` + 10 metadata YAMLs (plain JSON/YAML, git-tracked, KeePass-gated) | Add a canonical-serialization + SHA-256 content hash for the manifest set, recorded alongside each snapshot in `history/` — tamper-evidence without changing the trust model (git + KeePass + restic remain the actual trust anchors) |
+| System Graph (content-addressed nodes/edges, `graph_hash`) | Five dependency graphs in `doc-gen/dependencies.py` | Hash each graph's canonical form at generation time; store the hash next to the graph in the snapshot index so "the graph that produced this readiness score" is independently checkable |
+| Reconciliation engine `R(actual, spec) → next`, fixed-point convergence | `remediation_planner.py` / `remediation_queue.py` / `remediation_executor.py` (Phase 26) | Record, per remediation cycle, the pre-/post-state deviation vector and whether it shrank monotonically — turns "did remediation help?" into a measured, logged claim instead of an assumption |
+| Drift classification + deviation vector δ, threshold δ_threshold | `doc-gen/drift.py` field-level diff | Bucket existing drift findings into structural/behavioral/performance/security classes and attach a magnitude, so drift reports gain a comparable severity axis (this is a reclassification of existing output, not a new detector) |
+| Benchmark scores (GFS/RCS/ADS/PCS) | RRS/ACS/DCS/CRS/OSS scores already in `readiness.py` / assessment engine | No new scores needed — the formal series is naming the same idea (composite, comparable health metrics) with different letters |
+| Deployment Certificate (manifest hash + graph hash + conformance level) | Readiness scoring (GREEN…BLOCKED) + drift report + Phase 12 `DrillRecord`, generated separately | **The one genuinely new artifact worth drafting further**: a single generated `recovery-readiness-certificate.json` (+ HTML) that bundles the manifest hash, graph hash, current readiness score, latest drift summary, and latest drill result into one timestamped, signed-by-reference object — "as of this run, here is the evidence that this cell could recover, and here is what it was declared to be" |
+| Hash-chained event log + deterministic replay (Strict/Evaluated/Debug modes) | `history/snapshots/` + provenance registry + audit logging already present | Add a `replay-snapshot.py` that re-derives a manifest's readiness score and drift report from a stored snapshot and asserts it matches what was recorded at the time — turns "snapshots are reproducible" (an existing design constraint, see `.ai/CURRENT_STATE.md` "Key Design Constraints") from an assumption into a checked, reportable fact |
+| Idempotent action runtime, global invariants I1–I5 | Remediation actions are already required to be idempotent (Phase 26 design); `ALLOWED_ACTION_TYPES`/`_HANDLERS` assertion in `continuous_assessment.py` | Document the existing idempotency guarantees and the handler-set invariant explicitly as "invariants broodforge already enforces," rather than inventing new ones — most of I1–I5 already hold informally |
+| Trusted/Controlled/Untrusted boundary, "Human Intervention Boundary," explicit non-guarantees | Implicit in KeePass-gated secrets, restic/rclone backup trust model, and the reconstruction-drill model (a human runs the drill) | Write down, in plain language, what broodforge does *not* promise to recover automatically (e.g., "if the KeePass database itself is lost, no amount of manifest replay restores secrets — that is the documented Human Intervention Boundary") — this is a documentation task, not a code task |
+
+**What this draft is *not* proposing:** the cryptographic apparatus
+(Ed25519 root-of-trust chains, category-theoretic compositional proof
+objects, formal certification "levels" with externally-audited conformance)
+is heavier than broodforge's actual threat model (a home-lab / small-cell
+operator using git + KeePass + restic as the trust anchors, per AD-040's
+SHALL-NOT scope). Building a parallel formal-verification subsystem would be
+exactly the kind of "implement the spec corpus verbatim" outcome the
+deferral above correctly avoided. The translation table above is deliberately
+phrased as *extensions to existing modules* (`readiness.py`, `drift.py`,
+`dependencies.py`, the snapshot/provenance store, Phase 12 drills) — additive
+scoring fields, one new generated artifact, and a documentation pass — not a
+rewrite.
+
+**If the operator wants to proceed**, the natural next step is to scope the
+single new artifact — a `recovery-readiness-certificate.json`/HTML generator
+that composes existing scores, hashes, and the latest drill result into one
+timestamped record — as a numbered phase (tentatively "Phase 1.I"), the same
+way Phase 1.H was scoped from Chapter 16/Spec 70/Spec 148. This sketch
+deliberately stops short of that: it is the "what to do with these" the
+operator asked for, offered for reaction before being written into
+`ARCHITECTURE.md` as an AD or split into roadmap deliverables.
 
 ---
 

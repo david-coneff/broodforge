@@ -268,31 +268,60 @@ of what this transition exists to make durable.
         the very update this protocol's `update_trigger` calls for at every
         major milestone (you are reading the result of that update now).
 
-- **last_completed_step**: Updated this handoff and `RESUME_BLOCK.md` to
-  describe the `new/`-corpus-analysis milestone (closing F3) — the step you
-  are reading. Before that: wrote `ROADMAP.md`'s "Proposed Future Work —
-  from `new/` corpus analysis" section (Phase 1.H, "already covered," "what
-  was deferred and why"), `ARCHITECTURE.md` AD-057, and the audit's F3
-  status-banner update + Resolution annotation. Before *that*: completed and
-  committed the F1/F2 resolution milestone (`b0a05ce`) and, before that, the
-  continuity transition itself (`6f0e9c8`) — see the earlier
-  milestone-checklist blocks.
+- **last_completed_step**: Added a **DRAFT SKETCH** to `ROADMAP.md`'s
+  "Proposed Future Work" section — "Recovery-Readiness Conformance
+  (operator follow-up, 2026-06-07)" — in direct response to the operator
+  reconsidering part of the F3 deferral. After the F3 closure above, the
+  operator read the formal axiomatic-kernel/proof-system series differently
+  than its category-theoretic framing suggested: not as "implement a parallel
+  formal-verification system" (correctly out of scope — see "what was
+  deferred and why," still standing), but as naming two real, narrow
+  concerns — *provable recovery readiness* and *observed-state ↔
+  intent-manifest conformance* — and asked for a draft of "what to do with
+  these." The draft sketch reads all 13 of the series' PDFs in full, builds
+  a translation table mapping each formal construct (Root Manifest, System
+  Graph, Reconciliation Engine, drift classification, benchmark scores,
+  Deployment Certificate, hash-chained event log/replay, idempotent action
+  runtime/invariants, trust boundaries) to the broodforge mechanism that
+  *already* plays that role informally (`bootstrap-state.json`,
+  `dependencies.py`, Phase 26 remediation, `drift.py`, RRS/ACS/DCS/CRS/OSS
+  scores, readiness + drift + `DrillRecord`, `history/snapshots/` +
+  provenance, idempotent remediation actions, KeePass/restic/git trust
+  model) — and identifies **one genuinely new artifact** worth scoping
+  further: a single generated `recovery-readiness-certificate.json`/HTML
+  that bundles a manifest hash, graph hash, current readiness score, drift
+  summary, and latest drill result into one timestamped record. Marked
+  explicitly **draft / not a scoped phase / not an AD** — offered for
+  operator reaction before being written up as "Phase 1.I" or similar, the
+  same way Phase 1.H was scoped only after its source chapters were
+  identified. Before that: wrote `ROADMAP.md`'s "Proposed Future Work — from
+  `new/` corpus analysis" section (Phase 1.H, "already covered," "what was
+  deferred and why"), `ARCHITECTURE.md` AD-057, and the audit's F3
+  status-banner update + Resolution annotation (commit `bbc2bdd`). Before
+  *that*: completed and committed the F1/F2 resolution milestone (`b0a05ce`)
+  and, before that, the continuity transition itself (`6f0e9c8`) — see the
+  earlier milestone-checklist blocks.
 
-- **next_action**: None mandatory — all three threads (the continuity
-  transition, the F1/F2 resolution, and the `new/`-corpus analysis closing
-  F3) are now closed. **Commit and push** this milestone's changes
-  (`ROADMAP.md`, `ARCHITECTURE.md`, the audit annotation, this file, and
-  `RESUME_BLOCK.md`) and push to origin — that is the one concrete mechanical
-  step remaining for whoever closes this session out, if it has not already
-  happened by the time you are reading this. Beyond that:
-  there is no mandatory next *development* action. The one net-new item this
-  analysis produced — **Phase 1.H (Pre-Install Forge Package and Image
-  Builder)** — is recorded as **proposed, not started**; it is a candidate
-  for a future development session, not a mandate. A resuming agent should
-  either (a) wait for/follow new operator direction (e.g. "start on Phase
-  1.H"), or (b) — only if asked to find something to do — look to
-  `RESUME_BLOCK.md`'s `next_action` and the platform's own named operational
-  next-step ("deploy to hardware," per `.ai/NEXT_STEPS.md`).
+- **next_action**: **Wait for operator reaction to the draft sketch** in
+  `ROADMAP.md` "Proposed Future Work → DRAFT SKETCH — Recovery-Readiness
+  Conformance." It was written *as a draft for discussion* per the
+  operator's explicit phrasing ("start drafting what to do with these") —
+  it is deliberately not yet promoted to a numbered phase or an AD. If the
+  operator confirms the direction (most likely: "scope the
+  recovery-readiness-certificate idea as a phase"), the next step is to
+  write it up the same way Phase 1.H was — a scoped roadmap entry plus an
+  AD in `ARCHITECTURE.md` and `.ai/decisions.md`. If the operator redirects
+  or narrows it, revise the sketch in place rather than starting a parallel
+  one. **Commit and push** this milestone's changes (`ROADMAP.md`, this
+  file, and `RESUME_BLOCK.md`) — that is the one concrete mechanical step
+  remaining, if it has not already happened by the time you are reading
+  this. Beyond the draft-sketch thread: **Phase 1.H (Pre-Install Forge
+  Package and Image Builder)** also remains **proposed, not started** — a
+  candidate for a future session, not a mandate. A resuming agent should
+  either (a) wait for/follow new operator direction, or (b) — only if asked
+  to find something to do — look to `RESUME_BLOCK.md`'s `next_action` and
+  the platform's own named operational next-step ("deploy to hardware," per
+  `.ai/NEXT_STEPS.md`).
 
 - **resume_instructions**:
   1. Read `RESUME_BLOCK.md` (this file's `resume_block_ref`) for the

@@ -54,6 +54,25 @@ AD-057, `.ai/NEXT_STEPS.md`, and `pap/state/SESSION_HANDOFF.md` for the full
 record of what was integrated, what was found already covered, and what was
 explicitly deferred (and why).
 
+**DRAFT — Recovery-Readiness Conformance (2026-06-07, awaiting operator
+reaction):** the operator partially reconsidered the formal axiomatic-kernel/
+proof-system slice of the deferral above — not asking to implement it, but
+observing it names two real concerns (provable recovery readiness; observed-
+state vs. intent-manifest conformance) and asking for a draft of "what to do
+with these." `ROADMAP.md` "Proposed Future Work" now contains a **DRAFT
+SKETCH** translating each formal construct (Root Manifest, System Graph,
+Reconciliation Engine, drift classification, benchmark scores, Deployment
+Certificate, hash-chained replay, idempotent-action invariants, trust
+boundaries) into the broodforge mechanism that already plays that role
+(`bootstrap-state.json`, `dependencies.py`, Phase 26 remediation, `drift.py`,
+existing RRS/ACS/DCS/CRS/OSS scores, readiness + drift + `DrillRecord`,
+`history/snapshots/`, idempotent remediation actions, KeePass/restic/git
+trust model) — and names **one** genuinely new artifact worth scoping
+further: a `recovery-readiness-certificate.json`/HTML composing existing
+scores, hashes, and drill results into one timestamped record. Marked
+explicitly draft / not a phase / not an AD — offered for operator reaction,
+not yet promoted.
+
 ## Completed Milestones
 
 | Phase | Description | Status |
