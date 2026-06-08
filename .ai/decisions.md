@@ -209,6 +209,23 @@ Phase 2 automation is deferred to after Phase 12 and requires defined safeguards
 **Rationale:** Autonomous infrastructure actions can cause downtime, have cascading
 effects, and must have tested rollback paths. These prerequisites take time to build.
 
+**Amendment (2026-06-07 — see AD-040):** The line above ("never takes
+autonomous infrastructure action") overstated the original intent and is
+revised. **Operative phrasing, going forward:** *Broodforge MAY take
+autonomous infrastructure action, provided it is bounded by defined
+safeguards and recoverable* — i.e., exactly the two preconditions this
+entry's own Rationale already named ("must have tested rollback paths,"
+"these prerequisites take time to build") as the thing Phase 2 automation
+was waiting on. Phase 26's policy-gated, opt-in, dry-run-comparing,
+rollback-capable remediation engine is the realization of that
+precondition being met — not a violation of this decision, properly read.
+The original Date/Decision/Rationale lines above are left intact as the
+historical record of what was decided on 2026-05-31 (and of the reasoning
+that, followed through to its own conclusion, now licenses this amendment);
+nothing here erases or contradicts them — it completes the thought they
+left open ("requires defined safeguards" → safeguards now exist → action
+is now licensed, exactly as this entry always said it would be once they did).
+
 ## AD-035: intelligence/ namespace deploys before applications/ namespace
 **Date:** 2026-05-31
 **Decision:** All intelligence-layer workloads (documentation engine, assessment engine,
@@ -276,3 +293,54 @@ rewritten `.ai/AI_AGENT_BOOTSTRAP.md`), not `docs/SESSION-HANDOFF.md`. The
 full pre-transition session history (1142 lines, "Previous Session Work"
 through "Architecture Notes") remains intact and readable at
 `docs/deprecated/SESSION-HANDOFF.md` and via `git log --follow`.
+
+## AD-040: Charter SHALL-NOT scope clarified; AD-034 phrasing amended to license safeguarded autonomous action
+**Date:** 2026-06-07
+**Decision:** Two coordinated clarifications of original intent — made
+together because both resolve ambiguity the same review surfaced
+(PAP-AUDIT findings F1 and F2,
+[`pap/audits/2026-06-07_broodforge-pap-audit.md`](../pap/audits/2026-06-07_broodforge-pap-audit.md)),
+and both are recorded *in place*, alongside the original text they clarify,
+rather than as silent rewrites:
+
+1. **`PROJECT_CHARTER.md`'s SHALL-NOT list gains a Scope note** (added
+   in-place, original four items left intact): "Recommend upgrades /
+   purchases / replacements" and "Make subjective judgments" name
+   *specific-hardware* recommendations — what product or component to buy,
+   add, or swap into a node — which would require granular product-and-
+   pricing knowledge out of this project's scope. They do not bound the
+   platform's own resource-provisioning / deployment-strategy decisions for
+   infrastructure it manages (a broad function of its chartered deployment
+   strategy — see AD-013/AD-014/AD-032 — not a "subjective judgment" in the
+   excluded, hardware-specific sense).
+2. **AD-034 gains an in-place Amendment** (original Date/Decision/Rationale
+   left intact as the historical record): its absolute phrasing ("never
+   takes autonomous infrastructure action") overstated original intent.
+   Operative rule, going forward: autonomous infrastructure action is
+   licensed *provided it is bounded by defined safeguards and recoverable* —
+   precisely the precondition AD-034's own Rationale already named as the
+   thing "Phase 2 automation" was waiting on, and precisely what Phase 26's
+   policy-gated, opt-in, dry-run-comparing, rollback-capable remediation
+   engine now provides.
+
+**Rationale:** Direct operator clarification of original intent, given
+verbatim in response to PAP-AUDIT F1/F2 (quoted in full in
+[`pap/audits/2026-06-07_broodforge-pap-audit.md`](../pap/audits/2026-06-07_broodforge-pap-audit.md)'s
+Resolution annotations): *"the subjective judgements language was regarding
+any suggestions of hardware changes or upgrades, or what to put into a
+second node, etc., since this is outside the scope of the project... [an
+auto-suggest mechanism for] how to provision resources within an existing
+node or a new node... is more a broad function of its deployment strategy,
+not a suggestion mechanism for specific hardware (which would require very
+granular information about specific pc products, pricing databases, etc.
+that is outside the scope of what this project should do)"* and *"autonomous
+action is ok in some cases, as long as bounded by safeguards and
+recoverability for autonomous actions that might go wrong. if the exact
+phrasing needs revision, then do so to account for this."*
+**Consequences:** Closes PAP-AUDIT findings F1 and F2 — both were genuine
+*ambiguities* in the governing text (confirmed directly by the document's
+own author/owner, who is the only authority able to resolve what its
+original intent was), not contradictions between the text and the system;
+the text, not the system, needed correcting, and now has been — in place,
+annotated, with the original wording preserved as the historical record of
+what was first written and why it needed this clarification.

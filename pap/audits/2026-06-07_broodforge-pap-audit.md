@@ -9,6 +9,18 @@
 | APDRP review ref | §"APDRP review" below (full four-perspective pass on this audit's central finding, F1) |
 | Audited at | 2026-06-07 |
 
+> **Status update (same day, recorded in place — original review text below
+> is otherwise untouched)**: of the four findings this review registered,
+> **F1 and F2 are now closed** — both were resolved hours after this review
+> was delivered, by the one party with standing to resolve them: broodforge's
+> own operator, who clarified original intent directly (see each finding's
+> in-place "Resolution" annotation, and `.ai/decisions.md` `AD-040`). **F3
+> remains open but explicitly deferred** by the same operator ("`new/` are
+> some proposed revisions that need to be analyzed... this is deferred for
+> the moment"). **F4** (an OBSERVATION, not an actionable finding) stands as
+> recorded. The readiness verdict (`ready`) is unchanged — it never depended
+> on F1/F2's resolution, since neither was ever BLOCKER-classified.
+
 ## Scope statement (read this first)
 
 Per direct operator instruction: *"let's do a pap-audit from the installed pap
@@ -98,6 +110,35 @@ chartering document — was not updated to say so when Phase 26 landed; the
 safeguard exists in the implementation and in `context.md`, but not in the
 one document whose job is to authorize the system's scope in the first place.
 
+**Resolution (2026-06-07 — recorded in place; original finding text above
+left untouched as the record of what this review observed and why)**:
+broodforge's operator — the Charter's own author and the only authority able
+to state what its original intent actually was — clarified, directly and in
+response to this finding, that the SHALL-NOT items were never meant to bound
+the platform's *own* deployment-strategy/resource-provisioning decisions at
+all; they named *specific-hardware* recommendations only (verbatim: *"the
+subjective judgements language was regarding any suggestions of hardware
+changes or upgrades, or what to put into a second node, etc., since this is
+outside the scope of the project... [a mechanism for] how to provision
+resources within an existing node or a new node... is more a broad function
+of its deployment strategy, not a suggestion mechanism for specific hardware
+[which] would require very granular information about specific pc products,
+pricing databases, etc. that is outside the scope of what this project should
+do"*). That is: **this finding surfaced a genuine textual ambiguity, not a
+genuine contradiction** — the Charter's terse four-line SHALL-NOT list under-
+specified its own scope, in a way that made Phase 26 *look* like a boundary
+violation to a cold reader (this auditor included) when, per its author's own
+clarification, it was always within the chartered deployment-strategy
+function. The remedy applied — recorded as
+[`AD-040`](../../.ai/decisions.md#ad-040-charter-shall-not-scope-clarified-ad-034-phrasing-amended-to-license-safeguarded-autonomous-action) —
+adds an in-place Scope note to `PROJECT_CHARTER.md` (original four SHALL-NOT
+items left intact) drawing exactly the line the operator named: specific-
+hardware/product/pricing recommendations (excluded, ultra vires) vs.
+resource-provisioning/deployment-strategy decisions (chartered, in scope).
+**F1 is closed** — not because the system changed, but because the text that
+seemed to contradict it has now been clarified, by the one party with
+standing to say what it meant, to show that it didn't.
+
 ### F2 — DEFECT: AD-034's boundary was crossed by Phase 26 with no decision record marking the crossing
 
 **Evidence:**
@@ -135,6 +176,26 @@ names a different artifact's specific obligation (Purpose-fidelity vs.
 decision-lineage), and a fix to one would not necessarily fix the other — but
 a single remediation effort could plausibly close both at once (see "Summary
 of suggested work," below).
+
+**Resolution (2026-06-07 — recorded in place; original finding text above
+left untouched)**: the operator confirmed this finding's *premise* — AD-034's
+absolute phrasing ("never takes autonomous infrastructure action") did not
+match intent — but resolved it by *correcting the rule's wording* rather than
+by writing the missing decision-record this finding called for (verbatim:
+*"autonomous action is ok in some cases, as long as bounded by safeguards and
+recoverability for autonomous actions that might go wrong. if the exact
+phrasing needs revision, then do so to account for this"*). Recorded as an
+in-place **Amendment** on AD-034 itself (original Date/Decision/Rationale
+left intact as the historical record of what was first decided and why) plus
+a coordinating [`AD-040`](../../.ai/decisions.md#ad-040-charter-shall-not-scope-clarified-ad-034-phrasing-amended-to-license-safeguarded-autonomous-action)
+entry: the operative rule is now *"autonomous infrastructure action is
+licensed provided it is bounded by defined safeguards and recoverable"* —
+precisely AD-034's own original Rationale, carried to the conclusion it had
+always pointed toward ("requires defined safeguards" → Phase 26 built them →
+the boundary it deferred crossing is now properly, traceably crossed).
+**F2 is closed** — the missing decision record this finding asked for now
+exists (AD-040, cross-referencing the AD-034 amendment), and the rule's text
+now says what its author always meant it to.
 
 ### F3 — RISK: an entire untracked architecture-corpus (`new/`) sits outside governance, describing a system substantially larger than the one `NEXT_STEPS.md` says is "complete"
 
@@ -252,6 +313,32 @@ This auditor takes no position on which reading broodforge's maintainers
 should adopt; that determination is exactly the kind of call `pap/README.md`
 §"boundary" reserves to broodforge's own governance.
 
+**Resolution note (2026-06-07 — added in place; the review above is left
+exactly as performed, including its uncertainty, because that uncertainty is
+itself the evidence that the resolution below required the operator's
+authority to settle, not this auditor's analysis)**: the Falsification
+perspective named, as the one thing that would dissolve this finding, a
+scenario this auditor could not find evidence for — *"if 'recommend' /
+'subjective judgment' in the Charter's SHALL NOT list were defined elsewhere
+in a narrower technical sense that excludes remediation planning, this
+finding would dissolve."* That is exactly what then happened — not via a
+pre-existing definition this review missed, but via the operator directly
+*supplying* the narrower, original-intent definition no document had yet
+recorded (see F1's "Resolution," above, and `AD-040`). And the
+Alternative-solution perspective's open disagreement (does the Charter govern
+only the Assessment Engine, or the whole platform?) is now answered too, as a
+side effect: the operator's clarification describes a *single, platform-wide*
+scope rule (specific-hardware recommendations excluded; the platform's own
+deployment-strategy decisions — wherever in the platform they occur — are
+not), which neither perspective had articulated, and which dissolves the
+disagreement by replacing both candidate readings with a third, more precise
+one. This is recorded as a small, concrete instance of exactly what
+PAP-AUDIT §2 anticipates an APDRP review *cannot*, by itself, always do —
+adjudicate a question whose answer lives in an author's intent, not in the
+artifact's text — and of why "preserve the disagreement, don't hide it" is
+the right discipline up to the point where the one party who *can* resolve it
+does.
+
 ## 4. Verdict rationale
 
 **`ready`.** PAP-AUDIT §4 requires at least one BLOCKER-classified finding to
@@ -273,8 +360,19 @@ named, non-blocking items worth its maintainers' attention.
 per the Scope statement, none of these are directives. Ordered roughly by
 how cheaply each closes relative to the clarity it would add.)*
 
-1. **Reconcile `PROJECT_CHARTER.md`'s Purpose/SHALL-NOT clauses with the
-   built system (closes F1)** — either (a) narrow the Charter's explicit scope
+1. **✅ DONE (2026-06-07, `AD-040`)** — ~~Reconcile `PROJECT_CHARTER.md`'s
+   Purpose/SHALL-NOT clauses with the built system (closes F1)~~ — resolved
+   by neither (a) nor (b) below, but by a third path this auditor had not
+   anticipated: the operator clarified that the SHALL-NOT text was never
+   meant to bound the platform's deployment-strategy function at all — it
+   named *specific-hardware* recommendations only. `PROJECT_CHARTER.md`
+   gained an in-place Scope note recording that original intent (see F1's
+   Resolution annotation, above). The recommendation as originally framed
+   is preserved below for the record — for a future reader to see what was
+   *suggested* against what was *actually* the right fix once the authority
+   able to say so weighed in:
+
+   ~~either (a) narrow the Charter's explicit scope
    to name which subsystem(s) "objective… no subjective judgments" actually
    bounds (if the Assessment-Engine-only reading is correct), or (b) revise
    the Purpose and SHALL/SHALL NOT lists to describe the self-managing,
@@ -285,9 +383,22 @@ how cheaply each closes relative to the clarity it would add.)*
    rather than an uncharted one. Either path is broodforge's call (F1's
    Alternative-solution perspective leaves both open); what matters is that
    *one* of them gets recorded, closing the gap between the chartering document
-   and the system it charters.
+   and the system it charters.~~
 
-2. **Record the AD-034-crossing as its own decision (closes F2)** — add a
+2. **✅ DONE (2026-06-07, `AD-040` + an in-place Amendment on `AD-034`)** —
+   ~~Record the AD-034-crossing as its own decision (closes F2)~~ — resolved
+   essentially as suggested, though by *amending AD-034's own phrasing in
+   place* (with the original text preserved as history) rather than by a
+   freestanding crossing-record: the operator confirmed AD-034's absolute
+   wording ("never takes autonomous infrastructure action") had overstated
+   intent, and directed a phrasing fix. `AD-040` now states the operative
+   rule plainly — autonomous action is licensed when bounded by safeguards
+   and recoverable — cross-referencing the AD-034 amendment that carries
+   AD-034's own original Rationale to the conclusion it had always pointed
+   toward. See F2's Resolution annotation, above, and the original
+   recommendation, preserved for the record:
+
+   ~~add a
    decision record (AD-039 or similar) that explicitly: names AD-034's original
    boundary, states that Phase 26 crosses it, and records *why that crossing
    was judged acceptable* (which safeguards were built, why they satisfy
@@ -299,7 +410,8 @@ how cheaply each closes relative to the clarity it would add.)*
    and #1 both touch the same underlying event and could plausibly be satisfied
    by one coordinated edit pass — but each closes a different artifact's
    specific obligation, so each should be checked off independently even if
-   done together.
+   done together.~~ (In the event, #1 and #2 *were* resolved by one
+   coordinated act — `AD-040` — exactly as this note speculated they might be.)
 
 3. **Decide what `new/` is, and make that decision durable (closes F3)** — at
    minimum, either (a) commit it (with a message naming what it is and why it's
