@@ -1345,8 +1345,12 @@ Phase 7   Monitoring ────────────────  GATE 4: p
 ## Development Status
 
 Broodforge is under active development. See [ROADMAP.md](ROADMAP.md) for full
-milestone detail and [docs/SESSION-HANDOFF.md](docs/SESSION-HANDOFF.md) for the
-latest session context.
+milestone detail and [pap/state/SESSION_HANDOFF.md](pap/state/SESSION_HANDOFF.md)
+for the latest session context (this pointer moved from the now-retired
+`docs/SESSION-HANDOFF.md` — preserved at
+[docs/deprecated/SESSION-HANDOFF.md](docs/deprecated/SESSION-HANDOFF.md) —
+when broodforge's session-continuity practice transitioned to PAP; see
+[pap/revisions/2026-06-07_session-continuity-transition-to-pap.md](pap/revisions/2026-06-07_session-continuity-transition-to-pap.md)).
 
 ### Completed
 

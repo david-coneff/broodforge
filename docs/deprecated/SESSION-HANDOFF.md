@@ -1,3 +1,25 @@
+# Session Handoff (DEPRECATED — superseded, preserved for history)
+
+> **This file is retired.** Broodforge's session-continuity practice now
+> lives under PAP, per direct operator instruction (see
+> [`pap/revisions/2026-06-07_session-continuity-transition-to-pap.md`](../../pap/revisions/2026-06-07_session-continuity-transition-to-pap.md)
+> for the full rationale and evidence trail). Going forward:
+>
+> - **For the current session-handoff artifact**, see
+>   [`pap/state/SESSION_HANDOFF.md`](../../pap/state/SESSION_HANDOFF.md).
+> - **For the current resume block**, see
+>   [`pap/state/RESUME_BLOCK.md`](../../pap/state/RESUME_BLOCK.md).
+>
+> This file is **moved, not deleted** — it was a genuine, working prototype
+> of exactly the practice PAP-State §3/§4 now formally specify, and its full
+> session-by-session history below remains the authoritative historical
+> record of broodforge's pre-PAP development continuity. It is preserved here
+> (and in git history via `git mv`, so `git log --follow` recovers its full
+> lineage at its original path) for exactly that reason. **Do not extend this
+> file further** — extend `pap/state/SESSION_HANDOFF.md` instead.
+
+---
+
 # Session Handoff
 
 Last updated: 2026-06-04 UTC

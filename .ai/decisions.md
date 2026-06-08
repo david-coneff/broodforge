@@ -240,3 +240,39 @@ Assessment reports have a dedicated repository (docs-assessments/) separate from
 architectural documentation.
 **Rationale:** Frequent automated commits to a shared repository create noise that
 obscures human-authored changes and makes git log unusable for review.
+
+## AD-039: Codebase-development session-continuity practice transitions to PAP
+**Date:** 2026-06-07
+**Decision:** Broodforge's own pre-PAP prototype mechanisms for tracking
+codebase-development continuity — `.ai/AI_AGENT_BOOTSTRAP.md`'s hand-built
+"read in this order" bootstrap and `docs/SESSION-HANDOFF.md`'s rolling
+session-progress log — are retired in favor of PAP-State's formally-specified
+equivalents (Startup Protocol §1, Project Resume Block §3, Session Handoff
+Protocol §4), now instantiated at `pap/state/RESUME_BLOCK.md` and
+`pap/state/SESSION_HANDOFF.md`. `docs/SESSION-HANDOFF.md` is moved (`git mv`,
+full history preserved), not deleted, to `docs/deprecated/SESSION-HANDOFF.md`,
+with an in-place banner pointing forward; `.ai/AI_AGENT_BOOTSTRAP.md` is
+rewritten in place to route through the new artifacts and PAP's Startup
+Protocol. Full rationale, evidence, and migration record:
+[`pap/revisions/2026-06-07_session-continuity-transition-to-pap.md`](../pap/revisions/2026-06-07_session-continuity-transition-to-pap.md).
+**Rationale:** Direct operator instruction, framed as a scope distinction:
+broodforge's *revision protocol for its own codebase* (session-handoff,
+progress-tracking — i.e., how development sessions on broodforge's source are
+picked up and handed off) is a different concern from broodforge's
+*remediation process for failing nodes and the general functions it
+performs* (the platform's own product behavior — assessment, forging,
+spawning, phoenix recovery, autonomous remediation). The former is exactly
+the kind of durable-continuity practice PAP exists to formalize; the latter
+remains entirely broodforge's own, governed by `.ai/PROJECT_CHARTER.md` and
+the rest of the `.ai/` corpus, untouched by this decision
+(`PAP_CHARTER.md` §2.3 — PAP's analytical reach does not extend into, and
+this decision does not cede, broodforge's own constitutional authority over
+its product). Verified before acting: neither retiring artifact's name or
+content had crept into `.ai/PROJECT_CHARTER.md` itself (it is 269 bytes —
+Purpose plus four SHALL / four SHALL-NOT lines — and names neither).
+**Consequences:** Future codebase-development sessions read
+`pap/state/RESUME_BLOCK.md` and `pap/state/SESSION_HANDOFF.md` (per the
+rewritten `.ai/AI_AGENT_BOOTSTRAP.md`), not `docs/SESSION-HANDOFF.md`. The
+full pre-transition session history (1142 lines, "Previous Session Work"
+through "Architecture Notes") remains intact and readable at
+`docs/deprecated/SESSION-HANDOFF.md` and via `git log --follow`.
