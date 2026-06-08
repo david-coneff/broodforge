@@ -759,32 +759,33 @@ of what this transition exists to make durable.
      passed, 1 skipped (same 4 pre-existing `test_opentofu.py` failures).
      `docs/FEATURE-HISTORY.md`/`.html` updated.
 
-  **MILESTONE CLOSED** — all five operator-directed items now done in
-  the specified order: datetime sweep, Phase 1.H (AD-057), Phase 1.I
-  (AD-059), Phase 1.K (AD-061), Phase 1.J (AD-060). Remaining for this
-  session: commit + push the Phase 1.J work and PAP-state updates (per
-  the operator's standing `feature_revision_process` / "push on commit"
-  preferences), then report a closing summary of everything implemented
-  across the whole milestone — the operator's explicitly requested final
-  action ("report a summary of what was implemented and committed vs.
-  what remains").
+  **MILESTONE CLOSED AND ALL COMMITTED/PUSHED** — all five operator-directed
+  items done: datetime sweep (`c1aef50`), Phase 1.H/AD-057 (`072112e`),
+  Phase 1.I/AD-059 (`3b32137`), Phase 1.K/AD-061 (`c750ed6`), Phase 1.J/
+  AD-060 (`f883540`).
 
-  **`ROADMAP.md` "Proposed Future Work"** held zero items in "draft sketch,
-  awaiting operator reaction" status entering this milestone — all four
-  phases were already scoped with their own ADs; this milestone is executing
-  them in the operator's specified order, not re-scoping them.
+  **Ninth milestone (this session):** Previous session committed Phase 1.J
+  but hit a usage limit before updating PAP state. This session: confirmed
+  Phase 1.J correct; added Image Builder GUI (`forge-image-builder.html`,
+  Phase 1.H addition — cross-platform offline-first wizard, clipboard-copy
+  mode, live command preview, dark/light theme, POSIX shell-quoting); updated
+  ARCHITECTURE.md AD-057, ROADMAP.md phase headings (all four now "implemented
+  (commit X)"), FEATURE-HISTORY.md new cycle, regenerated HTML twins; full
+  suite 4388 passed, 1 skipped (no Python code touched).
 
-  Worth naming to the operator if they ask "what's left" or "anything you
-  noticed": the **clock-injection bug class** — `verify_trust()`
-  (sixth-milestone fix) and `compute_drift()` (this milestone's incidental
-  fix) were both real-wall-clock calls that should have threaded `now_fn`.
-  Both are now fixed; the original repo-wide sweep (commit `c1aef50`,
-  first item above) covered `proxmox-bootstrap/` exhaustively, and
-  `doc-gen/drift.py` is now also clean. No other instances are currently
-  known, but a resuming agent should treat any newly-written
-  `datetime.now(`/`utcnow(` call sharing a scope with an available
-  `now_fn` as suspect by default — this is the third confirmed instance
-  of the same class.
+  **`ROADMAP.md` "Proposed Future Work"** now contains zero items — all four
+  phases (1.H/1.I/1.J/1.K) are fully implemented and committed.
+
+  **Operational next action**: deploy to hardware — run `python3
+  proxmox-bootstrap/forge-planner.py` on a real Proxmox host.
+
+  Worth naming to a resuming agent: the **clock-injection bug class** —
+  `verify_trust()` and `compute_drift()` were both confirmed real-wall-clock
+  calls that should thread `now_fn`. Both fixed; the original sweep
+  (`c1aef50`) covered `proxmox-bootstrap/` exhaustively, `doc-gen/drift.py`
+  is now also clean. Any newly-written `datetime.now(`/`utcnow(` sharing a
+  scope with an available `now_fn` should be treated as suspect — this is
+  the third confirmed instance of the same class.
 
 - **resume_instructions**:
   1. Read `RESUME_BLOCK.md` (this file's `resume_block_ref`) for the

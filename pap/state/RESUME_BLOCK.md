@@ -20,60 +20,40 @@ behavior, not its development process, and is out of scope for this artifact
   tiers, five dependency-graph types. Architecture v7.1+. (Source:
   `.ai/context.md`, `.ai/CURRENT_STATE.md`.)
 
-- **active_objective**: No implementation work is currently active. Per
-  `.ai/NEXT_STEPS.md` and `.ai/CURRENT_STATE.md`, all roadmap milestones and
+- **active_objective**: No implementation work is currently active. All four
+  proposed phases (1.H/1.I/1.J/1.K) are now **fully implemented and committed**.
+  Per `.ai/NEXT_STEPS.md` and `.ai/CURRENT_STATE.md`, all roadmap milestones and
   all four planned intelligence tracks (through Phase 26 — Autonomous
-  Operations) are complete, and the last `docs/SESSION-HANDOFF.md` entry
-  (now superseded — see the transition record) named the platform's own next
-  action as **"deploy to hardware"** (`python3 proxmox-bootstrap/forge-planner.py`
-  on a real Proxmox host; see `FORGING.md`). **Four proposed (not-started)
-  development items now exist in `ROADMAP.md`, all scoped phases with their
-  own ADs**: Phase 1.H — Pre-Install Forge Package and Image Builder
-  (AD-057, surfaced by the `new/` corpus analysis); **Phase 1.I —
-  Recovery-Readiness Conformance** (AD-059 — a `recovery-readiness-
-  certificate.json`/HTML generator, additive to `readiness.py`/`drift.py`/
-  `dependencies.py`/snapshot store/Phase 12 drills); **Phase 1.J —
-  Hypervisor Recovery: Constrained Accounts and Pre-Generated Spawn Media**
-  (AD-060 — implements the accepted middle path *within* a firm
-  architectural constraint the operator stated explicitly: no autonomous
-  pathway may read and wield full root credentials against live
-  hypervisors, with two narrow named exceptions for temporary,
-  session-scoped credentials in node spawning and phoenix recovery); and
-  **Phase 1.K — Granular Secret Access Silos: Vault Hierarchy and User
-  Provisioning** (AD-061 — derived scoped KeePass vaults plus two
-  operator-directed expansions: vault-of-vaults credential recordkeeping and
-  VM/Proxmox-level user-provisioning templates). The latter three were
-  **draft sketches as of 2026-06-07; the operator reacted to all three with
-  itemized decisions on 2026-06-08, and they are now promoted** — see
-  `active_milestone` (seventh) and `key_decisions_and_insights` in
-  `SESSION_HANDOFF.md` for the full record. All four phases are candidates
-  for a future development session, not mandates — none is started.
+  Operations) are complete. The platform's own next action is operational:
+  **"deploy to hardware"** (`python3 proxmox-bootstrap/forge-planner.py`
+  on a real Proxmox host; see `FORGING.md`). **All four development phases are
+  now done**: Phase 1.H (AD-057, commit 072112e) — Pre-Install Forge Package
+  and Image Builder, now with cross-platform GUI wizard (`forge-image-builder.html`);
+  Phase 1.I (AD-059, commit 3b32137) — Recovery-Readiness Conformance
+  Certificate; Phase 1.K (AD-061, commit c750ed6) — Granular Secret Access
+  Silos: Vault Hierarchy and User Provisioning; Phase 1.J (AD-060, commit
+  f883540) — Hypervisor Recovery: Constrained Accounts and Pre-Generated Spawn
+  Media (firm constraint: no autonomous pathway may read and wield full root
+  credentials against live hypervisors). No further proposed development phases
+  exist in `ROADMAP.md`.
 
-- **active_milestone**: (Updated — seventh milestone, same day, 2026-06-08.)
-  The operator reacted to all three draft sketches recorded the previous day
-  with explicit, itemized decisions — "Incorporate them into ROADMAP.md,
-  ARCHITECTURE.md, and PAP-state. Here are the exact decisions" — and this
-  milestone closes that thread completely: all three sketches are now scoped
-  phases (1.I, 1.J, 1.K) with corresponding ADs (AD-059, AD-060, AD-061),
-  exactly as the operator specified, including the operator's own expansions
-  (vault-of-vaults recordkeeping, VM/Proxmox user-provisioning templates,
-  and — most architecturally significant — **a firm, durable constraint
-  (AD-060) ruling out any autonomous pathway that can read and wield full
-  root credentials against live hypervisors**, binding on all future
-  development, not just Phase 1.J's own scope). `ROADMAP.md` "Proposed Future
-  Work" was rewritten in place: each sketch's heading, status line, and
-  closing "if the operator wants to proceed" paragraph were converted to a
-  scoped-phase block with a "Proposed scope" checklist and an AD reference,
-  while the underlying analysis (including the formal-concept translation
-  table and the hypervisor-credential risk evaluation) was preserved as the
-  "source of this analysis" supporting material — nothing was deleted, only
-  reframed from "draft, awaiting reaction" to "scoped, operator-confirmed."
-  `ARCHITECTURE.md` gained AD-059/060/061 (in sequence, after AD-058) and its
-  version-header date stamp was updated. `.ai/decisions.md` gained a combined
-  AD-059/060/061 entry recording the rationale and consequences. This file,
-  `SESSION_HANDOFF.md`, and `.ai/CURRENT_STATE.md` were updated to reflect
-  the new state — no items remain in "draft sketch, awaiting reaction" status
-  in `ROADMAP.md`.
+- **active_milestone**: (Updated — ninth milestone, 2026-06-08.) All four
+  proposed phases are now implemented, committed, and pushed. The ninth
+  milestone closes the complete implementation run:
+  - Phase 1.J (AD-060, commit f883540): Hypervisor Recovery — Constrained
+    Accounts + Pre-Generated Spawn Media. Confirmed already committed by
+    the previous session; PAP state was written but not committed at that
+    time. This session: verified implementation files exist and are correct,
+    updated PAP state to close the "commit pending" flag.
+  - Image Builder GUI (Phase 1.H addition, AD-057): `forge-image-builder.html`
+    — self-contained cross-platform wizard wrapping `generate-bootstrap-image.py`,
+    offline-first, dark/light theme, live command preview + clipboard copy.
+    No server required. AD-057 updated to reflect Phase 1.H fully
+    implemented + GUI added. ROADMAP.md Phase 1.H/1.I/1.J/1.K headings
+    updated from "proposed" to "implemented (commit X)"; all Phase 1.H
+    scope checklist items marked `[x]`. FEATURE-HISTORY.md/`.html` updated.
+    ROADMAP.html regenerated. Full suite: 4388 passed, 1 skipped (unchanged
+    — no Python code touched this milestone).
 
   **Before this (sixth milestone, same day, earlier session):** Resumed per
   the operator's "continue using PAP-state" instruction; found a
@@ -212,147 +192,32 @@ behavior, not its development process, and is out of scope for this artifact
   recent PAP-AUDIT of broodforge; broodforge's own `docs/AUDIT-FINDINGS.md`
   cycles likewise show no open blocking item as of the last entry.)
 
-- **next_action**: **(Updated — eighth milestone: operator directed
-  implementation of all four scoped phases in order; sweep + Phase 1.H +
-  Phase 1.I DONE and committed/pushed, Phase 1.K is up next.)** Order given:
-  (1) repo-wide `datetime.now()`/`utcnow()` clock-injection sweep — **DONE**,
-  commit `c1aef50` (fixed `remediation_executor.build_failure_package` + 9
-  `_exec_*` handlers, `continuous_assessment.collect_pbs_state_update`,
-  `platform_state_collector.compute_platform_health`/`platform_state_to_dict`;
-  full suite 4134 passed before Phase 1.H's own additions); (2) **Phase 1.H**
-  (AD-057, Pre-Install Forge Package and Image Builder) — **DONE**:
-  `generate-bootstrap-image.py` + `_image_builder.py` produce a
-  `bootstrap-image-{cell_id}-{ts}.tar.gz` staging bundle (`answer.toml`
-  derived from forge-manifest.json, embedded forge package, first-boot
-  systemd hook, hash manifest + AD-051 HTML twin, operator README); root
-  password is a fresh single-use AD-039/AD-043-pattern discovery passphrase,
-  never fixed/predictable/KeePass-stored. `FORGING.md`/`.html` gained
-  "Step 0 — Build pre-install media (optional)". 62 new tests; full suite
-  4140 passed, 1 skipped (4 pre-existing unrelated `test_opentofu.py`
-  failures, confirmed present on `main` beforehand). FEATURE-HISTORY
-  updated; commit pending alongside this PAP-state update.
+- **next_action**: **(Updated — ninth milestone closed, 2026-06-08.)**
+  All implementation work is complete. Previous session committed all five
+  items (datetime sweep `c1aef50`, Phase 1.H `072112e`, Phase 1.I `3b32137`,
+  Phase 1.K `c750ed6`, Phase 1.J `f883540`) but hit a usage limit before
+  updating PAP state. This session:
+  - Confirmed Phase 1.J fully implemented (files verified: `_recovery_accounts.py`,
+    `authorize-spawn-media-join.py`).
+  - Added Image Builder GUI: `proxmox-bootstrap/forge-image-builder.html`
+    (cross-platform wizard, offline-first, clipboard-copy mode; server-invoke
+    path noted as future enhancement in AD-057).
+  - Updated ARCHITECTURE.md (AD-057 status, date header), ROADMAP.md (all four
+    phase headings from "proposed" to "implemented (commit X)", Phase 1.H
+    checklist items marked `[x]`, GUI item added), FEATURE-HISTORY.md with
+    new cycle, docs/ARCHITECTURE.html meta line.
+  - Regenerated FEATURE-HISTORY.html and ROADMAP.html.
+  - Full suite: 4388 passed, 1 skipped (unchanged — no Python code touched).
+  **Remaining**: commit + push this PAP-state update and all doc changes.
+  **Next operational action**: deploy to hardware — run `python3
+  proxmox-bootstrap/forge-planner.py` on a real Proxmox host to forge the
+  first cell. See `FORGING.md`.
 
-  (3) **Phase 1.I** (AD-059, Recovery-Readiness Conformance Certificate) —
-  **DONE**: `_recovery_readiness_certificate.py` +
-  `generate-recovery-readiness-certificate.py` compose
-  `recovery-readiness-certificate.json` + AD-051 HTML twin from existing
-  evidence (`manifest_hash`/`graph_hash` SHA-256 over canonical JSON, the
-  real `overall_score`/`overall_score_reason`/component-counts from
-  `score_graph()`, a drift summary from `compute_drift()`, and the latest
-  `DrillRecord` summary); `replay-snapshot.py` recomputes and asserts a
-  stored snapshot's recorded hashes still match (ran clean — `[PASS]` —
-  against the real `assessment_2026-05-29_02_05_00` snapshot);
-  `history/index.py::build_index()` now records both hashes per snapshot
-  entry; `compute_drift()` gained `now_fn` injection (an incidental
-  clock-injection fix — `doc-gen/` wasn't in the original sweep's grep
-  scope); a "Human Intervention Boundary" subsection was added to
-  `ROADMAP.md`. **Premise correction**: AD-059 claimed RRS/ACS/DCS/CRS/OSS
-  scores "already exist in readiness.py" — they don't (only a single
-  `overall_score` does; the five-letter scheme is unpopulated UI code in
-  `broodforge_dashboard.py`); the certificate composes the real signal and
-  documents this finding inline rather than inventing the scheme AD-059
-  itself says is unneeded. 56 new tests; full suite 4252 passed, 1 skipped
-  (same 4 pre-existing `test_opentofu.py` failures). FEATURE-HISTORY +
-  ROADMAP.html updated; commit pending alongside this PAP-state update.
-
-  (4) **Phase 1.K** (AD-061, Scoped Vault Hierarchy + User Provisioning) —
-  **DONE**: `role-scope-registry.yaml` (new per-cell YAML beside
-  `secret-registry.yaml`, same documented-header style) declares roles
-  (`service-operator`/`node-sysadmin`/`god-mode`) with glob-pattern scopes
-  over the existing `owning_cell`/`required_by`/`secret_type`/
-  `required_for` vocabulary; `_vault_hierarchy.py` +
-  `derive-scoped-vault.py` match entries via `fnmatch`, compose a
-  derived-vault plan (in-scope entries, fresh passphrase via
-  `generate_master_password_suggestion()`, an AD-044-pattern
-  `Vaults/{role}/{timestamp}/passphrase` record path for vault-of-vaults
-  bookkeeping, and a `keepassxc-cli` command sequence — broodforge never
-  manipulates binary `.kdbx` files, confirmed; this mirrors
-  `forge_keepass_init.py::render_init_commands()`) + AD-051 HTML twin;
-  `god-mode` is refused by design (`ValueError` — deriving everything from
-  everything under a weaker passphrase is strictly worse). Operator
-  expansions: vault-of-vaults recordkeeping (`vault_record_path()`) and
-  user-provisioning templates (`generate_vm_account_template()` — additive
-  to `spawn_iac_generator.py::generate_cloudinit_user_data()`'s exact
-  Cloud-Init account-block shape; `generate_proxmox_account_commands()` —
-  templated `pveum user add`/`aclmod`/`user token add` sequences with
-  role-tiered PVE roles). Authorization-model/revocation=rotate+reissue
-  documented as design statements (true by construction), not enforcement
-  machinery. Generated passphrases shown once at CLI runtime only, never
-  persisted (test-confirmed absent from JSON/HTML). Ran end-to-end against
-  the real registries (`service-operator` → 9/11 entries, `pve01-*`
-  denylisted). 40 new tests; full suite 4292 passed, 1 skipped (same 4
-  pre-existing `test_opentofu.py` failures). FEATURE-HISTORY updated;
-  commit pending alongside this PAP-state update.
-
-  (5) **Phase 1.J** (AD-060, Hypervisor Recovery: Constrained Accounts +
-  Pre-Generated Spawn Media) — **DONE**, the FOURTH AND FINAL phase,
-  closing the milestone. AD-060 is a firm SHALL-NOT (no autonomous
-  pathway may read/wield a permanent hypervisor root credential against
-  a live hypervisor — "root has no boundary by definition"), with
-  exactly two narrow named exceptions (node-spawn discovery,
-  phoenix-setup), both time-limited and operator-rotation-required.
-  Implemented all three accepted-design parts + the phoenix extension:
-  **(a)** `_recovery_accounts.py` (+ `setup_recovery_account.py` CLI,
-  `build_recovery_account_plan_html` AD-051 twin) — `command="<menu-
-  script>"`-gated `authorized_keys` line (`no-pty,no-port-forwarding,
-  no-X11-forwarding,no-agent-forwarding`) + a fixed-menu POSIX-`sh`
-  script (status/logs/vmlist/vmstart/vmstop), structurally incapable of
-  an arbitrary-shell escape — `$SSH_ORIGINAL_COMMAND` matched against a
-  fixed enumerated `case` of literal verbs only (never `eval`/`sh -c`/
-  backticks), VMID regex-validated (`^[0-9]{1,6}$`) before `exec qm
-  start/stop`; broodforge generates strings only, never installs/runs/
-  connects. **(b)** `secret-registry.yaml` gains `access_policy:
-  break-glass-human-only` (documented header-schema annotation) on
-  `pve01-root-password`; `describe_break_glass_pointer()` surfaces only
-  `id`/`keepass_path`/`description` for runbook display — never a value
-  — "the runbook tells the operator where to look" (existing AD-042
-  human-unlock gate unchanged). **(c)** `_image_builder.py` gains
-  `build_pregenerated_spawn_media_record()` (build-time AD-043
-  passphrase, AD-060(c)) paired with a `pending_join_authorizations`
-  state record (`bootstrap-state.json`, AD-041's recorded-decision
-  shape) storing only a SHA-256 `passphrase_hash`, default `authorized:
-  false`, flippable ONLY by the new human-operated `authorize-spawn-
-  media-join.py` CLI (`--operator` required, refuses unknown/already-
-  authorized bundles, never auto-flips). **(d)** `phoenix_playbook.py`
-  gains `generate_phoenix_session_credential()` (`Capital.phoenix.word.N`,
-  mirrors `generate_temp_password`/`generate_install_passphrase`) +
-  `phoenix_session_credential_section()`, wired into
-  `PhoenixPlaybookGenerator.build()` as `temporary_session_credential`
-  recording `scope: "phoenix-setup-session-only"`, a bounded
-  `valid_window`, and a `rotation_requirement` stating *in the generated
-  output itself* — "ROTATE THIS CREDENTIAL THE MOMENT THIS RECOVERY
-  SESSION COMPLETES… broodforge does not and cannot autonomously verify
-  or perform rotation (doing so would itself be the autonomous full-root
-  pathway AD-060 forbids)." **Constraint-honored confirmation**: grepped
-  `pve0.*root.*password|root-password|root_password` across
-  `proxmox-bootstrap/*.py` (excl. tests) — every match pre-existing
-  (KeePass path-name generation, AD-039 temp-credential exception, AD-043
-  single-use discovery passphrase); no new/modified code reads a
-  permanent root-credential value — confirmed by grep AND by structural
-  guard tests (`TestConstraintHonoredNoRootCredentialReads`) in all three
-  new test files. 96 new tests (`test_recovery_accounts.py` 46,
-  `test_spawn_media_authorization.py` 27,
-  `test_phoenix_session_credential.py` 23); full suite 4388 passed, 1
-  skipped (same 4 pre-existing `test_opentofu.py` failures).
-  FEATURE-HISTORY + HTML twin updated; commit pending alongside this
-  PAP-state update.
-
-  **MILESTONE CLOSED — all five operator-directed items done in the
-  specified order**: datetime sweep (`c1aef50`), Phase 1.H/AD-057
-  (`072112e`), Phase 1.I/AD-059 (`3b32137`), Phase 1.K/AD-061 (`c750ed6`),
-  Phase 1.J/AD-060 (commit pending). **Remaining for this session**:
-  commit + push the Phase 1.J work and this PAP-state update (per the
-  operator's standing `feature_revision_process` / "push on commit"
-  preferences), then deliver the closing summary report the operator
-  explicitly requested: "report a summary of what was implemented and
-  committed vs. what remains."
-
-  No open audit finding remains that requires action (F1/F2/F3/the
-  Recovery-Readiness open-thread all closed and committed; F4 is an
-  observation requiring no action). If the operator gives new direction
-  on any future phase, treat it the same way AD-058's gap was handled:
-  pick it up, scope it precisely to what was asked, write the cycle into
-  `docs/FEATURE-HISTORY.md`, and update this corpus again.
+  No open audit finding remains that requires action (F1/F2/F3 closed;
+  F4 is an observation requiring no action). If the operator gives new
+  direction on any future work, pick it up, scope it precisely to what was
+  asked, write the cycle into `docs/FEATURE-HISTORY.md`, and update this
+  corpus again.
 
 ---
 

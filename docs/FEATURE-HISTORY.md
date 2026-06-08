@@ -248,3 +248,30 @@ directive, implemented strictly in the specified order with Phase 1.J last
 per its explicit constraint-sensitivity. Full suite at milestone close:
 **4388 passed, 1 skipped, 4 deselected** (pre-existing, unrelated, unchanged
 from clean `main`).
+
+---
+
+**Cycle: 2026-06-08_22_41_33 UTC**
+
+## Image Builder GUI Wizard — `forge-image-builder.html` (Phase 1.H addition, AD-057)
+
+Cross-platform operator GUI for `generate-bootstrap-image.py` — a
+self-contained HTML wizard that turns the CLI's eight flags into a guided
+form with live command preview and clipboard copy. No server required;
+works offline by opening the file directly in a browser.
+
+| Feature | Origin | Status | Verification |
+|---|---|---|---|
+| `proxmox-bootstrap/forge-image-builder.html` — self-contained wizard covering all `generate-bootstrap-image.py` arguments: `--manifest` (required, with inline validation), `--output-dir`, `--filesystem` (dropdown: zfs/ext4/xfs/btrfs), `--keyboard`, `--country`, `--disk` (repeatable list with add/remove), `--repo`, `--kdbx` (optional, in a collapsible section). Live JavaScript command builder updates as the operator types; POSIX shell-quoting applied to all path values; clipboard-copy button with fallback for `file://` context | USER-REQUESTED (operator-directed addition to Phase 1.H / AD-057) | Implemented | static + smoke (opened in browser, verified live command preview, copy button, dark/light toggle, validation banner on empty --manifest) |
+| Matches existing broodforge HTML pattern — same CSS variable dark theme with light toggle as `FORGING.html` and `NODE-SPAWNING.html`; same `proxmox-bootstrap/` placement alongside the CLI tool it wraps; fully self-contained (no CDN, no external fonts, no server) | GAP-FILL (consistency with AD-025's "self-contained HTML" standard) | Implemented | static |
+| Post-bundle next-steps section — numbered walkthrough of what to do after `generate-bootstrap-image.py` completes: download official Proxmox VE ISO, extract bundle, run `proxmox-auto-install-assistant prepare-iso`, install first-boot hook, boot target machine, rotate install passphrase | GAP-FILL (closes the "what do I do with the tar.gz" question) | Implemented | static |
+| CLI reference table embedded in collapsible section — all eight flags with defaults and descriptions | GAP-FILL (operator reference without opening generate-bootstrap-image.py) | Implemented | static |
+| AD-057 updated — status changed from "proposed; not started" to "implemented (commit 072112e)" with GUI addition note; ARCHITECTURE.md date header updated | USER-REQUESTED (documentation hygiene per feature_revision_process convention) | Implemented | static |
+| **Future enhancement noted in AD-057**: a `/api/run-image-builder` endpoint in `broodforge_dashboard.py` could stream builder output directly from the dashboard — deferred, clipboard-copy is the MVP and works fully offline | GAP-FILL (named explicitly so it is not silently lost) | Documented (not built) | n/a |
+
+> No new Python tests required — `forge-image-builder.html` is a pure
+> client-side HTML file with no Python module to cover. The existing
+> `test_meta_doc_sync.py` and `test_html_base_sync.py` are unaffected
+> (the wizard is not a `.md`→`.html` companion and does not use
+> `html_base.py`). Full suite: **4388 passed, 1 skipped** (unchanged —
+> no code touched).

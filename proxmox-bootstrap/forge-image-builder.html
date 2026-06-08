@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Broodforge Image Builder Wizard</title>
+<style>
+  :root{--bg:#1a1d23;--bg2:#22262e;--bg3:#2a2f3a;--border:#3a3f4d;--text:#cdd6f4;--muted:#7f8498;
+    --accent:#89b4fa;--green:#a6e3a1;--yellow:#f9e2af;--orange:#fab387;--red:#f38ba8;
+    --code-bg:#181b21;--code-text:#a6e3a1;--radius:6px;--btn-bg:#2a2f3a}
+  body.light{--bg:#ffffff;--bg2:#f4f5f7;--bg3:#eceff2;--border:#d0d7de;--text:#1f2328;--muted:#57606a;
+    --accent:#0969da;--green:#1a7f37;--yellow:#9a6700;--orange:#bc4c00;--red:#cf222e;
+    --code-bg:#f6f8fa;--code-text:#0a3069;--btn-bg:#eaeef2}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+    font-size:14px;line-height:1.6;padding:24px 24px 80px;max-width:900px;margin:0 auto;
+    transition:background .15s,color .15s}
+  h1{color:var(--accent);font-size:1.6em;margin:18px 0 4px}
+  h2{color:var(--accent);font-size:1.0em;margin:24px 0 8px;text-transform:uppercase;letter-spacing:.05em;
+    border-bottom:1px solid var(--border);padding-bottom:4px}
+  h3{color:var(--accent);font-size:.9em;margin:14px 0 6px}
+  a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+  p{margin:8px 0}ul,ol{margin:8px 0 8px 22px}li{margin:4px 0}
+  strong{color:var(--text);font-weight:600}
+  code{background:var(--code-bg);color:var(--code-text);padding:1px 5px;border-radius:3px;
+    font-family:'Cascadia Code','Fira Code',Consolas,monospace;font-size:.88em}
+  pre{background:var(--code-bg);border:1px solid var(--border);border-radius:var(--radius);
+    padding:14px 16px;overflow-x:auto;margin:0;font-family:'Cascadia Code','Fira Code',Consolas,monospace;
+    font-size:.85em;color:var(--code-text);white-space:pre-wrap;word-break:break-all}
+  .doc-meta{color:var(--muted);font-size:.8em;margin:4px 0 20px}
+  #bf-toolbar{position:fixed;top:14px;right:16px;z-index:50;display:flex;gap:8px}
+  #bf-toolbar button{background:var(--btn-bg);color:var(--text);border:1px solid var(--border);
+    border-radius:var(--radius);padding:5px 12px;cursor:pointer;font-size:.8em;font-family:inherit}
+  #bf-toolbar button:hover{border-color:var(--accent);color:var(--accent)}
+
+  /* info/warn/danger boxes */
+  .tip{background:rgba(137,180,250,.08);border-left:3px solid var(--accent);padding:10px 14px;
+    border-radius:0 var(--radius) var(--radius) 0;margin:12px 0}
+  .warn{background:rgba(249,226,175,.08);border-left:3px solid var(--yellow);padding:10px 14px;
+    border-radius:0 var(--radius) var(--radius) 0;margin:12px 0;color:var(--text)}
+  .danger{background:rgba(243,139,168,.08);border-left:3px solid var(--red);padding:10px 14px;
+    border-radius:0 var(--radius) var(--radius) 0;margin:12px 0;color:var(--text)}
+
+  /* form card */
+  .card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+    padding:16px 20px;margin:12px 0}
+  .field{margin:10px 0}
+  .field label{display:block;font-size:.82em;color:var(--muted);margin-bottom:4px;font-weight:600;
+    text-transform:uppercase;letter-spacing:.06em}
+  .field label .req{color:var(--red);margin-left:3px}
+  .field label .opt{color:var(--muted);margin-left:4px;font-weight:400;text-transform:none;
+    letter-spacing:0;font-size:.9em}
+  input[type=text],select{background:var(--code-bg);color:var(--text);border:1px solid var(--border);
+    border-radius:4px;padding:6px 10px;font-family:'Cascadia Code',Consolas,monospace;font-size:.88em;
+    width:100%;outline:none;transition:border-color .12s}
+  input[type=text]:focus,select:focus{border-color:var(--accent)}
+  input[type=text].error{border-color:var(--red)}
+  .field-hint{color:var(--muted);font-size:.78em;margin-top:3px}
+  .field-err{color:var(--red);font-size:.78em;margin-top:3px;display:none}
+  .field-err.show{display:block}
+
+  /* disk list */
+  .disk-list{list-style:none;padding:0;margin:6px 0 0}
+  .disk-item{display:flex;gap:8px;align-items:center;margin:4px 0}
+  .disk-item input{flex:1}
+  .rm-disk{background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;
+    cursor:pointer;padding:4px 10px;font-size:.8em;white-space:nowrap}
+  .rm-disk:hover{border-color:var(--red);color:var(--red)}
+  .add-disk{background:var(--btn-bg);border:1px solid var(--border);color:var(--muted);
+    border-radius:4px;cursor:pointer;padding:5px 12px;font-size:.8em;margin-top:6px}
+  .add-disk:hover{border-color:var(--accent);color:var(--accent)}
+
+  /* command output */
+  .cmd-wrap{position:relative;margin:8px 0}
+  .cmd-wrap pre{padding-right:90px}
+  .copy-btn{position:absolute;top:8px;right:8px;background:var(--btn-bg);color:var(--muted);
+    border:1px solid var(--border);border-radius:4px;padding:3px 12px;cursor:pointer;
+    font-size:.78em;font-family:inherit}
+  .copy-btn:hover{border-color:var(--accent);color:var(--accent)}
+  .copy-btn.copied{border-color:var(--green);color:var(--green)}
+
+  /* validation banner */
+  #validation-banner{display:none;background:rgba(243,139,168,.1);border:1px solid var(--red);
+    border-radius:var(--radius);padding:10px 14px;margin:12px 0;color:var(--red);font-size:.85em}
+  #validation-banner.show{display:block}
+
+  /* step badges */
+  .step-badge{display:inline-block;background:var(--accent);color:var(--bg);border-radius:99px;
+    width:22px;height:22px;line-height:22px;text-align:center;font-weight:700;font-size:.8em;
+    margin-right:8px;flex-shrink:0;vertical-align:middle}
+
+  /* collapsible sections */
+  details.section{margin:8px 0;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+  details.section>summary{background:var(--bg2);color:var(--accent);cursor:pointer;user-select:none;
+    padding:9px 14px;font-weight:600;font-size:.92em;list-style:none;text-transform:uppercase;
+    letter-spacing:.04em;display:flex;align-items:center;gap:8px}
+  details.section>summary::-webkit-details-marker{display:none}
+  details.section>summary::before{content:'▶';font-size:.7em;color:var(--muted);transition:transform .15s}
+  details.section[open]>summary::before{transform:rotate(90deg)}
+  details.section .sec-body{padding:6px 20px 16px}
+
+  /* next-steps list */
+  .steps-list{list-style:none;padding:0;counter-reset:step}
+  .steps-list li{counter-increment:step;display:flex;gap:12px;padding:10px 0;
+    border-bottom:1px solid var(--border)}
+  .steps-list li:last-child{border-bottom:none}
+  .steps-list li::before{content:counter(step);display:flex;align-items:center;justify-content:center;
+    min-width:26px;height:26px;background:var(--bg3);border:1px solid var(--border);
+    border-radius:99px;font-size:.78em;font-weight:700;color:var(--accent);flex-shrink:0;margin-top:2px}
+  .steps-list li .step-body{flex:1;font-size:.88em}
+</style>
+</head>
+<body>
+<div id="bf-toolbar">
+  <button id="bf-theme-btn" type="button">☀ Light</button>
+</div>
+
+<div class="doc-meta">Broodforge — Image Builder Wizard &nbsp;·&nbsp; Phase 1.H, AD-057 &nbsp;·&nbsp; offline-first, no server required</div>
+<h1>Image Builder Wizard</h1>
+<p style="color:var(--muted);margin-bottom:20px">Builds the command to run <code>generate-bootstrap-image.py</code>, which produces a <strong>bootstrap image staging bundle</strong> — a tar.gz you combine with the official Proxmox VE ISO to create bootable pre-install media that forges itself automatically on first boot.</p>
+
+<div class="warn">
+  <strong>This is a wizard, not a launcher.</strong> It generates the CLI command for you to copy and run in a terminal. No files are created here — the command must be run from the <code>proxmox-bootstrap/</code> directory of the broodforge repo.
+</div>
+
+<!-- ── Step 1 – Forge Manifest ──────────────────────────────────── -->
+<details class="section" open>
+<summary><span class="step-badge">1</span> Forge Manifest (required)</summary>
+<div class="sec-body">
+  <div class="field">
+    <label for="f-manifest">Path to forge-manifest.json <span class="req">*</span></label>
+    <input type="text" id="f-manifest" placeholder="forge-manifest.json" autocomplete="off" spellcheck="false">
+    <div class="field-hint">The manifest produced by <code>forge-planner.py</code>. Contains your cell ID, host identity, and network topology — the installer answer file is derived from it.</div>
+    <div class="field-err" id="err-manifest">Required: enter the path to forge-manifest.json</div>
+  </div>
+</div>
+</details>
+
+<!-- ── Step 2 – Output & Install Config ─────────────────────────── -->
+<details class="section" open>
+<summary><span class="step-badge">2</span> Output &amp; Install Configuration</summary>
+<div class="sec-body">
+  <div class="field">
+    <label for="f-output-dir">Output directory <span class="opt">(default: current directory)</span></label>
+    <input type="text" id="f-output-dir" placeholder="." autocomplete="off" spellcheck="false">
+    <div class="field-hint">Where the <code>bootstrap-image-{cell_id}-{timestamp}.tar.gz</code> bundle is written.</div>
+  </div>
+
+  <div class="field">
+    <label for="f-filesystem">Root filesystem</label>
+    <select id="f-filesystem">
+      <option value="zfs" selected>zfs (recommended — Proxmox default, supports snapshots)</option>
+      <option value="ext4">ext4</option>
+      <option value="xfs">xfs</option>
+      <option value="btrfs">btrfs</option>
+    </select>
+  </div>
+
+  <div class="field">
+    <label for="f-keyboard">Keyboard layout <span class="opt">(default: en-us)</span></label>
+    <input type="text" id="f-keyboard" placeholder="en-us" autocomplete="off" spellcheck="false">
+    <div class="field-hint">Proxmox installer keyboard layout (e.g. <code>en-us</code>, <code>de</code>, <code>fr</code>).</div>
+  </div>
+
+  <div class="field">
+    <label for="f-country">Country code <span class="opt">(default: us)</span></label>
+    <input type="text" id="f-country" placeholder="us" autocomplete="off" spellcheck="false">
+    <div class="field-hint">ISO 3166-1 alpha-2 country code for the Proxmox installer (e.g. <code>us</code>, <code>de</code>, <code>gb</code>).</div>
+  </div>
+
+  <div class="field">
+    <label>Target disk devices <span class="opt">(optional — leave blank to get a placeholder you populate later)</span></label>
+    <ul class="disk-list" id="disk-list">
+      <li class="disk-item">
+        <input type="text" class="disk-input" placeholder="/dev/sda" autocomplete="off" spellcheck="false">
+        <button class="rm-disk" type="button" onclick="removeDisk(this)">✕</button>
+      </li>
+    </ul>
+    <button class="add-disk" type="button" onclick="addDisk()">+ Add disk</button>
+    <div class="field-hint">The physical disk device(s) Proxmox will install onto (<code>--disk</code>, repeatable). If omitted, <code>answer.toml</code> will contain a <code>__POPULATE_DISK_DEVICE__</code> placeholder you must fill in before use.</div>
+  </div>
+</div>
+</details>
+
+<!-- ── Step 3 – Optional Paths ──────────────────────────────────── -->
+<details class="section">
+<summary><span class="step-badge">3</span> Optional — Repo &amp; KeePass Paths</summary>
+<div class="sec-body">
+  <div class="tip">Both fields are optional. Leave blank if you are running <code>generate-bootstrap-image.py</code> from within the <code>proxmox-bootstrap/</code> directory — the repo root is inferred automatically.</div>
+
+  <div class="field">
+    <label for="f-repo">Broodforge repo root <span class="opt">(default: inferred from script location)</span></label>
+    <input type="text" id="f-repo" placeholder="/path/to/broodforge" autocomplete="off" spellcheck="false">
+    <div class="field-hint">Used to bundle library code into the embedded forge package. Pass <code>--repo</code> only if auto-inference fails (e.g. you run the script from a different working directory).</div>
+  </div>
+
+  <div class="field">
+    <label for="f-kdbx">KeePass database path <span class="opt">(optional — embeds .kdbx in forge package)</span></label>
+    <input type="text" id="f-kdbx" placeholder="/path/to/cell.kdbx" autocomplete="off" spellcheck="false">
+    <div class="field-hint">Path to the cell's <code>.kdbx</code> file to embed in the forge package so the new host can access secrets during automated forging. Optional if you plan to copy it separately.</div>
+  </div>
+</div>
+</details>
+
+<!-- ── Generated Command ─────────────────────────────────────────── -->
+<h2 style="margin-top:28px">Generated Command</h2>
+
+<div id="validation-banner"></div>
+
+<div class="cmd-wrap">
+  <pre id="cmd-output">python3 generate-bootstrap-image.py --manifest forge-manifest.json</pre>
+  <button class="copy-btn" id="copy-btn" type="button" onclick="copyCmd()">Copy</button>
+</div>
+
+<div class="tip" style="margin-top:12px">
+  <strong>Run this from the <code>proxmox-bootstrap/</code> directory.</strong>
+  The command will print a single-use install passphrase — <strong>note it down before closing the terminal</strong>. It will not be recoverable from the bundle afterward.
+</div>
+
+<!-- ── Next Steps ────────────────────────────────────────────────── -->
+<h2 style="margin-top:28px">After Running the Command</h2>
+<p style="color:var(--muted);font-size:.88em;margin-bottom:12px">The command produces a <code>bootstrap-image-{cell_id}-{timestamp}.tar.gz</code> staging bundle. These are the manual steps to turn it into bootable media:</p>
+
+<ol class="steps-list">
+  <li>
+    <div class="step-body">
+      <strong>Download the official Proxmox VE ISO</strong> for your target version from <code>https://www.proxmox.com/en/downloads</code>. broodforge does not download or redistribute Proxmox media.
+    </div>
+  </li>
+  <li>
+    <div class="step-body">
+      <strong>Extract the staging bundle</strong> and note the printed install passphrase:
+      <br><code>tar -xzf bootstrap-image-*.tar.gz</code>
+      <br>The passphrase is also printed to the terminal when you ran the command above. It goes in <code>answer.toml</code>'s <code>root-password</code> field and is not stored anywhere in the bundle.
+    </div>
+  </li>
+  <li>
+    <div class="step-body">
+      <strong>Combine with the Proxmox ISO</strong> using <code>proxmox-auto-install-assistant</code> (available from Proxmox):
+      <br><code>proxmox-auto-install-assistant prepare-iso &lt;proxmox.iso&gt; --fetch-from iso --answer-file iso-staging/answer.toml --output bootable.iso</code>
+      <br>Or use the USB-preparation method described in Proxmox's "Automated Installation" documentation.
+    </div>
+  </li>
+  <li>
+    <div class="step-body">
+      <strong>Copy the forge package and first-boot hook</strong> into the ISO/USB so <code>answer.toml</code>'s post-install hook can find them. See <code>iso-staging/README.md</code> inside the bundle for exact paths.
+    </div>
+  </li>
+  <li>
+    <div class="step-body">
+      <strong>Boot the target machine</strong> from the prepared media. Proxmox installs unattended, then <code>broodforge-first-boot.service</code> runs <code>forge.sh</code> automatically on first boot — bare metal → operational hatchery with no further interaction required.
+    </div>
+  </li>
+  <li>
+    <div class="step-body">
+      <strong>Rotate the install passphrase</strong> once forging completes. The forge package's phase-03 replaces it with a KeePass-managed credential, but you should confirm and discard/invalidate the original single-use value.
+    </div>
+  </li>
+</ol>
+
+<div class="warn" style="margin-top:16px">
+  <strong>Supported baseline:</strong> The pre-install media path is an optional alternative to the standard FORGING.md workflow. If you already have Proxmox installed on the target host, continue from FORGING.md Step 1 instead — this wizard is only needed if you want a fully-automated bare-metal bootstrap.
+</div>
+
+<!-- ── Reference ─────────────────────────────────────────────────── -->
+<details class="section" style="margin-top:24px">
+<summary>CLI reference — all flags</summary>
+<div class="sec-body">
+<table style="width:100%;border-collapse:collapse;font-size:.85em;margin:8px 0">
+<thead><tr>
+  <th style="background:var(--bg3);color:var(--muted);text-align:left;padding:5px 8px;border-bottom:1px solid var(--border)">Flag</th>
+  <th style="background:var(--bg3);color:var(--muted);text-align:left;padding:5px 8px;border-bottom:1px solid var(--border)">Default</th>
+  <th style="background:var(--bg3);color:var(--muted);text-align:left;padding:5px 8px;border-bottom:1px solid var(--border)">Description</th>
+</tr></thead>
+<tbody>
+<tr><td style="padding:5px 8px;border-bottom:1px solid var(--bg3)"><code>--manifest</code></td><td style="padding:5px 8px;border-bottom:1px solid var(--bg3);color:var(--red)">required</td><td style="padding:5px 8px;border-bottom:1px solid var(--bg3)">Path to forge-manifest.json</td></tr>
+<tr><td style="padding:5px 8px;border-bottom:1px solid var(--bg3)"><code>--output-dir</code></td><td style="padding:5px 8px;border-bottom:1px solid var(--bg3)"><code>.</code></td><td style="padding:5px 8px;border-bottom:1px solid var(--bg3)">Directory to write the bundle into</td></tr>
+<tr><td style="padding:5px 8px;border-bottom:1px solid var(--bg3)"><code>--repo</code></td><td style="padding:5px 8px;border-bottom:1px solid var(--bg3)"><em>inferred</em></td><td style="padding:5px 8px;border-bottom:1px solid var(--bg3)">Path to broodforge repo root (to bundle library code)</td></tr>
+<tr><td style="padding:5px 8px;border-bottom:1px solid var(--bg3)"><code>--kdbx</code></td><td style="padding:5px 8px;border-bottom:1px solid var(--bg3)"><em>none</em></td><td style="padding:5px 8px;border-bottom:1px solid var(--bg3)">Path to <code>.kdbx</code> to embed in the forge package</td></tr>
+<tr><td style="padding:5px 8px;border-bottom:1px solid var(--bg3)"><code>--keyboard</code></td><td style="padding:5px 8px;border-bottom:1px solid var(--bg3)"><code>en-us</code></td><td style="padding:5px 8px;border-bottom:1px solid var(--bg3)">Keyboard layout for <code>answer.toml</code></td></tr>
+<tr><td style="padding:5px 8px;border-bottom:1px solid var(--bg3)"><code>--country</code></td><td style="padding:5px 8px;border-bottom:1px solid var(--bg3)"><code>us</code></td><td style="padding:5px 8px;border-bottom:1px solid var(--bg3)">ISO country code for <code>answer.toml</code></td></tr>
+<tr><td style="padding:5px 8px;border-bottom:1px solid var(--bg3)"><code>--filesystem</code></td><td style="padding:5px 8px;border-bottom:1px solid var(--bg3)"><code>zfs</code></td><td style="padding:5px 8px;border-bottom:1px solid var(--bg3)">Root filesystem: <code>zfs</code>, <code>ext4</code>, <code>xfs</code>, <code>btrfs</code></td></tr>
+<tr><td style="padding:5px 8px"><code>--disk</code></td><td style="padding:5px 8px"><em>placeholder</em></td><td style="padding:5px 8px">Target disk device path, repeatable (e.g. <code>/dev/sda</code>)</td></tr>
+</tbody>
+</table>
+</div>
+</details>
+
+<script>
+(function(){
+  // ── Theme toggle ──────────────────────────────────────────────────
+  var btn = document.getElementById('bf-theme-btn');
+  btn.addEventListener('click', function(){
+    document.body.classList.toggle('light');
+    btn.textContent = document.body.classList.contains('light') ? '🌙 Dark' : '☀ Light';
+  });
+
+  // ── Shell quoting (POSIX — wraps value in single-quotes, escaping embedded single-quotes) ──
+  function shq(v) {
+    if (!v) return '';
+    // If no special characters, return bare
+    if (/^[a-zA-Z0-9._\-\/]+$/.test(v)) return v;
+    // Single-quote with embedded single-quote escaping
+    return "'" + v.replace(/'/g, "'\\''") + "'";
+  }
+
+  // ── Disk list management ─────────────────────────────────────────
+  window.addDisk = function() {
+    var list = document.getElementById('disk-list');
+    var li = document.createElement('li');
+    li.className = 'disk-item';
+    li.innerHTML = '<input type="text" class="disk-input" placeholder="/dev/sdb" autocomplete="off" spellcheck="false"><button class="rm-disk" type="button" onclick="removeDisk(this)">✕</button>';
+    li.querySelector('input').addEventListener('input', buildCmd);
+    list.appendChild(li);
+    buildCmd();
+  };
+
+  window.removeDisk = function(btn) {
+    var li = btn.parentElement;
+    var list = document.getElementById('disk-list');
+    if (list.children.length > 1) {
+      list.removeChild(li);
+    } else {
+      li.querySelector('input').value = '';
+    }
+    buildCmd();
+  };
+
+  // ── Command builder ───────────────────────────────────────────────
+  function getDiskInputs() {
+    return Array.from(document.querySelectorAll('.disk-input'))
+      .map(function(i){ return i.value.trim(); })
+      .filter(function(v){ return v !== ''; });
+  }
+
+  function buildCmd() {
+    var manifest  = document.getElementById('f-manifest').value.trim();
+    var outputDir = document.getElementById('f-output-dir').value.trim();
+    var repo      = document.getElementById('f-repo').value.trim();
+    var kdbx      = document.getElementById('f-kdbx').value.trim();
+    var keyboard  = document.getElementById('f-keyboard').value.trim();
+    var country   = document.getElementById('f-country').value.trim();
+    var filesystem= document.getElementById('f-filesystem').value;
+    var disks     = getDiskInputs();
+
+    // Validate
+    var errors = [];
+    var manifestErr = document.getElementById('err-manifest');
+    var manifestInput = document.getElementById('f-manifest');
+    if (!manifest) {
+      errors.push('forge-manifest.json path is required (Step 1)');
+      manifestErr.classList.add('show');
+      manifestInput.classList.add('error');
+    } else {
+      manifestErr.classList.remove('show');
+      manifestInput.classList.remove('error');
+    }
+
+    var banner = document.getElementById('validation-banner');
+    if (errors.length > 0) {
+      banner.innerHTML = '<strong>Fix before running:</strong><ul style="margin:4px 0 0 18px">' +
+        errors.map(function(e){ return '<li>' + e + '</li>'; }).join('') + '</ul>';
+      banner.classList.add('show');
+    } else {
+      banner.classList.remove('show');
+    }
+
+    // Build command
+    var parts = ['python3 generate-bootstrap-image.py'];
+    parts.push('--manifest ' + shq(manifest || 'forge-manifest.json'));
+
+    if (outputDir && outputDir !== '.') {
+      parts.push('--output-dir ' + shq(outputDir));
+    }
+    if (repo) {
+      parts.push('--repo ' + shq(repo));
+    }
+    if (kdbx) {
+      parts.push('--kdbx ' + shq(kdbx));
+    }
+    if (keyboard && keyboard !== 'en-us') {
+      parts.push('--keyboard ' + shq(keyboard));
+    }
+    if (country && country !== 'us') {
+      parts.push('--country ' + shq(country));
+    }
+    if (filesystem && filesystem !== 'zfs') {
+      parts.push('--filesystem ' + filesystem);
+    }
+    disks.forEach(function(d){
+      parts.push('--disk ' + shq(d));
+    });
+
+    document.getElementById('cmd-output').textContent = parts.join(' \\\n    ');
+    // Reset copy button
+    var cp = document.getElementById('copy-btn');
+    cp.textContent = 'Copy';
+    cp.classList.remove('copied');
+  }
+
+  // ── Copy button ───────────────────────────────────────────────────
+  window.copyCmd = function() {
+    var text = document.getElementById('cmd-output').textContent;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function(){
+        var btn = document.getElementById('copy-btn');
+        btn.textContent = 'Copied!';
+        btn.classList.add('copied');
+        setTimeout(function(){ btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+      });
+    } else {
+      // Fallback for older browsers / file:// context
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      var btn = document.getElementById('copy-btn');
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(function(){ btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+    }
+  };
+
+  // ── Wire all inputs to command builder ────────────────────────────
+  ['f-manifest','f-output-dir','f-repo','f-kdbx','f-keyboard','f-country','f-filesystem']
+    .forEach(function(id){
+      var el = document.getElementById(id);
+      if (el) el.addEventListener('input', buildCmd);
+      if (el) el.addEventListener('change', buildCmd);
+    });
+
+  // Wire first disk input
+  var firstDisk = document.querySelector('.disk-input');
+  if (firstDisk) firstDisk.addEventListener('input', buildCmd);
+
+  // Initial render
+  buildCmd();
+})();
+</script>
+</body>
+</html>

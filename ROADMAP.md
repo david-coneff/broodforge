@@ -1,14 +1,13 @@
 # Broodforge — Roadmap
 
 Version: 7.1
-Last updated: 2026-06-08 (operator decisions promoted the three draft sketches
-to scoped, numbered phases: **Phase 1.I** — Recovery-Readiness Conformance
-(AD-059), **Phase 1.J** — Hypervisor Recovery: Constrained Accounts and
-Pre-Generated Spawn Media (AD-060 — firm constraint: no autonomous pathway may
-wield full root against live hypervisors), **Phase 1.K** — Granular Secret
-Access Silos: Vault Hierarchy and User Provisioning (AD-061); Phase 1.H
-remains proposed — Pre-Install Forge Package and Image Builder; see "Proposed
-Future Work" below)
+Last updated: 2026-06-08 (all four proposed phases now implemented and committed:
+**Phase 1.H** — Pre-Install Forge Package and Image Builder (AD-057, commit 072112e)
+with cross-platform GUI wizard added (`forge-image-builder.html`);
+**Phase 1.I** — Recovery-Readiness Conformance Certificate (AD-059, commit 3b32137);
+**Phase 1.K** — Granular Secret Access Silos: Vault Hierarchy and User Provisioning (AD-061, commit c750ed6);
+**Phase 1.J** — Hypervisor Recovery: Constrained Accounts and Pre-Generated Spawn Media
+(AD-060, commit f883540 — firm constraint: no autonomous pathway may wield full root against live hypervisors))
 Architecture: v7.1 (see ARCHITECTURE.md; design evolution in docs/DESIGN-HISTORY.md)
 
 ---
@@ -196,7 +195,7 @@ broodforge's actual product (a Proxmox/k3s infrastructure platform), not as a
 quality judgment on the material itself. See "What was deferred and why" at the
 end of this section.
 
-### Phase 1.H — Pre-Install Forge Package and Image Builder *(proposed)*
+### Phase 1.H — Pre-Install Forge Package and Image Builder *(implemented — commit 072112e; GUI wizard added)*
 
 **Source:** `new/BroodForge_Chapter_16_Bootstrap_and_First_Node_Architecture.docx`,
 `new/BroodForge_Specification_70_Bootstrap_Forge_Package_and_First_Node_Deployment.docx`,
@@ -216,27 +215,30 @@ concrete mechanism.
 
 **Proposed scope (additive — does not replace the existing path):**
 
-- [ ] `generate-bootstrap-image.py` — Image Builder CLI. Consumes
+- [x] `generate-bootstrap-image.py` — Image Builder CLI. Consumes
       `forge-manifest.json` plus a Proxmox VE unattended-installer answer file
       (`answer.toml`, Proxmox 8+ automated installer format) and produces a
       single bootable ISO/USB image bundling: (a) the automated Proxmox VE
       installer, (b) the assembled forge package, (c) a first-boot hook.
-- [ ] Answer-file template generator — derive `answer.toml` (disk layout,
+- [x] Answer-file template generator — derive `answer.toml` (disk layout,
       network, root credentials, timezone) from the same `forge-manifest.json`
       fields the guided-setup framework (AD-049) already collects, so the
       operator answers setup questions exactly once.
-- [ ] First-boot automation hook — a systemd unit installed by the answer
+- [x] First-boot automation hook — a systemd unit installed by the answer
       file's post-install script that runs the embedded forge package's
       `forge.sh` automatically on the freshly-installed host's first boot,
       replacing the manual "SSH in and kick off forging" step.
-- [ ] Image artifact verification — hash/signature manifest for the generated
+- [x] Image artifact verification — hash/signature manifest for the generated
       image, following the same supply-chain verification pattern already
       established for forge/spawn/phoenix packages (AD-042 KeePass gating,
       AD-051 HTML manifest alongside every machine-readable manifest).
-- [ ] `FORGING.md` gains an alternative "Step 0 — Build pre-install media
+- [x] `FORGING.md` gains an alternative "Step 0 — Build pre-install media
       (optional)" path; the existing "Proxmox already installed" path remains
       the supported baseline for operators who provision hosts another way
       (existing Proxmox cluster, hosting-provider-imaged hardware, etc.).
+- [x] `forge-image-builder.html` — cross-platform GUI wizard for the Image
+      Builder CLI: self-contained HTML, offline-first, dark/light theme toggle,
+      live command preview, clipboard copy. No server required.
 
 **Why this is additive, not a redesign:** the forge manifest is *already*
 generated entirely on the operator's workstation before any contact with the
@@ -312,7 +314,7 @@ If a future operator wants any of this revisited, the entry points are
 `new/BroodForge_Synthesis_Entry_For_Claude_Analysis_v1.docx` (the corpus's
 own "how to analyze me" document) — both still present, untouched.
 
-### Phase 1.I — Recovery-Readiness Conformance *(proposed)*
+### Phase 1.I — Recovery-Readiness Conformance *(implemented — commit 3b32137)*
 
 **Status: scoped 2026-06-08 — proposed, not started.** Promoted from the
 draft sketch below by direct operator decision: *"Recovery-Readiness
@@ -475,7 +477,7 @@ rewrite.
 **This scope was confirmed by direct operator decision on 2026-06-08** — see
 the status block at the top of this section and AD-059.
 
-### Phase 1.J — Hypervisor Recovery: Constrained Accounts and Pre-Generated Spawn Media *(proposed)*
+### Phase 1.J — Hypervisor Recovery: Constrained Accounts and Pre-Generated Spawn Media *(implemented — commit f883540)*
 
 **Status: scoped 2026-06-08 — proposed, not started.** Promoted from the
 draft recommendation below by direct operator decision, which also recorded a
@@ -595,7 +597,7 @@ block at the top of this section, AD-060, and Phase 1.J's scope, which scopes
 items 1 and 3 above as implementation targets and item 2 as the
 `secret-registry.yaml` / `SecretRegistry` annotation described.
 
-### Phase 1.K — Granular Secret Access Silos: Vault Hierarchy and User Provisioning *(proposed)*
+### Phase 1.K — Granular Secret Access Silos: Vault Hierarchy and User Provisioning *(implemented — commit c750ed6)*
 
 **Status: scoped 2026-06-08 — proposed, not started.** Promoted from the
 draft sketch below by direct operator decision, which expanded its scope in
