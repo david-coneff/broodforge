@@ -212,10 +212,18 @@ class TestForgeScripts:
         assert gate_pos < kdbx_pos, "forge_keepass_gate must appear before kdbx_get in phase-06"
 
     def test_keepass_gate_has_session_file_support(self):
-        # R3-004: gate must persist password to a session file for cross-phase idempotency
+        # R3-004/R4-001: gate must persist both FORGE_KDBX_PATH and password to session file
         g = _fs.FORGE_KEEPASS_GATE_SH
         assert "_FORGE_SESSION_FILE" in g, "gate must define session file variable"
         assert "install -m 600" in g or "chmod 600" in g, "session file must be 0600"
+        # R4-001: session file must store FORGE_KDBX_PATH (line 1) alongside password (line 2)
+        assert "FORGE_KDBX_PATH" in g, "gate must reference FORGE_KDBX_PATH in session file"
+        # Resume path must export FORGE_KDBX_PATH so kdbx_get can use it in subprocess
+        resume_start = g.find("Session resumed")
+        assert resume_start != -1, "gate must have a 'session resumed' message"
+        resume_section = g[:resume_start]
+        assert "export FORGE_KDBX_PATH" in resume_section, \
+            "session resume must export FORGE_KDBX_PATH so kdbx_get can use it"
 
     def test_forge_sh_cleans_up_session_file(self):
         # R3-004: forge.sh must remove the session file on exit

@@ -110,9 +110,10 @@ forge_keepass_gate() {
     local _perm
     _perm="$(stat -c '%a' "$_FORGE_SESSION_FILE" 2>/dev/null || echo "000")"
     if [ "$_perm" = "600" ]; then
-      KEEPASS_MASTER_PASSWORD="$(cat "$_FORGE_SESSION_FILE")"
-      # FORGE_KDBX_PATH is exported; restore if empty (e.g. first source in this shell)
-      [ -z "$FORGE_KDBX_PATH" ] && FORGE_KDBX_PATH="${FORGE_KDBX_PATH:-}"
+      # Session file format: line 1 = FORGE_KDBX_PATH, line 2 = KEEPASS_MASTER_PASSWORD
+      FORGE_KDBX_PATH="$(sed -n '1p' "$_FORGE_SESSION_FILE")"
+      KEEPASS_MASTER_PASSWORD="$(sed -n '2p' "$_FORGE_SESSION_FILE")"
+      export FORGE_KDBX_PATH
       FORGE_KDBX_UNLOCKED=1
       echo "[kdbx] Session resumed from forge session file." >/dev/tty
       return 0
@@ -134,10 +135,11 @@ forge_keepass_gate() {
   # so child processes do not inherit it via their environment
   export FORGE_KDBX_PATH
   FORGE_KDBX_UNLOCKED=1
-  # Persist password to tmpfs session file (0600) so later phase subprocesses
-  # can resume without re-prompting the operator.
+  # Persist kdbx path + password to tmpfs session file (0600) so later phase
+  # subprocesses can resume without re-prompting the operator.
+  # Format: line 1 = FORGE_KDBX_PATH, line 2 = KEEPASS_MASTER_PASSWORD
   install -m 600 /dev/null "$_FORGE_SESSION_FILE" 2>/dev/null && \\
-    printf '%s' "$KEEPASS_MASTER_PASSWORD" > "$_FORGE_SESSION_FILE" || \\
+    printf '%s\\n%s' "$FORGE_KDBX_PATH" "$KEEPASS_MASTER_PASSWORD" > "$_FORGE_SESSION_FILE" || \\
     echo "[kdbx] WARNING: could not write session file — later phases will re-prompt." >/dev/tty
   echo "[kdbx] Unlocked. Secrets broker active." >/dev/tty
   echo "" >/dev/tty
