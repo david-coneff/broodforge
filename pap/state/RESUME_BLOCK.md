@@ -20,17 +20,20 @@ behavior, not its development process, and is out of scope for this artifact
   tiers, five dependency-graph types. Architecture v7.1+. (Source:
   `.ai/context.md`, `.ai/CURRENT_STATE.md`.)
 
-- **active_objective**: Audit Cycle R5 (PAP 37-pattern manual scan) **complete**
-  (2026-06-09). Phase 1.M fully implemented and committed. All phases through 1.M done.
-  11 code fixes from R5: 2 Fail Open → Fail Safe (remediation_policy.py), 3 Silent
-  Degradation (platform_state_collector, validate-metadata, hatchery_receiver), 6
-  Orphaned Outputs (unused imports in 4 files, rejected_by stored in RemediationProposal,
-  post_comparison rendered in build_drill_summary_html). 3 Phase 1.M regression fixes
-  (deal postconditions had wrong field names; hypothesis tests had wrong attribute checks).
-  All tests pass. No further proposed development phases in `ROADMAP.md`.
-  Next operational action: **deploy to hardware**.
+- **active_objective**: Audit Cycle R7 (PAP 37-pattern scan of post-R6 changes) **complete**
+  (2026-06-09). 2 findings fixed: R7-001 (MEDIUM, Pattern 10 Happy Path Only) — `generate-answer-file.py`
+  now handles malformed JSON manifests with `try/except json.JSONDecodeError`; R7-002 (LOW, Pattern 14
+  Missing Seam) — `code_health_to_remediation_candidates()` and `dynamic_health_to_remediation_candidates()`
+  in `continuous_assessment.py` now accept `now_fn` injection consistent with the rest of the file.
+  R7-003 (Pattern 21 Orphaned Outputs) — `collect_health_remediation_candidates()` has no production
+  caller; accepted as future-integration API (OBSERVATION, no fix). 8 new tests; 4516 passed, 16 skipped.
+  No further proposed development phases in `ROADMAP.md`. Next operational action: **deploy to hardware**.
 
-- **active_milestone**: (Updated — fifteenth milestone, 2026-06-09 Audit Cycle R5.)
+- **active_milestone**: (Updated — sixteenth milestone, 2026-06-09 Audit Cycle R7.)
+  R7 complete: 37-pattern PAP manual scan on post-R6 changes + 2 code fixes + 1 observation.
+  See `docs/AUDIT-FINDINGS.md` for full R7 record (R7-001 through R7-003).
+
+  (Previous — fifteenth milestone, 2026-06-09 Audit Cycle R5.)
   R5 complete: 37-pattern PAP manual scan + 11 code fixes + 3 regression fixes.
   See `docs/AUDIT-FINDINGS.md` for full R5 record (R5-001 through R5-014).
 
@@ -249,10 +252,9 @@ behavior, not its development process, and is out of scope for this artifact
   recent PAP-AUDIT of broodforge; broodforge's own `docs/AUDIT-FINDINGS.md`
   cycles likewise show no open blocking item as of the last entry.)
 
-- **next_action**: **(Updated — fifteenth milestone closed, 2026-06-09.)**
-  R5+R6 audit cycles complete. Zero findings in two consecutive runs (vulture
-  went from 7 to 0; all other tools already at 0). Audit loop complete per
-  the stop condition (zero findings × 2 consecutive cycles).
+- **next_action**: **(Updated — sixteenth milestone closed, 2026-06-09.)**
+  R7 audit cycle complete. 2 findings fixed (R7-001 MEDIUM, R7-002 LOW); 1 observation
+  recorded (R7-003). All 4516 tests pass. Static pre-flight: 0 findings.
   **Next operational action**: deploy to hardware — run `python3
   proxmox-bootstrap/forge-planner.py` on a real Proxmox host to forge the
   first cell. See `FORGING.md`.

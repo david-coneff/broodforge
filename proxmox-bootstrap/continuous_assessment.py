@@ -960,7 +960,11 @@ def assess_dynamic_health(
 # delegates to them rather than duplicating the logic.
 # ---------------------------------------------------------------------------
 
-def code_health_to_remediation_candidates(score: "CodeHealthScore") -> "list[dict]":
+def code_health_to_remediation_candidates(
+    score: "CodeHealthScore",
+    *,
+    now_fn: Optional[Callable[[], str]] = None,
+) -> "list[dict]":
     """
     Convert HIGH static analysis findings in a CodeHealthScore to remediation
     candidate dicts following the RemediationCandidate dict pattern from
@@ -972,7 +976,7 @@ def code_health_to_remediation_candidates(score: "CodeHealthScore") -> "list[dic
     """
     from datetime import datetime, timezone as _tz
     candidates: list[dict] = []
-    now = datetime.now(_tz.utc).isoformat()
+    now = (now_fn or (lambda: datetime.now(_tz.utc).isoformat()))()
 
     bandit_high = getattr(score, "bandit_high_count", 0)
     sc_findings = getattr(score, "shellcheck_findings", 0)
@@ -1004,7 +1008,11 @@ def code_health_to_remediation_candidates(score: "CodeHealthScore") -> "list[dic
     return candidates
 
 
-def dynamic_health_to_remediation_candidates(score: "DynamicHealthScore") -> "list[dict]":
+def dynamic_health_to_remediation_candidates(
+    score: "DynamicHealthScore",
+    *,
+    now_fn: Optional[Callable[[], str]] = None,
+) -> "list[dict]":
     """
     Convert HIGH dynamic analysis findings in a DynamicHealthScore to
     remediation candidate dicts. Returns an empty list when score is
@@ -1016,7 +1024,7 @@ def dynamic_health_to_remediation_candidates(score: "DynamicHealthScore") -> "li
     if getattr(score, "not_implemented", False) or getattr(score, "error", None):
         return candidates
 
-    now = datetime.now(_tz.utc).isoformat()
+    now = (now_fn or (lambda: datetime.now(_tz.utc).isoformat()))()
     hyp_fail = getattr(score, "hypothesis_failures", 0)
     mut_pct = getattr(score, "mutation_score_pct", -1.0)
     bats_fail = getattr(score, "bats_failed", 0)
@@ -1090,6 +1098,6 @@ def collect_health_remediation_candidates(
     static_score = assess_code_health(repo_root, run_fn=run_fn, now_fn=now_fn)
     dynamic_score = assess_dynamic_health(repo_root, run_fn=run_fn, now_fn=now_fn)
     return (
-        code_health_to_remediation_candidates(static_score)
-        + dynamic_health_to_remediation_candidates(dynamic_score)
+        code_health_to_remediation_candidates(static_score, now_fn=now_fn)
+        + dynamic_health_to_remediation_candidates(dynamic_score, now_fn=now_fn)
     )

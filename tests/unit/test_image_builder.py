@@ -6,6 +6,7 @@ test_image_builder.py — Tests for Phase 1.H (AD-057):
 
 import json
 import os
+import subprocess
 import sys
 import tarfile
 from datetime import datetime, timezone
@@ -13,6 +14,8 @@ from pathlib import Path
 
 _ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 sys.path.insert(0, os.path.join(_ROOT, "proxmox-bootstrap"))
+
+_ANSWER_FILE_CLI = Path(_ROOT) / "proxmox-bootstrap" / "generate-answer-file.py"
 
 import _image_builder as _ib
 import html_package_manifest as _hpm
@@ -517,3 +520,53 @@ class TestStagingReadme:
     def test_mentions_optional_alternative_path(self):
         s = _ib.generate_staging_readme(_manifest(), now=_NOW)
         assert "OPTIONAL" in s or "optional" in s.lower()
+
+
+# ===========================================================================
+# generate-answer-file.py CLI (R7-001 — PAP audit fix)
+# ===========================================================================
+
+class TestAnswerFileCLI:
+    """CLI-level tests for generate-answer-file.py (thin wrapper over _image_builder)."""
+
+    def _run(self, args: list, tmp_path: Path) -> subprocess.CompletedProcess:
+        return subprocess.run(
+            [sys.executable, str(_ANSWER_FILE_CLI)] + args,
+            capture_output=True, text=True, timeout=15, cwd=str(tmp_path),
+        )
+
+    def test_missing_manifest_exits_1(self, tmp_path):
+        result = self._run(["--manifest", str(tmp_path / "nonexistent.json")], tmp_path)
+        assert result.returncode == 1
+        assert "not found" in result.stderr.lower() or "manifest" in result.stderr.lower()
+
+    def test_invalid_json_manifest_exits_1(self, tmp_path):
+        bad = tmp_path / "bad.json"
+        bad.write_text("{ this is not valid json }")
+        result = self._run(["--manifest", str(bad)], tmp_path)
+        assert result.returncode == 1
+        assert "json" in result.stderr.lower() or "valid" in result.stderr.lower()
+
+    def test_valid_manifest_outputs_answer_toml(self, tmp_path):
+        manifest_path = tmp_path / "manifest.json"
+        manifest_path.write_text(json.dumps(_manifest()))
+        result = self._run(["--manifest", str(manifest_path)], tmp_path)
+        assert result.returncode == 0
+        assert "[global]" in result.stdout
+        assert "[network]" in result.stdout
+
+    def test_valid_manifest_with_output_flag(self, tmp_path):
+        manifest_path = tmp_path / "manifest.json"
+        manifest_path.write_text(json.dumps(_manifest()))
+        out_path = tmp_path / "answer.toml"
+        result = self._run(["--manifest", str(manifest_path), "--output", str(out_path)], tmp_path)
+        assert result.returncode == 0
+        assert out_path.exists()
+        assert "[global]" in out_path.read_text()
+
+    def test_passphrase_warning_on_stderr(self, tmp_path):
+        manifest_path = tmp_path / "manifest.json"
+        manifest_path.write_text(json.dumps(_manifest()))
+        result = self._run(["--manifest", str(manifest_path)], tmp_path)
+        assert result.returncode == 0
+        assert "PASSPHRASE" in result.stderr or "passphrase" in result.stderr.lower()

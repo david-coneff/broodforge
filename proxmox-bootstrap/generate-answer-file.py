@@ -104,8 +104,12 @@ def main() -> None:
         print(f"[error] Manifest not found: {manifest_path}", file=sys.stderr)
         sys.exit(1)
 
-    with open(manifest_path) as f:
-        manifest = json.load(f)
+    try:
+        with open(manifest_path) as f:
+            manifest = json.load(f)
+    except json.JSONDecodeError as exc:
+        print(f"[error] Manifest is not valid JSON: {exc}", file=sys.stderr)
+        sys.exit(1)
 
     passphrase = generate_install_passphrase()
     answer_toml = generate_answer_toml(

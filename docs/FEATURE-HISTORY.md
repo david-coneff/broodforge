@@ -15,6 +15,33 @@ Timestamps are `YYYY-MM-DD_HH_MM_SS` UTC.
 
 ---
 
+**Cycle: 2026-06-09_17_00_00 UTC**
+
+## PAP Audit R7 — Post-b8bd7bc/1a9754f fixes
+
+| Feature | Origin | Status | Verification |
+|---|---|---|---|
+| `generate-answer-file.py` — `json.JSONDecodeError` handling (R7-001) | GAP-FILL | Fixed | unit (5 CLI tests in TestAnswerFileCLI) |
+| `code_health_to_remediation_candidates()` / `dynamic_health_to_remediation_candidates()` — `now_fn` clock injection (R7-002) | GAP-FILL | Fixed | unit (3 tests in TestCandidateFunctionsClockInjection) |
+| `collect_health_remediation_candidates()` — orphaned output observation (R7-003) | GAP-FILL | OBSERVATION | static (no production caller; documented future-integration API) |
+
+**R7-001:** Added `try/except json.JSONDecodeError` around `json.load()` in `generate-answer-file.py`
+so malformed manifests produce `[error] Manifest is not valid JSON: <detail>` + exit 1
+rather than an unhandled traceback. Pattern 10 (Happy Path Only).
+
+**R7-002:** Added `now_fn: Optional[Callable[[], str]] = None` to `code_health_to_remediation_candidates()`
+and `dynamic_health_to_remediation_candidates()` to match the rest of `continuous_assessment.py`'s
+clock-injection pattern. `collect_health_remediation_candidates()` propagates `now_fn` through.
+Pattern 14 (Missing Seam).
+
+**R7-003 (OBSERVATION):** `collect_health_remediation_candidates()` has no production caller. It is
+documented in the module API, tested, and intentionally designed as a future engine integration
+point. No code change required — recorded as an accepted design gap.
+
+Test suite: **4516 passed, 16 skipped**.
+
+---
+
 **Cycle: 2026-06-09_16_17_40 UTC**
 
 ## Roadmap/implementation discrepancy fixes (three items)

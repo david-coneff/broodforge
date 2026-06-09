@@ -479,3 +479,66 @@ Static pre-flight re-run after R5 fixes. **All tools report 0 findings** — inc
 | hypothesis failures | 0 | 0 |
 
 **Result: PASS — zero findings in two consecutive cycles. Audit loop complete.**
+
+---
+
+## Audit cycle — 2026-06-09_XX_XX_XX UTC — R7: Post-b8bd7bc/1a9754f fixes
+
+**Trigger**: Three roadmap/implementation discrepancy fixes (commits b8bd7bc and 1a9754f) added new code:
+`generate-answer-file.py` (Phase 1.H CLI wrapper), 3 new functions in `continuous_assessment.py`
+(`code_health_to_remediation_candidates`, `dynamic_health_to_remediation_candidates`,
+`collect_health_remediation_candidates`), rewritten `sync-cert-to-k8s.sh` (Phase 1.F.8d), and a
+compare-engine fix (`engine/compare.py` observed_only bug).
+
+### Static pre-flight (R7)
+
+| Tool | Count | Severity |
+|---|---|---|
+| shellcheck | N/A (not installed on Windows host) | — |
+| ruff | 0 | OK |
+| bandit HIGH | 0 | OK |
+| bandit MEDIUM | 0 | OK |
+| vulture dead code | 0 | OK |
+| detect-secrets | 0 | OK |
+| hypothesis failures | 0 (via pytest) | OK |
+| mutmut | N/A (not supported on Windows) | — |
+
+### 37-pattern manual audit (R7)
+
+Patterns checked against all 5 changed/added files. 36 patterns CLEAN; 3 findings:
+
+| # | Pattern | Severity | Area | Description |
+|---|---|---|---|---|
+| R7-001 | P10 Happy Path Only | MEDIUM | `generate-answer-file.py:107` | No `try/except` around `json.load()` — malformed manifest raised unhandled `JSONDecodeError` traceback instead of clean `[error]` + exit 1 |
+| R7-002 | P14 Missing Seam | LOW | `continuous_assessment.py:975,1019` | `code_health_to_remediation_candidates()` and `dynamic_health_to_remediation_candidates()` called `datetime.now()` directly — inconsistent with project's `now_fn` injection pattern in the same file |
+| R7-003 | P21 Orphaned Outputs | OBSERVATION | `continuous_assessment.py:1082` | `collect_health_remediation_candidates()` is documented, tested, and exported but has no production caller — implementation ahead of wiring |
+
+### Cross-cutting coherence (R7)
+
+| Check | Result |
+|---|---|
+| All CLI entrypoints have matching tests | FIXED (R7-001: 5 CLI tests added for `generate-answer-file.py`) |
+| All ALLOWED_ACTION_TYPES have handler implementations | CLEAN — 9/9 matched; assert at import time confirms |
+| All NOT_IMPLEMENTED / exit-2 stubs documented in roadmap | CLEAN — `sync-cert-to-k8s.sh` exit 2 is runtime "not configured" state, not permanent stub |
+| No circular imports from recent changes | CLEAN — dashboard deferred-imports from continuous_assessment; no reverse dependency |
+| PAP-AUDIT.md broodforge local copy in sync with master | CLEAN — unchanged since R6 sync |
+
+### R7 Fixes
+
+| Finding | Fix | Status |
+|---|---|---|
+| R7-001 | Added `try/except json.JSONDecodeError` in `generate-answer-file.py`; prints `[error] Manifest is not valid JSON: <detail>` and exits 1 | **[FIXED]** |
+| R7-002 | Added `now_fn: Optional[Callable[[], str]] = None` parameter to both candidate functions; `collect_health_remediation_candidates` propagates `now_fn` through | **[FIXED]** |
+| R7-003 | Recorded as OBSERVATION — `collect_health_remediation_candidates` is a documented future-integration API; production wiring deferred to engine integration phase | **[OBSERVATION — not fixed]** |
+
+### R7 NOT FIXED (intentional / design decision)
+
+| Finding | Pattern | Area | Notes |
+|---|---|---|---|
+| `_exec_sync_cert_to_k8s` treats exit 2 same as exit 1 | P30 Alert Fatigue | `remediation_executor.py:313` | Script header explicitly documents this as expected: "The remediation engine records this as a soft failure — expected before TLS is set up." Accepted design decision. |
+
+### Test suite after R7 fixes
+
+8 new tests added (5 `TestAnswerFileCLI` in `test_image_builder.py`; 3 `TestCandidateFunctionsClockInjection` in `test_code_health.py`).
+
+**4516 passed, 16 skipped. All R7 findings resolved.**

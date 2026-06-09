@@ -664,3 +664,43 @@ class TestCollectHealthRemediationCandidates:
 
         result = collect_health_remediation_candidates(str(tmp_path), run_fn=_run)
         assert result == []
+
+
+# ---------------------------------------------------------------------------
+# R7-002 — clock injection (now_fn) in candidate functions
+# ---------------------------------------------------------------------------
+
+class TestCandidateFunctionsClockInjection:
+    """Verify now_fn is honoured in both candidate converter functions (R7-002 fix)."""
+
+    _FIXED_NOW = "2026-01-01T00:00:00+00:00"
+
+    def test_static_candidates_now_fn_injected(self):
+        score = CodeHealthScore(bandit_high_count=1, overall=70)
+        candidates = code_health_to_remediation_candidates(
+            score, now_fn=lambda: self._FIXED_NOW
+        )
+        assert len(candidates) == 1
+        assert candidates[0]["proposed_at"] == self._FIXED_NOW
+
+    def test_dynamic_candidates_now_fn_injected(self):
+        score = DynamicHealthScore(hypothesis_failures=1, overall=70)
+        candidates = dynamic_health_to_remediation_candidates(
+            score, now_fn=lambda: self._FIXED_NOW
+        )
+        assert any(c["proposed_at"] == self._FIXED_NOW for c in candidates)
+
+    def test_collect_candidates_now_fn_propagated(self, tmp_path):
+        def _run(cmd, **kw):
+            m = MagicMock()
+            if "bandit" in str(cmd):
+                m.stdout = '{"results": [{"issue_severity": "HIGH", "issue_confidence": "HIGH", "filename": "x.py", "line_number": 1, "issue_text": "test", "test_id": "B001", "test_name": "test", "issue_cwe": {"id": 1, "link": "x"}, "more_info": "x"}]}'
+            else:
+                m.stdout = ""
+            m.returncode = 0
+            return m
+
+        candidates = collect_health_remediation_candidates(
+            str(tmp_path), run_fn=_run, now_fn=lambda: self._FIXED_NOW
+        )
+        assert all(c["proposed_at"] == self._FIXED_NOW for c in candidates)
