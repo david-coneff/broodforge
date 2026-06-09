@@ -75,6 +75,10 @@ BASE_STATE = {
         {"hostname": "forgejo", "ip": "192.168.1.50", "vmid": 100},
         {"hostname": "inventory", "ip": "192.168.1.51", "vmid": 101},
     ],
+    "k3s": {
+        "worker_join_token": "test-worker-token-abc123",
+        "server_join_token": "test-server-token-def456",
+    },
 }
 
 MINIMAL_CATALOG_SERVICES = [

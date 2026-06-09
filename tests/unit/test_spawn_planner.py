@@ -107,6 +107,10 @@ _BOOTSTRAP_STATE = {
         "pod_cidr": "10.42.0.0/16", "service_cidr": "10.43.0.0/16",
         "server_url": "https://k3s-server-01.home.example.com:6443",
     },
+    "k3s": {
+        "worker_join_token": "test-worker-token-abc123",
+        "server_join_token": "test-server-token-def456",
+    },
     "capacity_model": {"host_ram_gb": 32},
 }
 

@@ -117,6 +117,7 @@ def generate_answer_toml(
     country: str = "us",
     filesystem: str = "zfs",
     disk_list: Optional[list] = None,
+    interface_name: Optional[str] = None,
     now: Optional[datetime] = None,
 ) -> str:
     """
@@ -204,7 +205,7 @@ def generate_answer_toml(
         f"cidr = {_toml_str(f'{host_ip}/{cidr_prefix}')}",
         f"dns = {_toml_str(dns_line)}",
         f"gateway = {_toml_str(gateway)}",
-        f"filter.ID_NET_NAME = {_toml_str('__POPULATE_INTERFACE_NAME__')}",
+        f"filter.ID_NET_NAME = {_toml_str(interface_name or '__POPULATE_INTERFACE_NAME__')}",
         "",
         "[disk-setup]",
         f"filesystem = {_toml_str(filesystem)}",
@@ -586,6 +587,7 @@ def build_bootstrap_image(
     country: str = "us",
     filesystem: str = "zfs",
     disk_list: Optional[list] = None,
+    interface_name: Optional[str] = None,
     now: Optional[datetime] = None,
 ) -> Path:
     """
@@ -632,7 +634,8 @@ def build_bootstrap_image(
     answer_toml_text = generate_answer_toml(
         manifest, root_passphrase=passphrase,
         keyboard=keyboard, country=country,
-        filesystem=filesystem, disk_list=disk_list, now=now,
+        filesystem=filesystem, disk_list=disk_list,
+        interface_name=interface_name, now=now,
     )
     unit_text = generate_first_boot_unit(manifest)
     install_sh_text = generate_first_boot_install_sh(manifest)

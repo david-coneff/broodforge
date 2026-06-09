@@ -112,6 +112,7 @@ class DashboardConfig:
     action_token:  str = ""   # auto-generated on first start if empty
     ssl_cert:      str = ""   # path to PEM fullchain (optional)
     ssl_key:       str = ""   # path to PEM private key (optional)
+    docs_path:     str = ""   # explicit path to docs/ dir; auto-detected if empty
 
     @classmethod
     def load(cls, path: str) -> "DashboardConfig":
@@ -128,21 +129,35 @@ class DashboardConfig:
             cfg.action_token = d.get("action_token", cfg.action_token)
             cfg.ssl_cert     = d.get("ssl_cert",     cfg.ssl_cert)
             cfg.ssl_key      = d.get("ssl_key",      cfg.ssl_key)
+            cfg.docs_path    = d.get("docs_path",    cfg.docs_path)
         return cfg
 
     def save(self) -> None:
-        os.makedirs(os.path.dirname(self.config_path) or ".", exist_ok=True)
-        with open(self.config_path, "w") as f:
-            json.dump({
-                "state_path":    self.state_path,
-                "reports_path":  self.reports_path,
-                "failures_path": self.failures_path,
-                "listen_host":   self.listen_host,
-                "listen_port":   self.listen_port,
-                "action_token":  self.action_token,
-                "ssl_cert":      self.ssl_cert,
-                "ssl_key":       self.ssl_key,
-            }, f, indent=2)
+        try:
+            os.makedirs(os.path.dirname(self.config_path) or ".", exist_ok=True)
+            with open(self.config_path, "w") as f:
+                json.dump({
+                    "state_path":    self.state_path,
+                    "reports_path":  self.reports_path,
+                    "failures_path": self.failures_path,
+                    "listen_host":   self.listen_host,
+                    "listen_port":   self.listen_port,
+                    "action_token":  self.action_token,
+                    "ssl_cert":      self.ssl_cert,
+                    "ssl_key":       self.ssl_key,
+                    "docs_path":     self.docs_path,
+                }, f, indent=2)
+        except OSError as exc:
+            # Fail loudly: a silent save failure leaves action_token empty on the
+            # next restart, making all POST endpoints unauthenticated (F-010/F-032).
+            print(
+                f"[dashboard] CRITICAL: Cannot write config to {self.config_path}: {exc}\n"
+                f"[dashboard] The action token is set in memory but will NOT persist.\n"
+                f"[dashboard] All POST endpoints will be unprotected after restart.\n"
+                f"[dashboard] Fix the config directory permissions, then restart the dashboard.",
+                file=sys.stderr,
+            )
+            raise
 
     def ensure_token(self) -> bool:
         """Generate and save an action token if none exists. Returns True if generated."""
@@ -310,12 +325,25 @@ def _remediations_from_state(state: dict) -> dict:
 
 
 def _scores_from_readiness(readiness: dict) -> dict:
-    """Extract score dict from readiness report, tolerating various formats."""
+    """Extract score dict from readiness report, tolerating various formats.
+
+    Supports two formats:
+    - Legacy/future: dict with ACS/RRS/DCS/CRS/OSS/PHS keys
+    - Current readiness.py output: dict with overall_score + overall_score_reason
+      (ReadinessReport.to_dict() — no per-category abbreviation keys)
+    Both formats pass through; the dashboard rendering falls back gracefully.
+    """
     scores = readiness.get("scores") or readiness.get("summary") or {}
-    # Fall back to top-level keys if "scores" not present
+    # Promote top-level abbreviation keys if present (legacy format)
     for key in ("ACS", "RRS", "DCS", "CRS", "OSS", "PHS"):
         if key not in scores and key in readiness:
             scores[key] = readiness[key]
+    # Also pass through overall_score / overall_score_reason produced by
+    # readiness.py score_graph() so the dashboard can render a fallback badge
+    if "overall_score" in readiness:
+        scores.setdefault("overall_score", readiness["overall_score"])
+    if "overall_score_reason" in readiness:
+        scores.setdefault("overall_score_reason", readiness["overall_score_reason"])
     return scores
 
 
@@ -338,6 +366,7 @@ _SCORE_LABELS = {
     "CRS": "Capacity Readiness",
     "OSS": "Operational Stability",
     "PHS": "Platform Health",
+    "OVR": "Overall Score",
 }
 
 
@@ -483,6 +512,16 @@ def generate_dashboard_html(
         if abbr in scores:
             lvl = scores[abbr] if isinstance(scores[abbr], str) else (scores[abbr] or {}).get("level", "—")
             scores_html += _score_badge(abbr, lvl)
+    # Fallback: readiness.py score_graph() produces overall_score / overall_score_reason
+    # (no per-category abbreviation keys). Render a single OVR badge so the section is
+    # never blank when a valid readiness report exists.
+    if not scores_html and scores.get("overall_score"):
+        scores_html = _score_badge("OVR", scores["overall_score"])
+        if scores.get("overall_score_reason"):
+            scores_html += (
+                f'<p style="color:var(--muted);margin-top:6px;font-size:.85em">'
+                f'{_e(scores["overall_score_reason"])}</p>'
+            )
     if not scores_html:
         scores_html = '<p style="color:var(--muted)">No readiness report found — run <code>engine.py --mode recovery</code> to generate one.</p>'
 
@@ -951,16 +990,39 @@ class _DashboardHandler(http.server.BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def _serve_doc_file(self, filename: str) -> None:
-        """Serve an HTML file from the docs/ directory next to bootstrap-state.json."""
-        state_dir = os.path.dirname(os.path.abspath(self._cfg.state_path))
-        # Walk up to find the repo root (contains docs/ directory)
-        candidate = state_dir
-        for _ in range(5):
-            docs_dir = os.path.join(candidate, "docs")
-            if os.path.isdir(docs_dir):
-                break
-            candidate = os.path.dirname(candidate)
-        else:
+        """Serve an HTML file from the docs/ directory.
+
+        Resolution order:
+        1. Explicit docs_path from dashboard.json config (most reliable in production)
+        2. docs/ adjacent to the dashboard script itself (covers the common deploy pattern
+           where the whole repo is present at /opt/broodforge or similar)
+        3. Walk up from bootstrap-state.json directory up to 5 levels (legacy fallback)
+        """
+        docs_dir: str = ""
+
+        # 1. Explicit config path
+        if self._cfg.docs_path and os.path.isdir(self._cfg.docs_path):
+            docs_dir = self._cfg.docs_path
+
+        # 2. Adjacent to this script file
+        if not docs_dir:
+            script_docs = os.path.join(
+                os.path.dirname(os.path.abspath(__file__)), "..", "docs"
+            )
+            if os.path.isdir(script_docs):
+                docs_dir = os.path.normpath(script_docs)
+
+        # 3. Walk up from state file directory
+        if not docs_dir:
+            candidate = os.path.dirname(os.path.abspath(self._cfg.state_path))
+            for _ in range(5):
+                candidate_docs = os.path.join(candidate, "docs")
+                if os.path.isdir(candidate_docs):
+                    docs_dir = candidate_docs
+                    break
+                candidate = os.path.dirname(candidate)
+
+        if not docs_dir:
             self.send_error(HTTPStatus.NOT_FOUND, "docs/ directory not found")
             return
         # Sanitise filename to prevent path traversal

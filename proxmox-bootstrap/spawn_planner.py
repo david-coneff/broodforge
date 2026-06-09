@@ -466,6 +466,8 @@ def build_spawn_plan(
     # the spawn package, valid only for the spawn window, rotated after the broodling
     # joins). Carry them so generate_ansible_k3s_vars() emits a usable token instead of
     # the unresolved "{{ vault_k3s_worker_token }}" placeholder, which nothing fills.
+    # Tokens are written to bootstrap-state.json["k3s"] by forge phase-05 after Ansible
+    # k3s bootstrap succeeds (F-011 fix in forge_scripts.py generate_phase_05_sh).
     _k3s_secrets = bootstrap_state.get("k3s") or {}
 
     plan: dict = {
@@ -511,8 +513,37 @@ def build_spawn_plan(
         "k3s_role": k3s_role,
     }
 
+    # Fail fast if k3s join tokens are absent — a spawn plan with None tokens will
+    # produce an ansible vars file with null k3s_token, causing every broodling
+    # k3s join to fail (F-011/F-020). Tokens are written to bootstrap-state.json
+    # by forge phase-05 after Ansible k3s bootstrap succeeds.
+    _worker_token = _k3s_secrets.get("worker_join_token")
+    _server_token = _k3s_secrets.get("server_join_token")
+    if not _worker_token or not _server_token:
+        raise ValueError(
+            "k3s join tokens are missing from bootstrap-state.json[\"k3s\"]. "
+            "Run forge first and ensure phase-05 (k3s cluster init) completed "
+            "successfully. Tokens are written to bootstrap-state.json after "
+            "Ansible k3s bootstrap runs. "
+            "KeePass paths: Infrastructure/k3s/worker-join-token and "
+            "Infrastructure/k3s/server-join-token."
+        )
+
     # WAN-specific fields
     if session.network_mode == NET_WAN:
+        # Fail fast if WAN mode spawn is missing a Headscale pre-auth key (F-021).
+        # The key must be generated on the hatchery before running spawn-planner:
+        #   headscale preauthkeys create --expiration 1h
+        # Store it in KeePass at Infrastructure/headscale/api-key, then pass it
+        # via --wan-auth-key or set it in the session before calling build_spawn_plan.
+        if not session.wan_auth_key:
+            raise ValueError(
+                "WAN mode spawn requires a Headscale pre-auth key (wan_auth_key). "
+                "Generate one on the hatchery: headscale preauthkeys create --expiration 1h "
+                "Store it in KeePass at Infrastructure/headscale/api-key and pass it via "
+                "--wan-auth-key to spawn-planner.py. "
+                "See NODE-SPAWNING.md 'WAN mode prerequisites' for the full workflow."
+            )
         plan["disposition"]["wan_auth_key"] = session.wan_auth_key or ""
         plan["hatchery"]["headscale_url"]   = session.headscale_url or ""
 

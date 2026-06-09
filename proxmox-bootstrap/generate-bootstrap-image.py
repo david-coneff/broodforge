@@ -76,7 +76,39 @@ def main() -> None:
         help="Disk device for answer.toml [disk-setup] disk-list "
              "(repeatable; default: a placeholder the operator must populate)",
     )
+    parser.add_argument(
+        "--interface", default=None,
+        help="Network interface name for answer.toml [network] filter.ID_NET_NAME "
+             "(e.g. enp3s0, eth0). REQUIRED for automated installer — discover with "
+             "'ip link show' on the target hardware before building.",
+    )
     args = parser.parse_args()
+
+    # Validate mandatory answer.toml fields at build time (F-018):
+    # These placeholders in the generated answer.toml will cause the Proxmox
+    # installer to fail at network or disk setup with cryptic errors.
+    _missing = []
+    if not args.interface:
+        _missing.append(
+            "  --interface <name>  (e.g. --interface enp3s0)\n"
+            "                      Discover with: ip link show  (on target hardware)"
+        )
+    if not args.disks:
+        _missing.append(
+            "  --disk <device>     (e.g. --disk /dev/sda)\n"
+            "                      Discover with: lsblk  (on target hardware)"
+        )
+    if _missing:
+        print(
+            "[error] answer.toml cannot be built with mandatory placeholder values.\n"
+            "[error] Provide the following before building the image:\n" +
+            "\n".join(_missing) + "\n"
+            "[error] These values are specific to the target hardware and cannot be\n"
+            "[error] auto-detected at build time. Boot a live OS on the target to\n"
+            "[error] discover them, then re-run this command.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
 
     manifest_path = Path(args.manifest)
     if not manifest_path.exists():
@@ -112,6 +144,7 @@ def main() -> None:
         country=args.country,
         filesystem=args.filesystem,
         disk_list=args.disks,
+        interface_name=args.interface,
     )
 
     cell_id = manifest.get("cell_id", "unknown")
@@ -124,11 +157,17 @@ def main() -> None:
     print(f"  SHA-256:  {hashlib.sha256(bundle.read_bytes()).hexdigest()}")
     print(f"  Cell:     {cell_id}")
     print(f"  Host:     {hostname}")
-    print(f"\n  IMPORTANT — single-use install passphrase (answer.toml root-password):")
+    print(f"\n{'!' * 64}")
+    print(f"  !! SINGLE-USE INSTALL PASSPHRASE — RECORD THIS NOW !!")
+    print(f"{'!' * 64}")
+    print(f"")
     print(f"    {passphrase}")
-    print(f"  Note this down now. It will not be recoverable from the bundle later.")
-    print(f"  It is replaced by a KeePass-managed credential during forge phase-03 —")
-    print(f"  rotate or discard it once forging completes.")
+    print(f"")
+    print(f"  This passphrase is the answer.toml root-password for the automated")
+    print(f"  Proxmox installer. It will NOT be stored anywhere by broodforge.")
+    print(f"  Write it down or store it in a secure location BEFORE using the media.")
+    print(f"  It is replaced by a KeePass-managed credential during forge phase-03.")
+    print(f"{'!' * 64}")
     print(f"\n  This is a STAGING BUNDLE, not a bootable ISO.")
     print(f"  Extract it and read iso-staging/README.md for how to combine it with")
     print(f"  the official Proxmox VE ISO to produce bootable media.")
