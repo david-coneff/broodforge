@@ -37,7 +37,22 @@ behavior, not its development process, and is out of scope for this artifact
   credentials against live hypervisors). No further proposed development phases
   exist in `ROADMAP.md`.
 
-- **active_milestone**: (Updated — eleventh milestone, 2026-06-08 PAP audit round 2.)
+- **active_milestone**: (Updated — twelfth milestone, 2026-06-08 PAP audit rounds 3 and 4.)
+  PAP audit R3 (`commits 39fb05a, 51b39b8`) and R4 (`commit 45403fb`) — 5 findings resolved:
+  - R3-001 (HIGH): Phase-08 now exits 2 (NOT_IMPLEMENTED) when k3s is absent — FORGE_INCOMPLETE
+    banner reachable in standard forge run (same N-002 pattern, phase-08 was the remaining blocker).
+  - R3-004 (HIGH/latent): `forge-keepass-gate.sh` now persists password + kdbx path to 0600 tmpfs
+    session file; phases 05 and 06 call `forge_keepass_gate` before `kdbx_get`; `forge.sh` cleans
+    up via EXIT trap. Fixes the "operator added credentials but forge still loops" scenario.
+  - R3-002 (LOW): `headscale preauthkeys create` command corrected in `spawn-planner.py` and
+    `federated_reconstruction.py` (was deprecated `authkeys generate`).
+  - R3-003 (LOW): Stale comment referencing non-existent function removed from `spawn_scripts.py`.
+  - R4-001 (MEDIUM): Session file now stores `FORGE_KDBX_PATH` on line 1 alongside the password —
+    R3-004 fix was incomplete without this; `kdbx_get` would still fail with empty database path.
+  12 new tests. Full suite: **4415 passed, 1 skipped**. All roadmap items complete.
+  Next action: **deploy to hardware**.
+
+  (Previous — eleventh milestone, 2026-06-08 PAP audit round 2.)
   4 new findings from `.ai/pap-audit-2026-06-08-r2.md` resolved:
   - N-001 (HIGH): phase-05 `export _worker_token`/`_server_token` before heredoc — fixes
     `KeyError` that prevented k3s tokens ever being written to `bootstrap-state.json`.
@@ -212,32 +227,20 @@ behavior, not its development process, and is out of scope for this artifact
   recent PAP-AUDIT of broodforge; broodforge's own `docs/AUDIT-FINDINGS.md`
   cycles likewise show no open blocking item as of the last entry.)
 
-- **next_action**: **(Updated — ninth milestone closed, 2026-06-08.)**
-  All implementation work is complete. Previous session committed all five
-  items (datetime sweep `c1aef50`, Phase 1.H `072112e`, Phase 1.I `3b32137`,
-  Phase 1.K `c750ed6`, Phase 1.J `f883540`) but hit a usage limit before
-  updating PAP state. This session:
-  - Confirmed Phase 1.J fully implemented (files verified: `_recovery_accounts.py`,
-    `authorize-spawn-media-join.py`).
-  - Added Image Builder GUI: `proxmox-bootstrap/forge-image-builder.html`
-    (cross-platform wizard, offline-first, clipboard-copy mode; server-invoke
-    path noted as future enhancement in AD-057).
-  - Updated ARCHITECTURE.md (AD-057 status, date header), ROADMAP.md (all four
-    phase headings from "proposed" to "implemented (commit X)", Phase 1.H
-    checklist items marked `[x]`, GUI item added), FEATURE-HISTORY.md with
-    new cycle, docs/ARCHITECTURE.html meta line.
-  - Regenerated FEATURE-HISTORY.html and ROADMAP.html.
-  - Full suite: 4388 passed, 1 skipped (unchanged — no Python code touched).
-  **Remaining**: commit + push this PAP-state update and all doc changes.
+- **next_action**: **(Updated — twelfth milestone closed, 2026-06-08.)**
+  PAP audit rounds R1 through R4 complete. All findings resolved:
+  - R1: 34 findings (3 commits: CRITICAL `31a2ee6`, HIGH `1195e8f`, MEDIUM/LOW `e0dd24b`)
+  - R2: 4 findings (`6620b70`)
+  - R3: 4 findings + R4 self-audit: 1 finding (commits `39fb05a`, `51b39b8`, `45403fb`)
+  Zero open audit findings. Full suite: **4415 passed, 1 skipped** (4 pre-existing
+  `test_opentofu.py` failures unchanged from clean `main`).
   **Next operational action**: deploy to hardware — run `python3
   proxmox-bootstrap/forge-planner.py` on a real Proxmox host to forge the
   first cell. See `FORGING.md`.
 
-  No open audit finding remains that requires action (F1/F2/F3 closed;
-  F4 is an observation requiring no action). If the operator gives new
-  direction on any future work, pick it up, scope it precisely to what was
-  asked, write the cycle into `docs/FEATURE-HISTORY.md`, and update this
-  corpus again.
+  If the operator gives new direction on any future work, pick it up, scope it
+  precisely to what was asked, write the cycle into `docs/FEATURE-HISTORY.md`,
+  and update this corpus again.
 
 ---
 

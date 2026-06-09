@@ -336,3 +336,29 @@ works offline by opening the file directly in a browser.
 | `generate-bootstrap-image.py` now calls `build_pregenerated_spawn_media_record()` + `record_pending_join_authorization()` — wires Phase 1.J authorization pipeline; new `--state` flag writes a `pending_join_authorizations` record to `bootstrap-state.json` so `authorize-spawn-media-join.py` has a record to gate (`generate-bootstrap-image.py`, `_image_builder.py`) | USER-REQUESTED (audit N-004) | Implemented | unit (12 new tests across `TestBuildPregeneratedSpawnMediaRecord` and `TestRecordPendingJoinAuthorization`) |
 
 > Full test suite: **4403 passed, 1 skipped** (pre-existing `test_opentofu.py` failures unchanged).
+
+---
+
+**Cycle: 2026-06-08_23_30_00 UTC — PAP Audit Rounds 3 and 4 Fixes (R3-001 through R4-001)**
+
+## PAP audit R3 — HIGH fixes
+
+| Feature | Origin | Status | Verification |
+|---|---|---|---|
+| Phase-08 exits 2 (NOT_IMPLEMENTED) when k3s is absent (`! command -v k3s && [ ! -f /etc/rancher/k3s/k3s.yaml ]`), allowing `forge.sh` to set `_forge_incomplete=1` and reach the FORGE_INCOMPLETE banner. Previously exited 1, aborting the forge run before operator instructions were shown. Fatal path (k3s installed, nodes unhealthy → `checkpoint_failed` → exit 1) retained (`forge_scripts.py`) | USER-REQUESTED (audit R3-001) | Implemented | unit (3 new tests: `test_phase_08_exits_2_when_k3s_absent`, `test_phase_08_k3s_absent_detection`, `test_phase_08_fatal_exit_1_preserved`) |
+| `forge-keepass-gate.sh` now persists both `FORGE_KDBX_PATH` and `KEEPASS_MASTER_PASSWORD` to a 0600 tmpfs session file (`/run/broodforge-forge.session`) after first unlock (phase-03). Phases 05 and 06 now call `forge_keepass_gate` before any `kdbx_get` invocation; the gate resumes from the session file instead of re-prompting. `forge.sh` sources `forge-keepass-gate.sh` and cleans up the session file via EXIT trap. Without this fix, `kdbx_get` always returned empty string in phases 05/06 because `KEEPASS_MASTER_PASSWORD` was never propagated to their subprocesses (`forge_scripts.py`) | USER-REQUESTED (audit R3-004) | Implemented | unit (4 new tests: `test_phase_05_calls_keepass_gate_before_kdbx_get`, `test_phase_06_calls_keepass_gate_before_kdbx_get`, `test_keepass_gate_has_session_file_support`, `test_forge_sh_cleans_up_session_file`) |
+
+## PAP audit R3 — LOW fixes
+
+| Feature | Origin | Status | Verification |
+|---|---|---|---|
+| `spawn-planner.py` `_generate_headscale_auth_key()` now uses `headscale preauthkeys create` (current CLI format) instead of deprecated `headscale authkeys generate`. `federated_reconstruction.py` step instructions updated to match | USER-REQUESTED (audit R3-002) | Implemented | unit (3 new tests in `TestR3002HeadscaleCommand`) |
+| Stale comment in `spawn_scripts.py` referencing non-existent function `generate_spawn_sh_with_gate` removed | USER-REQUESTED (audit R3-003) | Implemented | unit (1 new test: `TestR3003StaleComment::test_no_stale_function_reference`) |
+
+## PAP audit R4 — MEDIUM fix (R4 self-audited R3 fixes; one finding)
+
+| Feature | Origin | Status | Verification |
+|---|---|---|---|
+| Session file format updated to store `FORGE_KDBX_PATH` on line 1 and `KEEPASS_MASTER_PASSWORD` on line 2 (was password-only). Resume path reads both via `sed -n '1p'`/`'2p'` and exports `FORGE_KDBX_PATH` — without this, `kdbx_get` called `keepassxc-cli` with an empty database path even when the password was correctly restored, silently returning empty for every key (`forge_scripts.py`) | USER-REQUESTED (audit R4-001 — found by R4 self-audit of R3 fixes) | Implemented | unit (extended `test_keepass_gate_has_session_file_support` to assert session file stores path + exports on resume) |
+
+> Full test suite: **4415 passed, 1 skipped** (pre-existing `test_opentofu.py` failures unchanged). New tests: +12.

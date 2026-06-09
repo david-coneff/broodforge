@@ -366,3 +366,49 @@ Test suite after HIGH fixes: **4332 passed, 1 skipped**.
 | F-016/F-034 | `_recovery_readiness_certificate.py` `drills[0]` | Added comment clarifying `drills[0]` is the MOST RECENT drill (prepend via `insert(0,…)`) | **[FIXED]** |
 
 Test suite after all fixes: **4332 passed, 1 skipped** (pre-existing `test_opentofu.py` failure excluded, unchanged from before).
+
+---
+
+## Audit cycle — 2026-06-08_23_00_00 UTC — PAP Audit R2 (N-001 through N-004)
+
+### HIGH fixes
+
+| Finding | Area | Resolution | Status |
+|---|---|---|---|
+| N-001 | Phase-05 `_worker_token`/`_server_token` not exported | Added `export` before the Python heredoc — fixes `KeyError` aborting phase-05 after ansible succeeded, leaving k3s tokens never written to `bootstrap-state.json` | **[FIXED]** |
+| N-002 | Phase-06 exits 1 when credentials missing | Changed to exit 2 (NOT_IMPLEMENTED) — FORGE_INCOMPLETE banner now reachable when Forgejo credentials absent | **[FIXED]** |
+
+### MEDIUM fixes
+
+| Finding | Area | Resolution | Status |
+|---|---|---|---|
+| N-003 | `NODE-SPAWNING.md` missing WAN prerequisites | Added "WAN mode prerequisites" section covering Headscale server, `headscale preauthkeys create`, `--wan-auth-key` flag, Tailscale install, and checklist | **[FIXED]** |
+| N-004 | `generate-bootstrap-image.py` authorization pipeline not wired | Now calls `build_pregenerated_spawn_media_record()` + `record_pending_join_authorization()`; `--state` flag writes `pending_join_authorizations` record to `bootstrap-state.json` | **[FIXED]** |
+
+Test suite after R2 fixes: **4403 passed, 1 skipped** (15 new tests).
+
+---
+
+## Audit cycle — 2026-06-08_23_30_00 UTC — PAP Audit R3+R4 (R3-001 through R4-001)
+
+### R3 HIGH fixes
+
+| Finding | Area | Resolution | Status |
+|---|---|---|---|
+| R3-001 | Phase-08 exits 1 when k3s absent — blocks FORGE_INCOMPLETE banner | Phase-08 now exits 2 (NOT_IMPLEMENTED) when `! command -v k3s && [ ! -f /etc/rancher/k3s/k3s.yaml ]`; fatal path (k3s installed but nodes unhealthy → `checkpoint_failed` → exit 1) retained | **[FIXED]** |
+| R3-004 | `KEEPASS_MASTER_PASSWORD` never propagated to phases 05/06 subprocesses | `forge-keepass-gate.sh` persists both `FORGE_KDBX_PATH` and `KEEPASS_MASTER_PASSWORD` to 0600 tmpfs session file after first unlock (phase-03); phases 05/06 call `forge_keepass_gate` before any `kdbx_get`; `forge.sh` cleans up session file via EXIT trap | **[FIXED]** |
+
+### R3 LOW fixes
+
+| Finding | Area | Resolution | Status |
+|---|---|---|---|
+| R3-002 | `headscale authkeys generate` (deprecated) in spawn-planner.py and federated_reconstruction.py | Updated both files to `headscale preauthkeys create` (current CLI format ≥0.17) | **[FIXED]** |
+| R3-003 | Stale comment in `spawn_scripts.py:80` referencing non-existent function | Removed the comment | **[FIXED]** |
+
+### R4 MEDIUM fix (R4 self-audited R3 fixes; one new finding)
+
+| Finding | Area | Resolution | Status |
+|---|---|---|---|
+| R4-001 | Session file missing `FORGE_KDBX_PATH` — `kdbx_get` called keepassxc-cli with empty path | Session file format updated: line 1 = `FORGE_KDBX_PATH`, line 2 = `KEEPASS_MASTER_PASSWORD`; resume path reads both via `sed -n '1p'`/`'2p'` and exports `FORGE_KDBX_PATH` | **[FIXED]** |
+
+Test suite after R3+R4 fixes: **4415 passed, 1 skipped** (12 new tests; pre-existing `test_opentofu.py` failures unchanged).

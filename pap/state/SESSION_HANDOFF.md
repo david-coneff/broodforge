@@ -579,7 +579,48 @@ of what this transition exists to make durable.
   before that, the F1/F2 resolution milestone (`b0a05ce`) and the continuity
   transition itself (`6f0e9c8`) — see the earlier milestone-checklist blocks.
 
-- **next_action**: **(Updated — eighth milestone, in progress.)** The
+- **next_action**: **(Updated — twelfth milestone closed, 2026-06-08.)**
+  PAP audit rounds R1 through R4 are complete. Zero open audit findings.
+  Full suite: **4415 passed, 1 skipped**. All roadmap phases implemented.
+  **Next operational action**: deploy to hardware — run `python3
+  proxmox-bootstrap/forge-planner.py` on a real Proxmox host to forge the
+  first cell. See `FORGING.md`. Nothing further is required from a
+  development perspective unless the operator gives new direction.
+
+- **last_completed_step** (twelfth milestone, 2026-06-08): PAP audit rounds
+  R3 and R4. Previous session (R3 report analysis) hit a usage limit before
+  writing the report file; this session wrote the report and fixed all findings.
+
+  **R3 findings resolved** (commits `39fb05a`, `51b39b8`):
+  - R3-001 (HIGH): Phase-08 now exits 2 (NOT_IMPLEMENTED) when k3s is absent
+    (`! command -v k3s && [ ! -f /etc/rancher/k3s/k3s.yaml ]`), allowing
+    forge.sh to set `_forge_incomplete=1` and show the FORGE_INCOMPLETE banner.
+    Previously exited 1, aborting before operator instructions appeared.
+  - R3-004 (HIGH/latent): `forge-keepass-gate.sh` persists kdbx path + password
+    to a 0600 tmpfs session file after phase-03 unlock. Phases 05 and 06 call
+    `forge_keepass_gate` before `kdbx_get`; gate resumes from session file
+    without re-prompting. `forge.sh` cleans up via EXIT trap. Fixes the latent
+    "operator added credentials but forge still loops" scenario.
+  - R3-002 (LOW): `headscale preauthkeys create` corrected in `spawn-planner.py`
+    and `federated_reconstruction.py` (was `authkeys generate`).
+  - R3-003 (LOW): Stale comment referencing `generate_spawn_sh_with_gate`
+    removed from `spawn_scripts.py:80`.
+
+  **R4 self-audit** found one new finding; fixed immediately (`commit 45403fb`):
+  - R4-001 (MEDIUM): R3-004's session file stored only the password; `FORGE_KDBX_PATH`
+    was not propagated, so `kdbx_get` still called keepassxc-cli with empty path.
+    Fixed: session file line 1 = `FORGE_KDBX_PATH`, line 2 = password; resume
+    path reads both and exports the path. All 6 audit patterns applied in R4;
+    zero other findings.
+
+  12 new tests (11 in `test_forge_assembler.py`, 1 stale-comment test in
+  `test_spawn_scripts.py`, 3 headscale tests in `test_spawn_planner.py`).
+  Full suite: **4415 passed, 1 skipped** (4 pre-existing `test_opentofu.py`
+  failures confirmed unchanged on clean `main` before R3 work).
+  `docs/FEATURE-HISTORY.md`, `pap/state/RESUME_BLOCK.md`, this file updated.
+  All state committed and pushed.
+
+  **Previous milestones (eighth–eleventh, same day):** The
   operator gave a direct, ordered execution instruction: implement all four
   scoped phases (1.H → 1.I → 1.K → 1.J) plus a clock-injection cleanup item,
   fully autonomously, committing after each. Progress so far:
