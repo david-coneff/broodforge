@@ -461,3 +461,21 @@ Full static pre-flight (shellcheck, ruff, bandit, vulture, detect-secrets, pytes
 | `_check_action_token()` returns True when no token configured | Pattern 15 (Fail Open) | `broodforge_dashboard.py:1294` | Intentional dev-mode behavior; documented in comment |
 
 Test suite after R5 fixes: all tests pass (pre-existing `test_opentofu.py` failures unchanged).
+
+---
+
+## Audit cycle — 2026-06-09_13_11_28 UTC — R6: Zero-finding verification
+
+Static pre-flight re-run after R5 fixes. **All tools report 0 findings** — including vulture (was 7 in R5, now 0 after orphaned-output fixes). This is the second consecutive zero-finding run (R5 fixes brought R5→0, R6 confirms stability).
+
+| Tool | R5 count | R6 count |
+|---|---|---|
+| shellcheck | 0 | 0 |
+| ruff | 0 | 0 |
+| bandit HIGH | 0 | 0 |
+| bandit MEDIUM | 0 | 0 |
+| vulture dead code | 7 | **0** |
+| detect-secrets | 0 | 0 |
+| hypothesis failures | 0 | 0 |
+
+**Result: PASS — zero findings in two consecutive cycles. Audit loop complete.**

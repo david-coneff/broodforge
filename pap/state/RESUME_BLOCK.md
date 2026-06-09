@@ -250,11 +250,12 @@ behavior, not its development process, and is out of scope for this artifact
   cycles likewise show no open blocking item as of the last entry.)
 
 - **next_action**: **(Updated — fifteenth milestone closed, 2026-06-09.)**
-  Audit Cycle R5 complete. Zero open findings. Full suite passes.
+  R5+R6 audit cycles complete. Zero findings in two consecutive runs (vulture
+  went from 7 to 0; all other tools already at 0). Audit loop complete per
+  the stop condition (zero findings × 2 consecutive cycles).
   **Next operational action**: deploy to hardware — run `python3
   proxmox-bootstrap/forge-planner.py` on a real Proxmox host to forge the
-  first cell. See `FORGING.md`. Or: run audit cycle R6 to confirm zero-finding
-  stability before hardware deploy.
+  first cell. See `FORGING.md`.
 
   If the operator gives new direction on any future work, pick it up, scope it
   precisely to what was asked, write the cycle into `docs/FEATURE-HISTORY.md`,
