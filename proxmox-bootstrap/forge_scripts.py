@@ -598,8 +598,8 @@ if is_done "$step"; then checkpoint_skip "$step"; else
     trap - EXIT INT TERM
     # After k3s bootstrap: extract join tokens from KeePass and persist to bootstrap-state.json
     # so spawn_planner.py can generate valid spawn packages (F-011/F-020 fix).
-    _worker_token="$(kdbx_get 'Infrastructure/k3s/worker-join-token')"
-    _server_token="$(kdbx_get 'Infrastructure/k3s/server-join-token')"
+    export _worker_token="$(kdbx_get 'Infrastructure/k3s/worker-join-token')"
+    export _server_token="$(kdbx_get 'Infrastructure/k3s/server-join-token')"
     if [ -n "$_worker_token" ] && [ "$_worker_token" != "MANUAL_ENTRY_REQUIRED" ]; then
       python3 - <<PYEOF
 import json, os, sys
@@ -655,10 +655,12 @@ if is_done "$step"; then checkpoint_skip "$step"; else
 
   FORGEJO_TOKEN="$(kdbx_get 'Infrastructure/forgejo/admin-password')"
 
-  # Fail fast if credentials are missing — Flux bootstrap requires a real token.
-  # Phases 04-05 must be completed manually before phase-06 can succeed.
+  # Exit 2 (NOT_IMPLEMENTED) if credentials are missing because upstream manual
+  # steps (phases 04-05) have not been completed — this lets forge.sh set
+  # _forge_incomplete=1 and reach the FORGE_INCOMPLETE banner instead of
+  # aborting with a confusing "FAIL phase-06" error (N-002 fix).
   if [ -z "$FORGEJO_TOKEN" ] || [ "$FORGEJO_TOKEN" = "MANUAL_ENTRY_REQUIRED" ]; then
-    echo "[phase-06] ERROR: Forgejo admin password not found in KeePass." >&2
+    echo "[phase-06] NOT_IMPLEMENTED: Forgejo admin password not found in KeePass." >&2
     echo "[phase-06] Phase-06 requires real Forgejo credentials that only exist" >&2
     echo "[phase-06] after VMs are provisioned and Forgejo is configured." >&2
     echo "[phase-06] Steps to unblock:" >&2
@@ -667,7 +669,7 @@ if is_done "$step"; then checkpoint_skip "$step"; else
     echo "[phase-06]   3. Add the admin password to KeePass:" >&2
     echo "[phase-06]        Infrastructure/forgejo/admin-password" >&2
     echo "[phase-06]   4. Re-run: bash forge.sh --from 6" >&2
-    exit 1
+    exit 2
   fi
 
   FORGEJO_HOST="$(python3 -c "import json; m=json.load(open('forge-manifest.json')); print(m.get('host_identity',{}).get('fqdn','localhost'))")"

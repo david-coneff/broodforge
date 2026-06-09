@@ -316,3 +316,23 @@ works offline by opening the file directly in a browser.
 | `_recovery_readiness_certificate.py` `drills[0]` comment clarifies newest-first via `insert(0,…)` | USER-REQUESTED (audit F-016/F-034) | Implemented | static |
 
 > Full test suite: **4332 passed, 1 skipped** (pre-existing `test_opentofu.py` failure excluded).
+
+---
+
+**Cycle: 2026-06-08_23_00_00 UTC — PAP Audit Round 2 Fixes (N-001 through N-004)**
+
+## PAP audit 2026-06-08 R2 — HIGH fixes
+
+| Feature | Origin | Status | Verification |
+|---|---|---|---|
+| Phase-05 `_worker_token`/`_server_token` now `export`-ed before the `python3 - <<PYEOF` heredoc — fixes `KeyError` that aborted phase-05 after ansible succeeded, leaving k3s tokens never written to `bootstrap-state.json` (`forge_scripts.py:601–602`) | USER-REQUESTED (audit N-001) | Implemented | unit (2 new tests: `test_phase_05_exports_worker_token_before_heredoc`, `test_phase_05_export_precedes_heredoc`) |
+| Phase-06 exits 2 (NOT_IMPLEMENTED) instead of 1 when Forgejo credentials are missing — allows `forge.sh` to set `_forge_incomplete=1` and reach the FORGE_INCOMPLETE banner rather than aborting with confusing "FAIL phase-06" error (`forge_scripts.py:658–670`) | USER-REQUESTED (audit N-002) | Implemented | unit (1 new test: `test_phase_06_exits_2_when_credentials_missing`) |
+
+## PAP audit 2026-06-08 R2 — MEDIUM fixes
+
+| Feature | Origin | Status | Verification |
+|---|---|---|---|
+| `NODE-SPAWNING.md` "WAN mode prerequisites" section added — covers Headscale server prerequisite, `headscale preauthkeys create` command, `--wan-auth-key` CLI flag usage, Tailscale install on hatchery, `wan_endpoint` reachability, and a summary checklist (`proxmox-bootstrap/NODE-SPAWNING.md`) | USER-REQUESTED (audit N-003) | Implemented | static |
+| `generate-bootstrap-image.py` now calls `build_pregenerated_spawn_media_record()` + `record_pending_join_authorization()` — wires Phase 1.J authorization pipeline; new `--state` flag writes a `pending_join_authorizations` record to `bootstrap-state.json` so `authorize-spawn-media-join.py` has a record to gate (`generate-bootstrap-image.py`, `_image_builder.py`) | USER-REQUESTED (audit N-004) | Implemented | unit (12 new tests across `TestBuildPregeneratedSpawnMediaRecord` and `TestRecordPendingJoinAuthorization`) |
+
+> Full test suite: **4403 passed, 1 skipped** (pre-existing `test_opentofu.py` failures unchanged).

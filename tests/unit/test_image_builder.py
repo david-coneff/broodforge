@@ -410,6 +410,94 @@ class TestBootstrapImageManifestHtml:
 
 
 # ===========================================================================
+# build_pregenerated_spawn_media_record + record_pending_join_authorization
+# (N-004: Phase 1.J authorization pipeline wiring)
+# ===========================================================================
+
+class TestBuildPregeneratedSpawnMediaRecord:
+    def test_returns_dict_with_passphrase(self):
+        result = _ib.build_pregenerated_spawn_media_record(_manifest(), now=_NOW)
+        assert "passphrase" in result
+        assert isinstance(result["passphrase"], str)
+
+    def test_returns_dict_with_authorization_record(self):
+        result = _ib.build_pregenerated_spawn_media_record(_manifest(), now=_NOW)
+        assert "authorization_record" in result
+        assert isinstance(result["authorization_record"], dict)
+
+    def test_returns_dict_with_image_bundle_name(self):
+        result = _ib.build_pregenerated_spawn_media_record(_manifest(), now=_NOW)
+        assert "image_bundle_name" in result
+        assert result["image_bundle_name"].endswith(".tar.gz")
+
+    def test_authorization_record_has_correct_shape(self):
+        result = _ib.build_pregenerated_spawn_media_record(_manifest(), now=_NOW)
+        rec = result["authorization_record"]
+        assert rec["record_type"] == "pending_join_authorization"
+        assert rec["authorized"] is False
+        assert "passphrase_hash" in rec
+        assert rec["passphrase_hash_algorithm"] == "sha256"
+        assert rec["authorized_at"] is None
+        assert rec["authorized_by"] is None
+
+    def test_passphrase_not_in_authorization_record(self):
+        # Security invariant: only the hash is recorded, never the plaintext.
+        result = _ib.build_pregenerated_spawn_media_record(_manifest(cell_id="sectest"), now=_NOW)
+        plaintext = result["passphrase"]
+        rec = result["authorization_record"]
+        assert plaintext not in str(rec), "plaintext passphrase must not appear in authorization record"
+
+    def test_passphrase_hash_matches(self):
+        result = _ib.build_pregenerated_spawn_media_record(_manifest(), seed=99, now=_NOW)
+        expected_hash = _ib.hash_install_passphrase(result["passphrase"])
+        assert result["authorization_record"]["passphrase_hash"] == expected_hash
+
+    def test_cell_id_in_authorization_record(self):
+        result = _ib.build_pregenerated_spawn_media_record(_manifest(cell_id="my-cell"), now=_NOW)
+        assert result["authorization_record"]["cell_id"] == "my-cell"
+
+    def test_deterministic_with_seed(self):
+        a = _ib.build_pregenerated_spawn_media_record(_manifest(), seed=7, now=_NOW)
+        b = _ib.build_pregenerated_spawn_media_record(_manifest(), seed=7, now=_NOW)
+        assert a["passphrase"] == b["passphrase"]
+        assert a["authorization_record"]["passphrase_hash"] == b["authorization_record"]["passphrase_hash"]
+
+
+class TestRecordPendingJoinAuthorization:
+    def _record(self, cell_id="pve01-cell"):
+        return _ib.build_pregenerated_spawn_media_record(
+            _manifest(cell_id=cell_id), now=_NOW
+        )["authorization_record"]
+
+    def test_appends_record_to_empty_state(self):
+        state = {}
+        rec = self._record()
+        new_state = _ib.record_pending_join_authorization(state, rec)
+        assert len(new_state["pending_join_authorizations"]) == 1
+        assert new_state["pending_join_authorizations"][0] is rec
+
+    def test_appends_to_existing_list(self):
+        first = self._record()
+        state = {"pending_join_authorizations": [first]}
+        second = self._record()
+        new_state = _ib.record_pending_join_authorization(state, second)
+        assert len(new_state["pending_join_authorizations"]) == 2
+
+    def test_does_not_mutate_original_state(self):
+        state = {}
+        rec = self._record()
+        _ib.record_pending_join_authorization(state, rec)
+        assert "pending_join_authorizations" not in state
+
+    def test_returned_state_has_all_original_keys(self):
+        state = {"cell_id": "pve01-cell", "nodes": []}
+        rec = self._record()
+        new_state = _ib.record_pending_join_authorization(state, rec)
+        assert new_state["cell_id"] == "pve01-cell"
+        assert new_state["nodes"] == []
+
+
+# ===========================================================================
 # generate_staging_readme
 # ===========================================================================
 

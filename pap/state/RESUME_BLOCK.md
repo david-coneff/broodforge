@@ -37,7 +37,21 @@ behavior, not its development process, and is out of scope for this artifact
   credentials against live hypervisors). No further proposed development phases
   exist in `ROADMAP.md`.
 
-- **active_milestone**: (Updated — tenth milestone, 2026-06-08 PAP audit.) All 34 PAP
+- **active_milestone**: (Updated — eleventh milestone, 2026-06-08 PAP audit round 2.)
+  4 new findings from `.ai/pap-audit-2026-06-08-r2.md` resolved:
+  - N-001 (HIGH): phase-05 `export _worker_token`/`_server_token` before heredoc — fixes
+    `KeyError` that prevented k3s tokens ever being written to `bootstrap-state.json`.
+  - N-002 (HIGH): phase-06 exits 2 (NOT_IMPLEMENTED) not 1 when credentials missing —
+    FORGE_INCOMPLETE banner is now reachable in a standard forge run.
+  - N-003 (MEDIUM): `NODE-SPAWNING.md` "WAN mode prerequisites" section added with full
+    Headscale/Tailscale checklist.
+  - N-004 (MEDIUM): `generate-bootstrap-image.py` wired to `build_pregenerated_spawn_media_record`
+    + `record_pending_join_authorization` via new `--state` flag — Phase 1.J authorization
+    pipeline end-to-end operational.
+  15 new tests. Full suite: **4403 passed, 1 skipped**. All roadmap items complete.
+  Next action: **deploy to hardware**.
+
+  (Previous — tenth milestone, 2026-06-08 PAP audit.) All 34 PAP
   audit findings (`.ai/pap-audit-2026-06-08.md`) resolved across CRITICAL/HIGH/MEDIUM/LOW
   severity. Commits 31a2ee6 (CRITICAL), 1195e8f (HIGH), and this commit (MEDIUM/LOW).
   Test suite: 4332 passed, 1 skipped. All roadmap items remain complete.

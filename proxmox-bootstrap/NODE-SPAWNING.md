@@ -58,6 +58,61 @@ Hatchery (pve01)                    Broodling (pve02 — fresh Proxmox install)
 
 ---
 
+## WAN mode prerequisites
+
+WAN mode routes the broodling through the hatchery's Headscale tailnet instead
+of a direct LAN connection. Before running `spawn-planner.py` in WAN mode, all
+of the following must be in place on the **hatchery**:
+
+1. **Headscale server running** — verify with `headscale version` and
+   `systemctl is-active headscale`. The server must be reachable from the
+   broodling (typically via a public IP or a reverse proxy).
+
+2. **Pre-auth key obtained** — generate a single-use, expiring key:
+   ```bash
+   headscale preauthkeys create --expiration 1h --user broodforge
+   ```
+   Copy the key output. It is valid for one registration only. The spawn
+   planner embeds this key in the spawn package; `phase-00a` uses it to register
+   the broodling before any deployment steps run.
+
+3. **`wan_auth_key` in the spawn plan** — pass the auth key when running the
+   planner interactively (it prompts for it in WAN mode), or supply it via
+   `--wan-auth-key` on the command line:
+   ```bash
+   python3 spawn-planner.py \
+       --state bootstrap-state.json \
+       --hardware hardware-profile-pve02.json \
+       --wan-auth-key tskey-auth-xxxxxxxxxxxxx
+   ```
+   `build_spawn_plan()` raises `ValueError` if `wan_auth_key` is absent when
+   `network_mode` is `"wan"` — this is the guard that enforces this requirement.
+
+4. **Tailscale installed on the spawning machine** — the hatchery must have
+   Tailscale installed and joined to the same tailnet so it can reach the
+   broodling's tailnet IP (`100.64.x.x`) after `phase-00a` completes:
+   ```bash
+   apt install tailscale
+   tailscale up --login-server https://<headscale-host> --authkey <key>
+   tailscale status  # broodling should appear after phase-00a
+   ```
+
+5. **`wan_endpoint` reachable** — confirm the broodling can reach the Headscale
+   control plane before running the spawn package. The `wan_endpoint` field in
+   the spawn plan is derived from the hatchery's FQDN/IP; ensure DNS resolves
+   or use a direct IP.
+
+**Summary checklist:**
+```
+[ ] headscale is running on the hatchery
+[ ] headscale preauthkeys create --expiration 1h --user broodforge  → key noted
+[ ] tailscale is installed and joined on the hatchery
+[ ] wan_auth_key supplied to spawn-planner.py (--wan-auth-key flag)
+[ ] broodling has network path to Headscale control plane
+```
+
+---
+
 ## Step 1 — Discover Hardware
 
 Run from the hatchery. Produces `hardware-profile-{hostname}.json`.

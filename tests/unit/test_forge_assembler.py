@@ -141,6 +141,28 @@ class TestForgeScripts:
         s = _fs.generate_phase_05_sh(_manifest())
         assert "ansible-playbook" in s or "k3s" in s
 
+    def test_phase_05_exports_worker_token_before_heredoc(self):
+        # N-001: _worker_token and _server_token must be exported so the
+        # python3 heredoc subprocess can read them via os.environ[].
+        s = _fs.generate_phase_05_sh(_manifest())
+        assert "export _worker_token" in s, "export _worker_token missing — heredoc will raise KeyError"
+        assert "export _server_token" in s, "export _server_token missing — heredoc will raise KeyError"
+
+    def test_phase_05_export_precedes_heredoc(self):
+        # Guards ordering: export must appear before the python3 heredoc block.
+        s = _fs.generate_phase_05_sh(_manifest())
+        export_pos = s.index("export _worker_token")
+        heredoc_pos = s.index("python3 - <<PYEOF")
+        assert export_pos < heredoc_pos, "export must come before the python3 heredoc"
+
+    def test_phase_06_exits_2_when_credentials_missing(self):
+        # N-002: phase-06 must exit 2 (NOT_IMPLEMENTED) when Forgejo credentials
+        # are absent — so forge.sh sets _forge_incomplete=1 and reaches the
+        # FORGE_INCOMPLETE banner instead of aborting with "FAIL phase-06".
+        s = _fs.generate_phase_06_sh(_manifest())
+        # Find the credential-missing block and confirm exit 2
+        assert "exit 2" in s, "phase-06 should exit 2 (NOT_IMPLEMENTED) when credentials missing"
+
     def test_phase_06_flux(self):
         s = _fs.generate_phase_06_sh(_manifest())
         assert "flux" in s

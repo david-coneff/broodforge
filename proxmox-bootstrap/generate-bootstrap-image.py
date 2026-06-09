@@ -34,12 +34,16 @@ from pathlib import Path
 _HERE = Path(__file__).parent
 sys.path.insert(0, str(_HERE))
 
-from _image_builder import build_bootstrap_image, generate_install_passphrase
+from _image_builder import (
+    build_bootstrap_image,
+    build_pregenerated_spawn_media_record,
+    record_pending_join_authorization,
+)
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Build a pre-install bootstrap image staging bundle (Phase 1.H, AD-057)",
+        description="Build a pre-install bootstrap image staging bundle (Phase 1.H/1.J, AD-057/AD-060)",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument(
@@ -81,6 +85,13 @@ def main() -> None:
         help="Network interface name for answer.toml [network] filter.ID_NET_NAME "
              "(e.g. enp3s0, eth0). REQUIRED for automated installer — discover with "
              "'ip link show' on the target hardware before building.",
+    )
+    parser.add_argument(
+        "--state", default=None,
+        help="Path to bootstrap-state.json. When provided, a pending-join-authorization "
+             "record is appended so authorize-spawn-media-join.py can gate the resulting "
+             "node before it joins the cell (Phase 1.J, AD-060(c)). Required for "
+             "pre-generated spawn media; optional for plain bootstrap images.",
     )
     args = parser.parse_args()
 
@@ -132,7 +143,14 @@ def main() -> None:
             print("[warn] Could not infer repo root; embedded forge package will NOT "
                   "bundle library code. Pass --repo to bundle it.", file=sys.stderr)
 
-    passphrase = generate_install_passphrase()
+    # Build passphrase + authorization record together (N-004 fix: Phase 1.J wiring).
+    # build_pregenerated_spawn_media_record() returns both the plaintext passphrase
+    # (shown once to the operator, never persisted) and the authorization_record
+    # (only the hash — safe to persist in bootstrap-state.json).
+    spawn_media = build_pregenerated_spawn_media_record(manifest)
+    passphrase = spawn_media["passphrase"]
+    authorization_record = spawn_media["authorization_record"]
+    bundle_name = spawn_media["image_bundle_name"]
 
     bundle = build_bootstrap_image(
         manifest=manifest,
@@ -172,6 +190,31 @@ def main() -> None:
     print(f"  Extract it and read iso-staging/README.md for how to combine it with")
     print(f"  the official Proxmox VE ISO to produce bootable media.")
     print()
+
+    # Write pending-join-authorization record to bootstrap-state.json so
+    # authorize-spawn-media-join.py can gate the node before it joins (N-004).
+    state_path = Path(args.state) if args.state else None
+    if state_path is not None:
+        if not state_path.exists():
+            print(f"[error] State file not found: {state_path}", file=sys.stderr)
+            sys.exit(1)
+        try:
+            state = json.loads(state_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            print(f"[error] Could not parse {state_path}: {exc}", file=sys.stderr)
+            sys.exit(1)
+        state = record_pending_join_authorization(state, authorization_record)
+        state_path.write_text(json.dumps(state, indent=2), encoding="utf-8")
+        print(f"  Authorization record written to: {state_path}")
+        print(f"  Bundle name:  {bundle_name}")
+        print(f"  Passph. hash: {authorization_record['passphrase_hash']}  (cross-check only)")
+        print(f"\n  A node installed from this media must be authorized before it")
+        print(f"  may join the cell. Run:")
+        print(f"    python3 authorize-spawn-media-join.py \\")
+        print(f"        --state {state_path} \\")
+        print(f"        --bundle {bundle_name} \\")
+        print(f"        --operator <your-name>")
+        print()
 
 
 if __name__ == "__main__":
