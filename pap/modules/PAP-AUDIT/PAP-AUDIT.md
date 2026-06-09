@@ -79,6 +79,25 @@ canonical worked example of an instance conforming to it
 (retroactively — it predates the schema, exactly as the sample UPCCP
 artifact predates the UPCCP-CSP spec).
 
+## 5. Audit Reasoning Patterns Catalog
+
+A set of named, recurring failure patterns — analysis lenses that
+auditors are instructed to step through actively during any Systematic
+Review (§1) or APDRP pass (§2). For each pattern, ask: "does any form
+of this appear in the artifact under review?"
+
+The patterns are particularly productive during the **Falsification
+perspective** (actively looking for what could be wrong) and the
+**Future-reconstruction perspective** (could a resuming operator detect
+the problem from artifacts alone?), but apply across all four APDRP
+perspectives.
+
+Current catalog: [`Audit-Reasoning-Patterns.md`](Audit-Reasoning-Patterns.md)
+
+Seeded patterns: Catch-22 / Circular Dependency, Assumed Preconditions,
+Orphaned Outputs, Silent Degradation, State Machine Gaps, Documentation
+Drift.
+
 ## Provenance
 
 Realizes Part II ("PAP-AUDIT") of
