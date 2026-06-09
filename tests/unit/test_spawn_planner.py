@@ -640,5 +640,34 @@ class TestTempPassword(unittest.TestCase):
         self.assertNotIn(" ", pw)
 
 
+class TestR3002HeadscaleCommand(unittest.TestCase):
+    """R3-002: headscale CLI must use 'preauthkeys create' not 'authkeys generate'."""
+
+    def test_spawn_planner_library_uses_preauthkeys(self):
+        import inspect
+        import spawn_planner as _spl
+        src = inspect.getsource(_spl)
+        self.assertNotIn("authkeys generate", src,
+                         "spawn_planner.py must not use deprecated 'authkeys generate'")
+        self.assertIn("preauthkeys", src,
+                      "spawn_planner.py must reference 'preauthkeys'")
+
+    def test_spawn_planner_interactive_cli_uses_preauthkeys(self):
+        cli_path = REPO_ROOT / "proxmox-bootstrap" / "spawn-planner.py"
+        src = cli_path.read_text(encoding="utf-8")
+        self.assertNotIn("authkeys generate", src,
+                         "spawn-planner.py must not use deprecated 'authkeys generate'")
+        self.assertIn("preauthkeys", src,
+                      "spawn-planner.py must use 'preauthkeys' subcommand")
+
+    def test_federated_reconstruction_uses_preauthkeys(self):
+        fr_path = REPO_ROOT / "proxmox-bootstrap" / "federated_reconstruction.py"
+        src = fr_path.read_text(encoding="utf-8")
+        self.assertNotIn("authkeys generate", src,
+                         "federated_reconstruction.py must not use deprecated 'authkeys generate'")
+        self.assertIn("preauthkeys create", src,
+                      "federated_reconstruction.py must use 'preauthkeys create'")
+
+
 if __name__ == "__main__":
     unittest.main()

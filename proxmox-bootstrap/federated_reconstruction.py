@@ -391,7 +391,7 @@ def plan_trust_establishment(
     steps = [
         f"1. Verify {coordinator_cell} is reachable: ping/curl {coordinator_cell} endpoint",
         f"2. On {coordinator_cell}: confirm trust relationship for {subject_cell} is active",
-        f"3. On {coordinator_cell}: headscale authkeys generate --expiration 1h --user broodforge",
+        f"3. On {coordinator_cell}: headscale preauthkeys create --expiration 1h --user broodforge",
         f"4. On {coordinator_cell}: generate temporary KeePass read-only token",
         f"5. Securely transfer tokens to reconstruction host",
         f"6. Update federation-state.json: trust verified_at = now",

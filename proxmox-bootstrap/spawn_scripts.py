@@ -77,7 +77,6 @@ def generate_spawn_sh(plan: dict, include_wan_phase: bool = False) -> str:
         f'',
     ]
 
-    # KeePass gate (12.E.7a) — placeholder, implemented in generate_spawn_sh_with_gate
     lines += [
         f'# ── KeePass unlock gate ──────────────────────────────────────────────',
         f'if [ -f "$SCRIPT_DIR/lib/keepass-gate.sh" ]; then',

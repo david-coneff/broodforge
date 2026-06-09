@@ -126,7 +126,7 @@ def _generate_headscale_auth_key(headscale_url: str) -> str:
     import subprocess
     try:
         result = subprocess.run(
-            ["headscale", "authkeys", "generate",
+            ["headscale", "preauthkeys", "create",
              "--expiration", "1h",
              "--user", "broodforge"],
             capture_output=True, text=True, timeout=10

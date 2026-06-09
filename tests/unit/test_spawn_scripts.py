@@ -220,5 +220,16 @@ class TestWriteAllScripts(unittest.TestCase):
                 self.assertTrue(path.read_text().startswith("#!/usr/bin/env bash"))
 
 
+class TestR3003StaleComment(unittest.TestCase):
+    """R3-003: stale comment referencing generate_spawn_sh_with_gate must be removed."""
+    def test_no_stale_function_reference(self):
+        s = generate_spawn_sh(PLAN)
+        self.assertNotIn("generate_spawn_sh_with_gate", s)
+
+    def test_keepass_gate_present(self):
+        s = generate_spawn_sh(PLAN)
+        self.assertIn("keepass", s.lower())
+
+
 if __name__ == "__main__":
     unittest.main()
