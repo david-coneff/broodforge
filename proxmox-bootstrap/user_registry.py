@@ -271,6 +271,31 @@ class UserRegistryManager:
     # Key throw-away
     # ------------------------------------------------------------------
 
+    def add_service(
+        self,
+        username: str,
+        service: str,
+        role: str = "user",
+        notes: str = "",
+    ) -> UserRecord:
+        """Enroll an existing user in an additional service.
+
+        Raises ValueError if the user doesn't exist or is already enrolled.
+        Credential generation (KeePass storage) is handled separately by
+        forge-onboard-user.sh --add-service.
+        """
+        record = self.get_user(username)
+        if record is None:
+            raise ValueError(f"User not found: {username!r}")
+        if service in record.services:
+            raise ValueError(
+                f"User {username!r} is already enrolled in {service!r}. "
+                "Use --throw-away-key + re-onboard if you need to reset credentials."
+            )
+        record.services[service] = ServiceEnrollment(role=role, notes=notes)
+        self.update_user(record)
+        return record
+
     def throw_away_key(self, username: str, service: str) -> UserRecord:
         """Mark KeePass key as thrown away for user+service.
 
@@ -390,6 +415,22 @@ def _cmd_disposition(manager: UserRegistryManager, args) -> int:
         return 1
 
 
+def _cmd_add_service(manager: UserRegistryManager, args) -> int:
+    username, service = args.add_service
+    role = args.role or "user"
+    try:
+        record = manager.add_service(username, service, role=role)
+        print(
+            f"Enrolled {username!r} in {service!r} (role={role}).\n"
+            f"\nNext: run forge-onboard-user.sh --add-service {username} {service}\n"
+            f"to generate credentials and store them in KeePass."
+        )
+        return 0
+    except ValueError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
+
+
 def _cmd_throw_away_key(manager: UserRegistryManager, args) -> int:
     # This command does NOT delete the KeePass entry itself —
     # that must be done by the caller BEFORE running this command.
@@ -447,6 +488,7 @@ def main(argv=None) -> int:
 Commands:
   --list                        List all registered users
   --add                         Add a new user (requires --username --services)
+  --add-service <user> <svc>    Enroll existing user in an additional service
   --disposition <user> <value>  Set user disposition: active | archived | pending-deletion
   --throw-away-key <user> <svc> Mark key as discarded (admin loses credential access)
   --users-for-rebuild           Print TSV: username, service, flow (provision|reset)
@@ -470,18 +512,25 @@ KeePass path convention:
     mode.add_argument("--list", action="store_true")
     mode.add_argument("--add", action="store_true")
     mode.add_argument("--disposition", nargs=2, metavar=("USERNAME", "DISPOSITION"))
+    mode.add_argument("--add-service", nargs=2, metavar=("USERNAME", "SERVICE"),
+                      dest="add_service",
+                      help="Enroll existing user in an additional service")
     mode.add_argument("--throw-away-key", nargs=2, metavar=("USERNAME", "SERVICE"),
                       dest="throw_away_key")
     mode.add_argument("--users-for-rebuild", action="store_true")
     mode.add_argument("--init", action="store_true")
 
-    # --add options
+    # --add / --add-service options
     parser.add_argument("--username")
     parser.add_argument("--display-name", dest="display_name", default="")
     parser.add_argument("--email", default="")
     parser.add_argument(
         "--services",
         help="Comma-separated service names, e.g. vaultwarden,headscale,gitea",
+    )
+    parser.add_argument(
+        "--role", default="user",
+        help="Role for the enrolled service (default: user)",
     )
     parser.add_argument("--yes", action="store_true",
                         help="Skip confirmation prompt for destructive operations")
@@ -495,6 +544,8 @@ KeePass path convention:
         if not args.username or not args.services:
             parser.error("--add requires --username and --services")
         return _cmd_add(manager, args)
+    if args.add_service:
+        return _cmd_add_service(manager, args)
     if args.disposition:
         args.username, args.disposition = args.disposition
         return _cmd_disposition(manager, args)

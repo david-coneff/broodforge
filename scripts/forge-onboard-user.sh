@@ -1,13 +1,20 @@
 #!/usr/bin/env bash
 # forge-onboard-user.sh — Register a user and generate their per-service credentials.
 #
-# This script:
+# This script has two modes:
+#
+#   NEW USER ONBOARDING (default):
 #   1. Adds the user to config/user-registry.json (via user_registry.py)
 #   2. For each enrolled service:
 #      a. Generates a strong random password
 #      b. Generates a TOTP secret (base32, compatible with Authenticator apps)
 #      c. Stores both in the master KeePass under Broodforge/users/<user>/<svc>/
 #   3. Prints an onboarding summary (or writes to a file with --output)
+#
+#   ADD SERVICE TO EXISTING USER (--add-service):
+#   1. Enrolls the user in the new service in user-registry.json
+#   2. Generates credentials for just that one service
+#   3. Stores in KeePass, prints a single-service credential snippet
 #
 # The operator delivers the onboarding output to the user securely (e.g. encrypted
 # email, Signal, printed in person).  After the user acknowledges receipt, the
@@ -19,12 +26,19 @@
 #   away, the admin cannot impersonate the user or read their data.
 #
 # Usage:
+#   # New user:
 #   bash scripts/forge-onboard-user.sh \
 #       --user alice \
 #       --display-name "Alice Smith" \
 #       --email alice@example.com \
 #       --services vaultwarden,headscale,gitea \
 #       [--output /path/to/alice-onboarding.txt] \
+#       [--dry-run]
+#
+#   # Add a service to an existing user:
+#   bash scripts/forge-onboard-user.sh \
+#       --add-service alice gitea \
+#       [--output /path/to/alice-gitea.txt] \
 #       [--dry-run]
 #
 # Exit codes:
@@ -55,25 +69,39 @@ EMAIL=""
 SERVICES=""
 OUTPUT_FILE=""
 DRY_RUN=0
+ADD_SERVICE_MODE=0    # set to 1 when --add-service is used
+ADD_SERVICE_NAME=""   # the single service to add
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --user)         USERNAME="$2";       shift 2 ;;
-    --display-name) DISPLAY_NAME="$2";   shift 2 ;;
-    --email)        EMAIL="$2";          shift 2 ;;
-    --services)     SERVICES="$2";       shift 2 ;;
-    --output)       OUTPUT_FILE="$2";    shift 2 ;;
-    --dry-run)      DRY_RUN=1;           shift   ;;
+    --user)         USERNAME="$2";            shift 2 ;;
+    --display-name) DISPLAY_NAME="$2";        shift 2 ;;
+    --email)        EMAIL="$2";               shift 2 ;;
+    --services)     SERVICES="$2";            shift 2 ;;
+    --output)       OUTPUT_FILE="$2";         shift 2 ;;
+    --dry-run)      DRY_RUN=1;                shift   ;;
+    --add-service)
+      ADD_SERVICE_MODE=1
+      USERNAME="$2"
+      ADD_SERVICE_NAME="$3"
+      shift 3
+      ;;
     --help)
-      grep '^#' "$0" | head -40 | sed 's/^# \?//'
+      grep '^#' "$0" | head -55 | sed 's/^# \?//'
       exit 0
       ;;
     *) die "Unknown argument: $1" ;;
   esac
 done
 
-[[ -n "$USERNAME"  ]] || die "--user is required"
-[[ -n "$SERVICES"  ]] || die "--services is required (comma-separated)"
+if [[ $ADD_SERVICE_MODE -eq 1 ]]; then
+  [[ -n "$USERNAME"         ]] || die "--add-service requires <username>"
+  [[ -n "$ADD_SERVICE_NAME" ]] || die "--add-service requires <service>"
+  SERVICES="$ADD_SERVICE_NAME"
+else
+  [[ -n "$USERNAME" ]] || die "--user is required"
+  [[ -n "$SERVICES" ]] || die "--services is required (comma-separated)"
+fi
 
 # ---------------------------------------------------------------------------
 # Load forge-lib and gate
@@ -155,23 +183,34 @@ _keepass_store_entry() {
 # ---------------------------------------------------------------------------
 
 info ""
-info "Starting onboarding for user: $USERNAME"
+if [[ $ADD_SERVICE_MODE -eq 1 ]]; then
+  info "Adding service '$ADD_SERVICE_NAME' to existing user: $USERNAME"
+else
+  info "Starting onboarding for user: $USERNAME"
+fi
 [[ $DRY_RUN -eq 1 ]] && info "(DRY RUN — no changes will be written)"
 info ""
 
 # Collect services list
 IFS=',' read -ra SERVICE_LIST <<< "$SERVICES"
 
-# Register user in registry (unless dry-run)
+# Register in registry (unless dry-run)
 if [[ $DRY_RUN -eq 0 ]]; then
-  python3 "$USER_REG_PY" \
-    --registry "$REGISTRY_JSON" \
-    --add \
-    --username   "$USERNAME" \
-    --display-name "${DISPLAY_NAME:-$USERNAME}" \
-    --email      "${EMAIL:-}" \
-    --services   "$SERVICES" \
-    || die "Failed to add user to registry (user may already exist)"
+  if [[ $ADD_SERVICE_MODE -eq 1 ]]; then
+    python3 "$USER_REG_PY" \
+      --registry "$REGISTRY_JSON" \
+      --add-service "$USERNAME" "$ADD_SERVICE_NAME" \
+      || die "Failed to enroll $USERNAME in $ADD_SERVICE_NAME (already enrolled?)"
+  else
+    python3 "$USER_REG_PY" \
+      --registry "$REGISTRY_JSON" \
+      --add \
+      --username     "$USERNAME" \
+      --display-name "${DISPLAY_NAME:-$USERNAME}" \
+      --email        "${EMAIL:-}" \
+      --services     "$SERVICES" \
+      || die "Failed to add user to registry (user may already exist)"
+  fi
 fi
 
 # Build onboarding package content
@@ -217,13 +256,23 @@ _render_onboarding_package() {
   local border
   border=$(printf '%*s' "$width" '' | tr ' ' '─')
 
-  echo "┌${border}┐"
-  echo "│$(printf '%-*s' $width "  BROODFORGE ONBOARDING PACKAGE — ${USERNAME^^}")│"
-  echo "│$(printf '%-*s' $width "  Generated: $(date -u '+%Y-%m-%d %H:%M UTC')")│"
-  echo "├${border}┤"
-  echo "│$(printf '%-*s' $width "  Keep this document secure. Do not share it.")│"
-  echo "│$(printf '%-*s' $width "  Store in your personal password manager immediately.")│"
-  echo "└${border}┘"
+  if [[ $ADD_SERVICE_MODE -eq 1 ]]; then
+    echo "┌${border}┐"
+    echo "│$(printf '%-*s' $width "  BROODFORGE NEW SERVICE ACCESS — ${USERNAME^^}")│"
+    echo "│$(printf '%-*s' $width "  Service: ${ADD_SERVICE_NAME}  |  Generated: $(date -u '+%Y-%m-%d %H:%M UTC')")│"
+    echo "├${border}┤"
+    echo "│$(printf '%-*s' $width "  Keep this document secure. Do not share it.")│"
+    echo "│$(printf '%-*s' $width "  Store in your personal password manager immediately.")│"
+    echo "└${border}┘"
+  else
+    echo "┌${border}┐"
+    echo "│$(printf '%-*s' $width "  BROODFORGE ONBOARDING PACKAGE — ${USERNAME^^}")│"
+    echo "│$(printf '%-*s' $width "  Generated: $(date -u '+%Y-%m-%d %H:%M UTC')")│"
+    echo "├${border}┤"
+    echo "│$(printf '%-*s' $width "  Keep this document secure. Do not share it.")│"
+    echo "│$(printf '%-*s' $width "  Store in your personal password manager immediately.")│"
+    echo "└${border}┘"
+  fi
   echo ""
 
   for svc in "${SERVICE_LIST[@]}"; do
@@ -279,13 +328,22 @@ unset _CREDS_PW _CREDS_TOTP _CREDS_URI
 
 info ""
 info "Next steps:"
-info "  1. Deliver the onboarding package to $USERNAME via secure channel."
+info "  1. Deliver the credential snippet to $USERNAME via secure channel."
 info "  2. Confirm they have saved their credentials."
-info "  3. Run:  python3 proxmox-bootstrap/user_registry.py --registry config/user-registry.json"
-info "           --disposition $USERNAME active"
-info "     (already active by default)"
-info "  4. Optional: once user confirms receipt, run forge-throw-away-key to"
-info "     discard the master copy and achieve zero-knowledge admin access."
+if [[ $ADD_SERVICE_MODE -eq 1 ]]; then
+  info "  3. Run forge-provision-users.sh --user $USERNAME --service $ADD_SERVICE_NAME"
+  info "     to register the account in the service."
+  info "  4. Optional: once user confirms receipt, run:"
+  info "       python3 proxmox-bootstrap/user_registry.py \\"
+  info "           --registry config/user-registry.json \\"
+  info "           --throw-away-key $USERNAME $ADD_SERVICE_NAME"
+  info "     to discard the master copy."
+else
+  info "  3. Run forge-provision-users.sh --user $USERNAME to register accounts"
+  info "     in all enrolled services."
+  info "  4. Optional: once user confirms receipt, run forge-throw-away-key to"
+  info "     discard the master copy and achieve zero-knowledge admin access."
+fi
 info ""
 
 exit 0
