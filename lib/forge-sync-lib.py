@@ -169,12 +169,29 @@ def _sync_group_recursive(
     delete_orphans: bool = False,
 ) -> None:
     """Recursively sync all entries from src_group into dst_kp."""
+    # Add / update entries from source
     for entry in src_group.entries:
         action = _copy_entry(entry, dst_kp, dst_path_parts, dry_run)
         if action == "added":
             stats["added"] += 1
         elif action == "updated":
             stats["updated"] += 1
+
+    # Remove orphaned entries in dst that are absent from src
+    if delete_orphans:
+        src_titles = {(e.title or "") for e in src_group.entries}
+        dst_group = _find_group_by_path(dst_kp, dst_path_parts)
+        if dst_group is not None:
+            for dst_entry in list(dst_group.entries):
+                title = dst_entry.title or ""
+                if title not in src_titles:
+                    path_str = "/".join(dst_path_parts + [title])
+                    if dry_run:
+                        print(f"[sync-lib] would-delete: {path_str}")
+                    else:
+                        dst_kp.delete_entry(dst_entry)
+                        print(f"[sync-lib] deleted: {path_str}")
+                    stats["deleted"] = stats.get("deleted", 0) + 1
 
     for subgroup in src_group.subgroups:
         _sync_group_recursive(
@@ -284,7 +301,8 @@ def sync_group(
         child.save()
 
     print(f"[sync-lib] group sync complete: {group_path}")
-    print(f"[sync-lib]   added={stats['added']}  updated={stats['updated']}")
+    deleted = stats.get("deleted", 0)
+    print(f"[sync-lib]   added={stats['added']}  updated={stats['updated']}  deleted={deleted}")
     return 0
 
 
