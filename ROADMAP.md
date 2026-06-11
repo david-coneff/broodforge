@@ -1407,6 +1407,66 @@ active → decommissioned
 
 ---
 
+## Phase 2.A — Identity & SSO (Authentik)
+
+### Summary
+Self-hosted identity provider and SSO for all cluster services. No cloud dependency.
+Local accounts remain the primary auth method. SSO is a convenience path, not a replacement.
+
+### Technology
+**Authentik** — Kubernetes-native OIDC/SAML identity provider.
+- Helm chart deployment to k8s cluster
+- Backend: PostgreSQL (shared cluster instance) + Redis
+- Protocols: OIDC, SAML 2.0, LDAP (read-only)
+
+### Key design properties
+
+**No cloud dependency:** All user accounts, TOTP seeds, and sessions live in Authentik on the cluster.
+Nothing contacts Google or Apple unless the operator explicitly configures upstream providers.
+
+**Chained upstream providers (optional):**
+User → Authentik (local IdP) → [optional: Google/GitHub/Apple upstream]
+Services only trust Authentik tokens — they never talk directly to upstream providers.
+If upstream is unreachable, local Authentik credentials work as fallback transparently.
+
+**SSO as secondary method (not primary replacement):**
+Services are configured to accept EITHER local service credentials OR SSO.
+Per-service primary auth (password, password + TOTP) remains available.
+MFA enforcement moves to Authentik — user enters credentials + TOTP once at Authentik,
+which issues a session token services trust. Services no longer need per-service MFA.
+
+**WAN-offline resilience:**
+Local Authentik accounts work without internet. Cloud upstream (if configured) is opportunistic.
+
+### Service integrations
+- Nextcloud — `user_oidc` app; local Nextcloud accounts and SSO accounts coexist, linkable to same user
+- Future self-hosted services — OIDC/SAML as available; LDAP read-only for services that support only LDAP
+- Proxmox — OIDC realm for sidecar/web UI login (optional, operator auth remains primary)
+
+### Deployment components
+- Authentik Helm chart (values.yaml managed in repo)
+- PostgreSQL database: `authentik` schema in cluster PostgreSQL instance
+- Redis: dedicated or shared cluster Redis
+- Ingress: `auth.<cluster-domain>` via Headscale/internal DNS
+- Initial admin account provisioned via forge-init-authentik.sh (KeePass-gated)
+
+### Credential integration (Phase 1.P)
+Authentik admin credentials stored in master KeePass.
+Service OIDC client secrets stored in forge-autonomous.kdbx child DB.
+Key rotation via forge-rotate-credential.sh with _rotate_oidc_secret() handler.
+
+### Authorization constraints
+- AD-060 applies: autonomous ops never wield Authentik admin credentials
+- Authentik admin access is operator-only (KeePass gate)
+- OIDC client secrets for services are service-level credentials (forge-autonomous child DB scope)
+
+### Dependencies
+- Phase 1.P (credential hierarchy) — for OIDC client secret storage and rotation
+- Phase 1.Q (node provisioning) — cluster nodes must exist before Helm deploy
+- k8s cluster operational with ingress controller
+
+---
+
 ## Roadmap Overview
 
 ### Three Processes — Three Package Types
