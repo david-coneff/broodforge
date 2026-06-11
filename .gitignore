@@ -15,3 +15,6 @@ venv/
 .audit/vulture-report.txt
 .audit/pytest-output.txt
 .audit/secrets-scan.json
+.coverage
+commit_recovery.sh
+commit_recovery.ps1
