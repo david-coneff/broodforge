@@ -28,6 +28,9 @@ import sys
 from html import escape as _e
 from pathlib import Path
 
+# Audit finding (rounds 4/5): Priority 4 — legitimate standalone-script path manipulation.
+# doc-gen/renderers/ has no __init__.py; html_base, timestamps, etc. are co-located
+# modules, not a package.  Relative imports require __init__.py.
 sys.path.insert(0, str(Path(__file__).parent.parent))
 sys.path.insert(0, str(Path(__file__).parent))
 

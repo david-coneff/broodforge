@@ -107,8 +107,8 @@ def parse_hardware(raw: dict) -> dict:
     os_raw = raw.get("os") or {}
     if os_raw:
         _set_nested(fragment, ["os"], os_raw)
-    else:
-        # Best-effort OS facts from the runtime environment
+    elif raw:
+        # Best-effort OS facts from the runtime environment (only when input is non-empty)
         os_facts = _collect_os_facts()
         if os_facts:
             _set_nested(fragment, ["os"], os_facts)

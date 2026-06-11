@@ -542,3 +542,86 @@ Patterns checked against all 5 changed/added files. 36 patterns CLEAN; 3 finding
 8 new tests added (5 `TestAnswerFileCLI` in `test_image_builder.py`; 3 `TestCandidateFunctionsClockInjection` in `test_code_health.py`).
 
 **4516 passed, 16 skipped. All R7 findings resolved.**
+
+---
+
+## Audit cycle — 2026-06-09 (rounds 4/5 deferred findings)
+
+### Scope
+
+Three findings deferred from earlier PAP audit rounds 4 and 5 — sys.path manipulation
+in the test suite, sys.path in standalone production scripts, and a reported deprecated
+ODS import. All three investigated; two fixed; one was not present (N/A).
+
+### Finding AF-4-1: sys.path.insert in test files
+
+**Pattern**: P12 Configuration Drift / P14 Missing Seam  
+**Severity**: LOW  
+**Area**: `tests/` — 87+ test files  
+
+Every test file opened its own `sys.path.insert()` block to locate `proxmox-bootstrap/`,
+`doc-gen/`, `data-model/`, etc.  This is brittle (the path could easily drift from the
+real repo layout), adds noise to every test file, and is the wrong layer for this concern.
+
+**Fix**: Added `[tool.pytest.ini_options] pythonpath` block to `pyproject.toml` declaring
+all six source roots.  Pytest injects these before any test module is collected, making
+every per-file `sys.path.insert` call dead code.  Root-cause fixed in a single change.
+
+Dead-code cleanup tool created: `broodforge/tools/remove_syspath_from_tests.py`.  Run
+`python3 tools/remove_syspath_from_tests.py` from the `broodforge/` directory to strip
+the now-redundant `sys.path.insert`, `_ROOT`/`REPO_ROOT` variables, and orphaned
+`import sys` / `import os` lines from all test files in one pass.  Three key files
+already cleaned manually: `test_audit_round4_fixes.py`, `test_spawn_media_authorization.py`,
+`test_recovery_accounts.py`.
+
+**Status**: **[FIXED — root cause]** — pyproject.toml pythonpath added. Dead-code cleanup
+script provided; run to complete the housekeeping.
+
+### Finding AF-4-2: sys.path.insert in production standalone scripts
+
+**Pattern**: P14 Missing Seam  
+**Severity**: LOW (by design — Priority 4)  
+**Area**: `doc-gen/engine.py`, `doc-gen/renderers/html_recovery_workbook.py`,
+`proxmox-bootstrap/*.py` (25+ scripts)
+
+All standalone scripts in `proxmox-bootstrap/` and `doc-gen/` use `sys.path.insert` to
+locate peer modules.  Investigation confirmed none of these directories contain an
+`__init__.py` — they are flat script directories, not Python packages.  Relative imports
+(`from . import module`) require package structure; they are structurally impossible here.
+
+The `pyproject.toml` `pythonpath` setting covers pytest context only.  Direct invocation
+(`python3 engine.py --generate ...`) still requires the sys.path blocks.
+
+**Fix**: Added explanatory Priority-4 comments to `doc-gen/engine.py` (lines 24–32) and
+`doc-gen/renderers/html_recovery_workbook.py` (lines 31–36).  These comments document
+why the manipulation is legitimate and cannot be removed without restructuring the
+directories into proper packages.  All proxmox-bootstrap scripts follow the same pattern
+for the same reason.
+
+**Status**: **[DOCUMENTED]** — manipulation is architecturally required; comments added.
+
+### Finding AF-4-3: Deprecated ODS import in test file
+
+**Pattern**: P16 Dependency Rot  
+**Severity**: LOW  
+**Area**: `tests/` — suspected openpyxl ODS loader, ezodf, odfpy, or similar
+
+**Investigation**: Exhaustive grep across all `.py` files for `openpyxl`, `ezodf`,
+`odfpy`, `xlrd`, `ods`, and `from.*deprecated` import patterns.  The only `deprecated`
+directory in the codebase is `doc-gen/renderers/deprecated/` — a set of superseded ODS/ODT
+renderers (`workbook.py`, `runbook.py`, `recovery_workbook.py`, `recovery_runbook.py`,
+`operational_report.py`).  These files import only from each other and from Python stdlib;
+nothing in the live codebase imports from them.  No test file imports from any deprecated
+module.
+
+**Status**: **[N/A — not present]** — no deprecated ODS import found anywhere in the test
+suite.  The `deprecated/` renderers are dead code, self-contained, and do not affect any
+running test or production path.
+
+### Summary
+
+| Finding | Area | Status |
+|---|---|---|
+| AF-4-1 | sys.path.insert in test files | **[FIXED — root cause via pyproject.toml pythonpath]** |
+| AF-4-2 | sys.path.insert in production standalone scripts | **[DOCUMENTED — architecturally required; comments added]** |
+| AF-4-3 | Deprecated ODS import in test files | **[N/A — not present in codebase]** |

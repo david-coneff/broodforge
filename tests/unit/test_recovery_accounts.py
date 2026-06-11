@@ -11,20 +11,15 @@ secret values), and a structural "constraint honored" guard test asserting no
 code in this module reads a hypervisor root-credential VALUE.
 """
 
-import os
 import re
-import sys
 from pathlib import Path
 
 import pytest
 
-_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-sys.path.insert(0, os.path.join(_ROOT, "proxmox-bootstrap"))
+_PB_DIR = Path(__file__).parent.parent.parent / "proxmox-bootstrap"
 
 import _recovery_accounts as ra
 import html_package_manifest as _hpm
-
-_PB_DIR = Path(_ROOT) / "proxmox-bootstrap"
 
 _TEST_KEY = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAItestkeydata operator@workstation"
 

@@ -49,6 +49,19 @@ addopts = "--cov=proxmox-bootstrap --cov-branch --cov-report=term-missing -q"
 # - pytest-bandit: not actively maintained; bandit runs via run-static-audit.sh
 # Both tools run in Tier 1 (tools/run-static-audit.sh) and have dedicated test coverage.
 
+# Audit finding fix (rounds 4/5): test files used sys.path.insert() to locate
+# proxmox-bootstrap, doc-gen, and peer packages.  Declaring them here lets pytest
+# inject all roots before any test module is collected, eliminating the need for
+# per-file path manipulation.
+pythonpath = [
+    "proxmox-bootstrap",
+    "doc-gen",
+    "doc-gen/renderers",
+    "data-model",
+    "lib",
+    "assessment/tier1",
+]
+
 [tool.ruff]
 line-length = 120
 target-version = "py311"

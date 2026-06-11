@@ -323,6 +323,44 @@ class UserRegistryManager:
         return record
 
     # ------------------------------------------------------------------
+    # Removal
+    # ------------------------------------------------------------------
+
+    def remove_service(self, username: str, service: str) -> UserRecord:
+        """Remove a service enrollment from a user.
+
+        Does NOT delete KeePass entries — the caller (forge-offboard-user.sh)
+        is responsible for deleting credentials before calling this.
+        Raises ValueError if user or service not found.
+        """
+        record = self.get_user(username)
+        if record is None:
+            raise ValueError(f"User not found: {username!r}")
+        if service not in record.services:
+            raise ValueError(
+                f"Service {service!r} not enrolled for user {username!r}. "
+                f"Enrolled: {sorted(record.services)}"
+            )
+        del record.services[service]
+        self.update_user(record)
+        return record
+
+    def remove_user(self, username: str) -> UserRecord:
+        """Remove a user from the registry entirely.
+
+        Does NOT delete KeePass entries or service accounts — the caller
+        (forge-offboard-user.sh) must handle those first.
+        Raises ValueError if user not found.
+        """
+        registry = self.load()
+        for i, u in enumerate(registry.users):
+            if u.username == username:
+                removed = registry.users.pop(i)
+                self.save(registry)
+                return removed
+        raise ValueError(f"User not found: {username!r}")
+
+    # ------------------------------------------------------------------
     # Rebuild queries
     # ------------------------------------------------------------------
 
@@ -458,6 +496,49 @@ def _cmd_throw_away_key(manager: UserRegistryManager, args) -> int:
         return 1
 
 
+def _cmd_remove_service(manager: UserRegistryManager, args) -> int:
+    username, service = args.remove_service
+    if not args.yes:
+        print(
+            f"This will remove the {service!r} enrollment for {username!r} from the registry.\n"
+            f"KeePass entries should already be deleted before calling this.\n"
+        )
+        confirm = input("Type 'yes' to confirm: ").strip()
+        if confirm != "yes":
+            print("Aborted.")
+            return 1
+    try:
+        manager.remove_service(username, service)
+        print(f"Removed service {service!r} from user {username!r}.")
+        return 0
+    except ValueError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
+
+
+def _cmd_remove_user(manager: UserRegistryManager, args) -> int:
+    username = args.username
+    if not username:
+        print("ERROR: --remove-user requires --username", file=sys.stderr)
+        return 1
+    if not args.yes:
+        print(
+            f"This will permanently remove user {username!r} from the registry.\n"
+            f"All service accounts and KeePass entries should already be deleted.\n"
+        )
+        confirm = input("Type 'yes' to confirm: ").strip()
+        if confirm != "yes":
+            print("Aborted.")
+            return 1
+    try:
+        manager.remove_user(username)
+        print(f"Removed user {username!r} from registry.")
+        return 0
+    except ValueError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
+
+
 def _cmd_users_for_rebuild(manager: UserRegistryManager, args) -> int:
     users = manager.users_for_rebuild()
     if not users:
@@ -486,13 +567,15 @@ def main(argv=None) -> int:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Commands:
-  --list                        List all registered users
-  --add                         Add a new user (requires --username --services)
-  --add-service <user> <svc>    Enroll existing user in an additional service
-  --disposition <user> <value>  Set user disposition: active | archived | pending-deletion
-  --throw-away-key <user> <svc> Mark key as discarded (admin loses credential access)
-  --users-for-rebuild           Print TSV: username, service, flow (provision|reset)
-  --init                        Create empty registry file
+  --list                         List all registered users
+  --add                          Add a new user (requires --username --services)
+  --add-service <user> <svc>     Enroll existing user in an additional service
+  --disposition <user> <value>   Set user disposition: active | archived | pending-deletion
+  --throw-away-key <user> <svc>  Mark key as discarded (admin loses credential access)
+  --remove-service <user> <svc>  Remove a service enrollment (after account deleted)
+  --remove-user                  Remove user from registry (after all accounts deleted)
+  --users-for-rebuild            Print TSV: username, service, flow (provision|reset)
+  --init                         Create empty registry file
 
 KeePass path convention:
   Broodforge/users/<username>/<service>/password
@@ -517,6 +600,11 @@ KeePass path convention:
                       help="Enroll existing user in an additional service")
     mode.add_argument("--throw-away-key", nargs=2, metavar=("USERNAME", "SERVICE"),
                       dest="throw_away_key")
+    mode.add_argument("--remove-service", nargs=2, metavar=("USERNAME", "SERVICE"),
+                      dest="remove_service",
+                      help="Remove a service enrollment (credentials must be deleted first)")
+    mode.add_argument("--remove-user", action="store_true",
+                      help="Remove user from registry entirely (requires --username)")
     mode.add_argument("--users-for-rebuild", action="store_true")
     mode.add_argument("--init", action="store_true")
 
@@ -552,6 +640,10 @@ KeePass path convention:
     if args.throw_away_key:
         args.username, args.service = args.throw_away_key
         return _cmd_throw_away_key(manager, args)
+    if args.remove_service:
+        return _cmd_remove_service(manager, args)
+    if args.remove_user:
+        return _cmd_remove_user(manager, args)
     if args.users_for_rebuild:
         return _cmd_users_for_rebuild(manager, args)
     if args.init:

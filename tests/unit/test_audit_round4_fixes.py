@@ -16,15 +16,12 @@ Covers:
 import io
 import json
 import os
-import sys
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 REPO_ROOT = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(REPO_ROOT / "proxmox-bootstrap"))
-sys.path.insert(0, str(REPO_ROOT / "doc-gen"))
 
 
 # ---------------------------------------------------------------------------

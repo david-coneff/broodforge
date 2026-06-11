@@ -66,6 +66,13 @@ done
 # Load forge-lib.sh and gate
 # ---------------------------------------------------------------------------
 
+echo ""
+echo "================================================================="
+echo " forge-sync-credentials.sh — OPERATOR-INITIATED ONLY"
+echo " Never call this from automated or scheduled contexts."
+echo "================================================================="
+echo ""
+
 [[ -f "$LIB_SH" ]] || die "forge-lib.sh not found at $LIB_SH"
 # shellcheck source=../lib/forge-lib.sh
 source "$LIB_SH"

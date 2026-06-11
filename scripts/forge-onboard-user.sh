@@ -25,6 +25,11 @@
 #   additionally encrypts all vault contents client-side.  Once the key is thrown
 #   away, the admin cannot impersonate the user or read their data.
 #
+# Output:
+#   HTML file (primary — opens in any browser, print→PDF from browser)
+#   PDF alongside HTML with --also-pdf (requires: pip install weasyprint)
+#   TOTP QR codes embedded in HTML (requires: pip install "qrcode[pil]")
+#
 # Usage:
 #   # New user:
 #   bash scripts/forge-onboard-user.sh \
@@ -32,17 +37,17 @@
 #       --display-name "Alice Smith" \
 #       --email alice@example.com \
 #       --services vaultwarden,headscale,gitea \
-#       [--output /path/to/alice-onboarding.txt] \
-#       [--dry-run]
+#       --output /path/to/alice-onboarding.html \
+#       [--also-pdf] [--dry-run]
 #
 #   # Add a service to an existing user:
 #   bash scripts/forge-onboard-user.sh \
 #       --add-service alice gitea \
-#       [--output /path/to/alice-gitea.txt] \
-#       [--dry-run]
+#       --output /path/to/alice-gitea.html \
+#       [--also-pdf] [--dry-run]
 #
 # Exit codes:
-#   0 — success
+#   0 — success (HTML written; PDF also written if --also-pdf and weasyprint available)
 #   1 — error
 
 set -euo pipefail
@@ -52,6 +57,7 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 LIB_SH="${REPO_ROOT}/lib/forge-lib.sh"
 USER_REG_PY="${REPO_ROOT}/proxmox-bootstrap/user_registry.py"
 REGISTRY_JSON="${REPO_ROOT}/config/user-registry.json"
+ONBOARDING_PDF_PY="${REPO_ROOT}/lib/forge-onboarding-pdf.py"
 
 # ---------------------------------------------------------------------------
 
@@ -68,6 +74,7 @@ DISPLAY_NAME=""
 EMAIL=""
 SERVICES=""
 OUTPUT_FILE=""
+ALSO_PDF=0
 DRY_RUN=0
 ADD_SERVICE_MODE=0    # set to 1 when --add-service is used
 ADD_SERVICE_NAME=""   # the single service to add
@@ -79,6 +86,7 @@ while [[ $# -gt 0 ]]; do
     --email)        EMAIL="$2";               shift 2 ;;
     --services)     SERVICES="$2";            shift 2 ;;
     --output)       OUTPUT_FILE="$2";         shift 2 ;;
+    --also-pdf)     ALSO_PDF=1;               shift   ;;
     --dry-run)      DRY_RUN=1;                shift   ;;
     --add-service)
       ADD_SERVICE_MODE=1
@@ -251,34 +259,124 @@ done
 # Render onboarding package
 # ---------------------------------------------------------------------------
 
-_render_onboarding_package() {
-  local width=72
-  local border
-  border=$(printf '%*s' "$width" '' | tr ' ' '─')
+# _build_cred_json — emit the credential JSON object to stdout.
+# Passwords stay out of argv/env — this builds JSON inline then pipes it.
+_build_cred_json() {
+  local mode_str
+  [[ $ADD_SERVICE_MODE -eq 1 ]] && mode_str="add-service" || mode_str="onboarding"
+
+  python3 - <<'PYEOF'
+import json, os, sys
+
+username     = os.environ["_OB_USERNAME"]
+display_name = os.environ["_OB_DISPLAY_NAME"]
+generated_at = os.environ["_OB_GENERATED_AT"]
+mode_str     = os.environ["_OB_MODE"]
+
+services_raw = json.loads(os.environ["_OB_SERVICES_JSON"])
+out = {
+    "username":     username,
+    "display_name": display_name,
+    "generated_at": generated_at,
+    "mode":         mode_str,
+    "services":     services_raw,
+}
+print(json.dumps(out))
+PYEOF
+}
+
+# Build the services JSON blob (passwords are in bash vars, not args)
+# We collect into an env var via python to handle quoting safely.
+_build_services_json() {
+  python3 -c "
+import json, sys
+
+services = {}
+lines = sys.stdin.read().strip().split('\n')
+for line in lines:
+    if not line:
+        continue
+    parts = line.split('\t', 3)
+    if len(parts) < 4:
+        continue
+    svc, pw, totp, uri = parts
+    services[svc] = {'password': pw, 'totp_secret': totp, 'totp_uri': uri}
+print(json.dumps(services))
+"
+}
+
+# Assemble the tab-separated service data and build JSON
+_SERVICES_TSV=""
+for svc in "${SERVICE_LIST[@]}"; do
+  svc="$(echo "$svc" | tr -d ' ')"
+  [[ -z "$svc" ]] && continue
+  _SERVICES_TSV+="${svc}"$'\t'"${_CREDS_PW[$svc]}"$'\t'"${_CREDS_TOTP[$svc]}"$'\t'"${_CREDS_URI[$svc]}"$'\n'
+done
+
+_SERVICES_JSON=$(printf '%s' "$_SERVICES_TSV" | _build_services_json)
+
+info ""
+info "═══════════════════════════════════════════════"
+info " ONBOARDING PACKAGE"
+info "═══════════════════════════════════════════════"
+info ""
+
+if [[ $DRY_RUN -eq 1 ]]; then
+  info "[dry-run] Would generate onboarding package for $USERNAME"
+  info "[dry-run] Services: ${SERVICES}"
+  [[ -n "$OUTPUT_FILE" ]] && info "[dry-run] Output: ${OUTPUT_FILE}"
+elif [[ -n "$OUTPUT_FILE" ]]; then
+  # HTML primary — always generated
+  _MODE_STR="onboarding"
+  [[ $ADD_SERVICE_MODE -eq 1 ]] && _MODE_STR="add-service"
+
+  export _OB_USERNAME="$USERNAME"
+  export _OB_DISPLAY_NAME="${DISPLAY_NAME:-$USERNAME}"
+  export _OB_GENERATED_AT="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+  export _OB_MODE="$_MODE_STR"
+  export _OB_SERVICES_JSON="$_SERVICES_JSON"
+
+  _PDF_FLAG=""
+  [[ $ALSO_PDF -eq 1 ]] && _PDF_FLAG="--also-pdf"
+
+  # Pipe credential JSON via stdin to the HTML generator (passwords stay out of argv)
+  _build_cred_json | python3 "$ONBOARDING_PDF_PY" --output "$OUTPUT_FILE" $_PDF_FLAG
+  _PDF_RC=${PIPESTATUS[1]}
+
+  unset _OB_USERNAME _OB_DISPLAY_NAME _OB_GENERATED_AT _OB_MODE _OB_SERVICES_JSON
+
+  # Determine actual HTML path (generator strips/adds .html)
+  _HTML_PATH="${OUTPUT_FILE%.html}.html"
+  info "Onboarding package ready: ${_HTML_PATH}"
+  info "Open in any browser or deliver to $USERNAME via secure channel."
+  [[ $_PDF_RC -eq 2 ]] && warn "PDF not written (weasyprint unavailable); HTML is sufficient."
+else
+  # No --output: render plain text to stdout for quick operator review
+  _TXT_WIDTH=72
+  _TXT_BORDER=$(printf '%*s' "$_TXT_WIDTH" '' | tr ' ' '─')
 
   if [[ $ADD_SERVICE_MODE -eq 1 ]]; then
-    echo "┌${border}┐"
-    echo "│$(printf '%-*s' $width "  BROODFORGE NEW SERVICE ACCESS — ${USERNAME^^}")│"
-    echo "│$(printf '%-*s' $width "  Service: ${ADD_SERVICE_NAME}  |  Generated: $(date -u '+%Y-%m-%d %H:%M UTC')")│"
-    echo "├${border}┤"
-    echo "│$(printf '%-*s' $width "  Keep this document secure. Do not share it.")│"
-    echo "│$(printf '%-*s' $width "  Store in your personal password manager immediately.")│"
-    echo "└${border}┘"
+    echo "┌${_TXT_BORDER}┐"
+    printf "│%-${_TXT_WIDTH}s│\n" "  BROODFORGE NEW SERVICE ACCESS — ${USERNAME^^}"
+    printf "│%-${_TXT_WIDTH}s│\n" "  Service: ${ADD_SERVICE_NAME}  |  Generated: $(date -u '+%Y-%m-%d %H:%M UTC')"
+    echo "├${_TXT_BORDER}┤"
+    printf "│%-${_TXT_WIDTH}s│\n" "  Keep this document secure. Do not share it."
+    printf "│%-${_TXT_WIDTH}s│\n" "  Store in your personal password manager immediately."
+    echo "└${_TXT_BORDER}┘"
   else
-    echo "┌${border}┐"
-    echo "│$(printf '%-*s' $width "  BROODFORGE ONBOARDING PACKAGE — ${USERNAME^^}")│"
-    echo "│$(printf '%-*s' $width "  Generated: $(date -u '+%Y-%m-%d %H:%M UTC')")│"
-    echo "├${border}┤"
-    echo "│$(printf '%-*s' $width "  Keep this document secure. Do not share it.")│"
-    echo "│$(printf '%-*s' $width "  Store in your personal password manager immediately.")│"
-    echo "└${border}┘"
+    echo "┌${_TXT_BORDER}┐"
+    printf "│%-${_TXT_WIDTH}s│\n" "  BROODFORGE ONBOARDING PACKAGE — ${USERNAME^^}"
+    printf "│%-${_TXT_WIDTH}s│\n" "  Generated: $(date -u '+%Y-%m-%d %H:%M UTC')"
+    echo "├${_TXT_BORDER}┤"
+    printf "│%-${_TXT_WIDTH}s│\n" "  Keep this document secure. Do not share it."
+    printf "│%-${_TXT_WIDTH}s│\n" "  Store in your personal password manager immediately."
+    echo "└${_TXT_BORDER}┘"
   fi
   echo ""
 
   for svc in "${SERVICE_LIST[@]}"; do
     svc="$(echo "$svc" | tr -d ' ')"
     [[ -z "$svc" ]] && continue
-
     echo "  ══ Service: ${svc} ══"
     echo "  Username : ${USERNAME}"
     echo "  Password : ${_CREDS_PW[$svc]}"
@@ -287,35 +385,17 @@ _render_onboarding_package() {
     echo "    Secret : ${_CREDS_TOTP[$svc]}"
     echo "    URI    : ${_CREDS_URI[$svc]}"
     echo ""
-    echo "  Scan the URI with Google Authenticator, Aegis, or any TOTP app."
-    echo "  Or enter the secret manually (SHA1, 6 digits, 30s period)."
-    echo ""
+    echo "  Scan the URI with an Authenticator app (SHA1, 6 digits, 30s)."
     echo "  ─────────────────────────────────────────────────────────────────"
     echo ""
   done
 
   echo "  IMPORTANT — ZERO-KNOWLEDGE SERVICES:"
   echo "  Your Vaultwarden vault is encrypted with your master password."
-  echo "  Broodforge admins cannot read your vault contents even with server"
-  echo "  access. Your data is yours alone."
+  echo "  Admins cannot read your vault contents even with server access."
   echo ""
-  echo "  Once you have saved these credentials, inform the administrator so"
-  echo "  they can acknowledge onboarding and optionally discard their copy."
+  echo "  Once saved, inform the administrator to acknowledge onboarding."
   echo ""
-}
-
-info ""
-info "═══════════════════════════════════════════════"
-info " ONBOARDING PACKAGE"
-info "═══════════════════════════════════════════════"
-info ""
-
-if [[ -n "$OUTPUT_FILE" && $DRY_RUN -eq 0 ]]; then
-  _render_onboarding_package > "$OUTPUT_FILE"
-  info "Onboarding package written to: $OUTPUT_FILE"
-  info "Deliver this file to $USERNAME via a secure channel."
-else
-  _render_onboarding_package
 fi
 
 # Clear credential arrays from memory
@@ -324,7 +404,7 @@ for svc in "${!_CREDS_PW[@]}"; do
   _CREDS_TOTP["$svc"]=""
   _CREDS_URI["$svc"]=""
 done
-unset _CREDS_PW _CREDS_TOTP _CREDS_URI
+unset _CREDS_PW _CREDS_TOTP _CREDS_URI _SERVICES_TSV _SERVICES_JSON
 
 info ""
 info "Next steps:"

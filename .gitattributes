@@ -1,0 +1,9 @@
+# Enforce LF line endings for all text files regardless of platform
+* text=auto eol=lf
+
+# Explicitly mark binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.ico binary
+*.pyc binary

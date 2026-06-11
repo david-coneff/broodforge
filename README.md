@@ -1398,28 +1398,45 @@ See `proxmox-bootstrap/FORGING.md` for the full operator runbook.
 
 ```
 broodforge/
-├── .ai/                     Project context, current state, decisions
-├── data-model/              JSON schemas + stdlib validator
-├── doc-gen/                 Documentation generation engine (stdlib only)
-│   ├── engine.py            CLI: --mode bootstrap | recovery
-│   ├── registries.py        SecretRegistry + DnsRegistry
-│   ├── template_registry.py TemplateRegistry
-│   ├── provenance.py        ProvenanceRegistry
-│   ├── readiness.py         GREEN/YELLOW/ORANGE/RED scorer
-│   └── renderers/           HTML document generators (deprecated/ holds old ODS/ODT)
-├── engine/                  Legacy pae CLI (Phases 1–6 assessment history)
-├── collector/               Legacy collector framework
-├── proxmox-bootstrap/       Bootstrap Intelligence toolchain
-│   ├── metadata/            AUTHORITATIVE infrastructure intent YAML
-│   ├── snippets/            Cloud-Init user-data, network-config, vendor-data
-│   ├── collect_tier2.py     Tier 2 SSH state collector library
-│   ├── collect-tier2.py     CLI entry point for Tier 2 collection
-│   └── TIER2-COLLECTION.md  Operator runbook for Tier 2 collection
-├── tests/                   4000+ tests (unit + fixtures)
-├── docs/                    Architecture reviews, session handoffs
-├── reports/                 Generated documentation output
-├── ARCHITECTURE.md          Current architecture summary
-└── ROADMAP.md               Full development roadmap (25 phases)
+├── .ai/                       Project context, current state, decisions
+├── config/
+│   └── user-registry.json     User registry — who has accounts in k8s services
+├── data-model/                JSON schemas + stdlib validator
+├── doc-gen/                   Documentation generation engine (stdlib only)
+│   ├── engine.py              CLI: --mode bootstrap | recovery
+│   ├── registries.py          SecretRegistry + DnsRegistry
+│   ├── template_registry.py   TemplateRegistry
+│   ├── provenance.py          ProvenanceRegistry
+│   ├── readiness.py           GREEN/YELLOW/ORANGE/RED scorer
+│   └── renderers/             HTML document generators (deprecated/ holds old ODS/ODT)
+├── engine/                    Legacy pae CLI (Phases 1–6 assessment history)
+├── collector/                 Legacy collector framework
+├── lib/
+│   ├── forge-lib.sh           Core shell library (KeePass gate, helpers)
+│   ├── forge-sync-lib.py      KeePass master→child DB sync (pykeepass)
+│   ├── forge-onboarding-pdf.py  HTML onboarding package generator (TOTP QR codes)
+│   └── forge-render-docs.sh   Architecture/doc → HTML renderer
+├── proxmox-bootstrap/         Bootstrap Intelligence toolchain
+│   ├── metadata/              AUTHORITATIVE infrastructure intent YAML
+│   ├── snippets/              Cloud-Init user-data, network-config, vendor-data
+│   ├── user_registry.py       User registry CLI + data model
+│   ├── collect_tier2.py       Tier 2 SSH state collector library
+│   ├── collect-tier2.py       CLI entry point for Tier 2 collection
+│   └── TIER2-COLLECTION.md    Operator runbook for Tier 2 collection
+├── scripts/
+│   ├── forge-onboard-user.sh       Onboard user → credentials + HTML package
+│   ├── forge-provision-users.sh    Re-provision all users into k8s services
+│   ├── forge-throw-away-key.sh     Delete admin copy of credentials (zero-knowledge)
+│   ├── forge-offboard-user.sh      Remove user from services + registry
+│   └── forge-sync-credentials.sh  Sync credentials master→child KeePass DBs
+├── tests/                     4000+ tests (unit + fixtures)
+├── docs/
+│   ├── USER-REGISTRY.md       User lifecycle, service adapter convention
+│   ├── ARCHITECTURE.html      Rendered architecture (auto-generated from ARCHITECTURE.md)
+│   └── ...                    Architecture reviews, session handoffs
+├── reports/                   Generated documentation output
+├── ARCHITECTURE.md            Current architecture summary (v7.2)
+└── ROADMAP.md                 Full development roadmap (25 phases)
 ```
 
 ---

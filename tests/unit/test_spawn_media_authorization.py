@@ -14,17 +14,13 @@ hypervisor root-credential VALUE from any store.
 
 import importlib.util
 import json
-import os
 import re
-import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
 
-_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-_PB_DIR = Path(_ROOT) / "proxmox-bootstrap"
-sys.path.insert(0, str(_PB_DIR))
+_PB_DIR = Path(__file__).parent.parent.parent / "proxmox-bootstrap"
 
 import _image_builder as _ib
 

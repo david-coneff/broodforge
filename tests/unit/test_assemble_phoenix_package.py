@@ -1,11 +1,16 @@
 #!/usr/bin/env python3
-"""Tests for Phase 9.T — Phoenix package assembler."""
+"""Tests for Phase 9.T — Phoenix package assembler.
 
+Also covers pack_state() / read_phoenix_manifest() (--pack / --list CLI additions).
+"""
+
+import io
 import json
 import sys
 import tarfile
 import tempfile
 import unittest
+import warnings
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -16,7 +21,10 @@ from assemble_phoenix_package import (
     assemble_phoenix_package,
     package_contents,
     package_name,
+    pack_state,
+    read_phoenix_manifest,
     _CHECKPOINT_SH,
+    _load_version_from,
 )
 
 _NOW = datetime(2026, 6, 1, 12, 0, 0, tzinfo=timezone.utc)
@@ -259,3 +267,331 @@ class TestPhoenixWorkbook:
             )
             contents = package_contents(pkg)
         assert "phoenix-workbook.html" in contents
+
+
+# ===========================================================================
+# pack_state() / read_phoenix_manifest() — current-state pack CLI tests
+# ===========================================================================
+
+_PACK_NOW = datetime(2026, 6, 9, 12, 0, 0, tzinfo=timezone.utc)
+
+
+def _make_fake_repo(tmp: Path) -> Path:
+    """Create a minimal fake repo layout for pack_state() tests."""
+    (tmp / "proxmox-bootstrap").mkdir(exist_ok=True)
+    (tmp / "proxmox-bootstrap" / "version.py").write_text(
+        'SCHEMA_VERSION: str = "2026-06-09_00-00-00_0000000"\n',
+        encoding="utf-8",
+    )
+    (tmp / "proxmox-bootstrap" / "package-descriptor.json").write_text(
+        '{"package_hash": "abc123"}\n', encoding="utf-8"
+    )
+    (tmp / "proxmox-bootstrap" / "state-descriptor.json").write_text(
+        '{"state_hash": "def456"}\n', encoding="utf-8"
+    )
+    (tmp / "migrations").mkdir(exist_ok=True)
+    (tmp / "migrations" / "migrate_initial__to__v1.py").write_text(
+        "# migration\n", encoding="utf-8"
+    )
+    return tmp
+
+
+def _make_fake_state_dir(tmp: Path, subdir: str = "state") -> Path:
+    """Create a fake state directory with manifest.toml and bootstrap-state.json."""
+    state = tmp / subdir
+    state.mkdir(exist_ok=True)
+    (state / "manifest.toml").write_text('[deployment]\ncell_id = "test"\n', encoding="utf-8")
+    (state / "bootstrap-state.json").write_text('{"schema_version": "v1"}\n', encoding="utf-8")
+    return state
+
+
+class TestPackState(unittest.TestCase):
+    """pack_state() creates a valid .tar.gz with all expected members."""
+
+    def setUp(self):
+        self._td = tempfile.TemporaryDirectory()
+        self.tmp = Path(self._td.name)
+        self.repo_root = _make_fake_repo(self.tmp)
+        self.state_dir = _make_fake_state_dir(self.tmp)
+        self.output = self.tmp / "out" / "2026-06-09_12-00-00.tar.gz"
+
+    def tearDown(self):
+        self._td.cleanup()
+
+    def _pack(self) -> Path:
+        return pack_state(
+            state_dir=self.state_dir,
+            output=self.output,
+            repo_root=self.repo_root,
+            now=_PACK_NOW,
+        )
+
+    def test_returns_the_output_path(self):
+        result = self._pack()
+        self.assertEqual(result, self.output)
+
+    def test_creates_a_tar_gz(self):
+        self._pack()
+        self.assertTrue(self.output.exists(), "tar.gz was not created")
+        self.assertTrue(tarfile.is_tarfile(str(self.output)))
+
+    def test_expected_members_present(self):
+        self._pack()
+        members = set(tarfile.open(str(self.output), "r:gz").getnames())
+        expected = {
+            "phoenix-manifest.json",
+            "manifest.toml",
+            "bootstrap-state.json",
+            "package-descriptor.json",
+            "state-descriptor.json",
+            "proxmox-bootstrap/version.py",
+            "migrations/migrate_initial__to__v1.py",
+        }
+        self.assertTrue(
+            expected.issubset(members),
+            f"Missing members: {expected - members}",
+        )
+
+    def test_parent_dirs_created_automatically(self):
+        nested = self.tmp / "a" / "b" / "c" / "package.tar.gz"
+        pack_state(
+            state_dir=self.state_dir,
+            output=nested,
+            repo_root=self.repo_root,
+            now=_PACK_NOW,
+        )
+        self.assertTrue(nested.exists())
+
+
+class TestPhoenixManifestFields(unittest.TestCase):
+    """phoenix-manifest.json inside the package has all required fields."""
+
+    def setUp(self):
+        self._td = tempfile.TemporaryDirectory()
+        self.tmp = Path(self._td.name)
+        self.repo_root = _make_fake_repo(self.tmp)
+        self.state_dir = _make_fake_state_dir(self.tmp)
+        self.output = self.tmp / "package.tar.gz"
+
+    def tearDown(self):
+        self._td.cleanup()
+
+    def _manifest(self) -> dict:
+        pack_state(
+            state_dir=self.state_dir,
+            output=self.output,
+            repo_root=self.repo_root,
+            now=_PACK_NOW,
+        )
+        return read_phoenix_manifest(self.output)
+
+    def test_packed_at_present(self):
+        self.assertIn("packed_at", self._manifest())
+
+    def test_packed_at_matches_injected_now(self):
+        self.assertEqual(self._manifest()["packed_at"], "2026-06-09T12:00:00Z")
+
+    def test_packed_at_ends_with_z(self):
+        ts = self._manifest()["packed_at"]
+        self.assertTrue(ts.endswith("Z"), f"packed_at should end with Z: {ts!r}")
+
+    def test_schema_version_present_and_non_empty(self):
+        m = self._manifest()
+        self.assertIn("schema_version", m)
+        self.assertTrue(len(m["schema_version"]) > 0)
+
+    def test_schema_version_from_version_py(self):
+        self.assertEqual(
+            self._manifest()["schema_version"],
+            "2026-06-09_00-00-00_0000000",
+        )
+
+    def test_hostname_present_and_non_empty(self):
+        m = self._manifest()
+        self.assertIn("hostname", m)
+        self.assertIsInstance(m["hostname"], str)
+        self.assertTrue(len(m["hostname"]) > 0)
+
+    def test_broodforge_version_present(self):
+        self.assertIn("broodforge_version", self._manifest())
+
+    def test_broodforge_version_matches_schema_version(self):
+        m = self._manifest()
+        self.assertEqual(m["broodforge_version"], m["schema_version"])
+
+
+class TestReadPhoenixManifest(unittest.TestCase):
+    """read_phoenix_manifest() reads back the manifest written by pack_state()."""
+
+    def setUp(self):
+        self._td = tempfile.TemporaryDirectory()
+        self.tmp = Path(self._td.name)
+        self.repo_root = _make_fake_repo(self.tmp)
+        self.state_dir = _make_fake_state_dir(self.tmp)
+        self.output = self.tmp / "test-package.tar.gz"
+
+    def tearDown(self):
+        self._td.cleanup()
+
+    def test_roundtrip(self):
+        pack_state(
+            state_dir=self.state_dir,
+            output=self.output,
+            repo_root=self.repo_root,
+            now=_PACK_NOW,
+        )
+        manifest = read_phoenix_manifest(self.output)
+        self.assertIsInstance(manifest, dict)
+        self.assertEqual(manifest["packed_at"], "2026-06-09T12:00:00Z")
+
+    def test_missing_manifest_member_raises(self):
+        """Raises KeyError when phoenix-manifest.json is absent from the archive."""
+        pkg_path = self.tmp / "no-manifest.tar.gz"
+        with tarfile.open(str(pkg_path), "w:gz") as tar:
+            data = b"hello"
+            info = tarfile.TarInfo(name="other-file.txt")
+            info.size = len(data)
+            tar.addfile(info, io.BytesIO(data))
+        with self.assertRaises(KeyError):
+            read_phoenix_manifest(pkg_path)
+
+    def test_corrupt_json_raises(self):
+        """Raises json.JSONDecodeError when the manifest contains invalid JSON."""
+        pkg_path = self.tmp / "corrupt.tar.gz"
+        with tarfile.open(str(pkg_path), "w:gz") as tar:
+            data = b"not-json"
+            info = tarfile.TarInfo(name="phoenix-manifest.json")
+            info.size = len(data)
+            tar.addfile(info, io.BytesIO(data))
+        with self.assertRaises((json.JSONDecodeError, ValueError)):
+            read_phoenix_manifest(pkg_path)
+
+
+class TestMissingStateFiles(unittest.TestCase):
+    """Missing optional state files are skipped with a warning, not a fatal error."""
+
+    def setUp(self):
+        self._td = tempfile.TemporaryDirectory()
+        self.tmp = Path(self._td.name)
+        self.repo_root = _make_fake_repo(self.tmp)
+        self.output = self.tmp / "package.tar.gz"
+
+    def tearDown(self):
+        self._td.cleanup()
+
+    def _pack_with_capture(self, state_dir: Path) -> tuple:
+        """Pack and capture stderr WARNING lines."""
+        captured: list[str] = []
+        old_stderr = sys.stderr
+
+        class _Capture(io.StringIO):
+            def write(self_, s: str) -> int:  # noqa: N805
+                if "[pack] WARNING" in s:
+                    captured.append(s.strip())
+                return super().write(s)
+
+        sys.stderr = _Capture()
+        try:
+            pkg = pack_state(
+                state_dir=state_dir,
+                output=self.output,
+                repo_root=self.repo_root,
+                now=_PACK_NOW,
+            )
+        finally:
+            sys.stderr = old_stderr
+        return pkg, captured
+
+    def test_pack_succeeds_with_empty_state_dir(self):
+        empty_state = self.tmp / "empty"
+        empty_state.mkdir()
+        pkg, _ = self._pack_with_capture(empty_state)
+        self.assertTrue(pkg.exists())
+        self.assertTrue(tarfile.is_tarfile(str(pkg)))
+
+    def test_warning_for_missing_manifest_toml(self):
+        empty_state = self.tmp / "empty2"
+        empty_state.mkdir()
+        _, warnings_list = self._pack_with_capture(empty_state)
+        self.assertTrue(
+            any("manifest.toml" in w for w in warnings_list),
+            f"Expected warning about manifest.toml; got: {warnings_list}",
+        )
+
+    def test_warning_for_missing_bootstrap_state(self):
+        empty_state = self.tmp / "empty3"
+        empty_state.mkdir()
+        _, warnings_list = self._pack_with_capture(empty_state)
+        self.assertTrue(
+            any("bootstrap-state.json" in w for w in warnings_list),
+            f"Expected warning about bootstrap-state.json; got: {warnings_list}",
+        )
+
+    def test_phoenix_manifest_present_even_when_state_missing(self):
+        empty_state = self.tmp / "empty4"
+        empty_state.mkdir()
+        pkg, _ = self._pack_with_capture(empty_state)
+        manifest = read_phoenix_manifest(pkg)
+        self.assertIn("packed_at", manifest)
+
+    def test_missing_migrations_dir_is_non_fatal(self):
+        import shutil
+        shutil.rmtree(self.repo_root / "migrations")
+        state = self.tmp / "state_nomig"
+        state.mkdir()
+        output = self.tmp / "no-migrations.tar.gz"
+        # Should complete without raising
+        pack_state(
+            state_dir=state,
+            output=output,
+            repo_root=self.repo_root,
+            now=_PACK_NOW,
+        )
+        self.assertTrue(output.exists())
+
+    def test_missing_version_py_uses_fallback(self):
+        """version.py absent → fallback zeroed version, no crash."""
+        (self.repo_root / "proxmox-bootstrap" / "version.py").unlink()
+        state = self.tmp / "state_nover"
+        state.mkdir()
+        output = self.tmp / "no-version.tar.gz"
+        with warnings.catch_warnings(record=True):
+            pack_state(
+                state_dir=state,
+                output=output,
+                repo_root=self.repo_root,
+                now=_PACK_NOW,
+            )
+        manifest = read_phoenix_manifest(output)
+        self.assertIn("schema_version", manifest)
+        self.assertIn("0000", manifest["schema_version"])
+
+
+class TestLoadVersionFrom(unittest.TestCase):
+    """_load_version_from() loads SCHEMA_VERSION or returns a safe fallback."""
+
+    def setUp(self):
+        self._td = tempfile.TemporaryDirectory()
+        self.tmp = Path(self._td.name)
+
+    def tearDown(self):
+        self._td.cleanup()
+
+    def test_loads_correct_value(self):
+        vpy = self.tmp / "version.py"
+        vpy.write_text('SCHEMA_VERSION: str = "2026-01-01_00-00-00_abc1234"\n')
+        self.assertEqual(_load_version_from(vpy), "2026-01-01_00-00-00_abc1234")
+
+    def test_returns_fallback_when_file_missing(self):
+        result = _load_version_from(self.tmp / "nonexistent.py")
+        self.assertIsInstance(result, str)
+        self.assertTrue(len(result) > 0)
+        self.assertIn("0000", result)
+
+    def test_returns_fallback_when_attribute_missing(self):
+        vpy = self.tmp / "empty_version.py"
+        vpy.write_text("# no SCHEMA_VERSION here\n")
+        with warnings.catch_warnings(record=True):
+            result = _load_version_from(vpy)
+        self.assertIsInstance(result, str)
+        self.assertIn("0000", result)

@@ -376,7 +376,7 @@ perspectives.
 
 Current catalog: [`Audit-Reasoning-Patterns.md`](Audit-Reasoning-Patterns.md)
 
-Current catalog: 37 patterns organized into four sections —
+Current catalog: 39 patterns organized into four sections —
 **Workflow & Operator Experience** (Documentation Drift, No Recovery Path,
 One-Way Door, Invisible Prerequisites, Operator Knowledge Assumption,
 Missing Escape Hatch, Cliff-Edge Error, Feedback Vacuum, Missing
@@ -389,7 +389,15 @@ Reliability** (Fail Open, Single Point of Failure, Credential Sprawl,
 Audit Log Gap, TOCTOU, Confused Deputy, Over-Privileged Component), and
 **Architecture** (Catch-22 / Circular Dependency, Orphaned Outputs, Dual
 Authority, Version Skew, Layer Violation, Configuration Explosion,
-Hardcoded Environment).
+Hardcoded Environment, Package Integrity Self-Verification, Embedded
+Version Constant).
+
+**For projects that ship a deployable artifact** (package, installer,
+migration bundle): pay particular attention to patterns #38 (Package
+Integrity Self-Verification) and #39 (Embedded Version Constant). A
+missing integrity descriptor is a RISK; a descriptor that is not
+regenerated as part of the release ceremony is a DEFECT; a version
+string computed at runtime via `git` on the deployed host is a DEFECT.
 
 ## Provenance
 

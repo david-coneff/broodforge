@@ -22,6 +22,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).parent.parent
+# Audit finding (rounds 4/5): Priority 4 — legitimate standalone-script path manipulation.
+# doc-gen/, doc-gen/renderers/, and data-model/ have no __init__.py; they are flat
+# script directories, not Python packages.  Relative imports are structurally impossible.
+# The pyproject.toml pythonpath setting covers pytest invocations; this block is required
+# for direct execution of engine.py (e.g. python3 doc-gen/engine.py --generate ...).
 sys.path.insert(0, str(REPO_ROOT / "doc-gen"))
 sys.path.insert(0, str(REPO_ROOT / "doc-gen" / "renderers"))
 sys.path.insert(0, str(REPO_ROOT / "data-model"))
