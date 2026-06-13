@@ -15,6 +15,24 @@ Timestamps are `YYYY-MM-DD_HH_MM_SS` UTC.
 
 ---
 
+**Cycle: 2026-06-13_00_00_00 UTC**
+
+## Phase 2.J — Kyverno Policy Enforcement (USER-REQUESTED)
+
+| Feature | Origin | Status | Verification |
+|---|---|---|---|
+| `proxmox-bootstrap/kyverno_manager.py` — `PolicyRecord`, `KyvernoDeployment`, `KyvernoState` dataclasses; `KyvernoManager` with Helm install/upgrade/uninstall, ClusterPolicy/Policy registry (upsert by name+kind), `register_policy()` / `remove_policy()` / `list_policies()` / `get_policy()`, live policy count query, health check via `kubectl rollout status`; atomic state writes; full CLI (`install`, `uninstall`, `add-policy`, `remove-policy`, `list`, `health`) | USER-REQUESTED | Implemented | unit (25 tests in `tests/unit/test_kyverno_manager.py`) |
+| `scripts/forge-init-kyverno.sh` — KeePass-gated Kyverno Helm install entrypoint; reads chart version and replica count from env; `set -euo pipefail`; `forge-lib.sh` gating | USER-REQUESTED | Implemented | static |
+| `scripts/forge-kyverno-policy.sh` — applies a Kyverno policy YAML and registers it via `kyverno_manager.py add-policy`; supports `--kind`, `--category`, `--action` (Audit/Enforce), `--rules` | USER-REQUESTED | Implemented | static |
+| AD-073 added to `ARCHITECTURE.md` — Kyverno chosen over OPA/Gatekeeper: native CRD-based policies (no Rego), Audit→Enforce promotion path, lightweight Helm footprint | GAP-FILL | Implemented | static |
+| ROADMAP.md updated: Phase 2.K (External Secrets Operator) corrected from `[x] complete` to `[ ] proposed, not yet implemented` — files were not committed in the WIP snapshot | GAP-FILL | Fixed | static |
+
+**PAP compliance**: `now_fn` injection ✓, `timeout=_SUBPROCESS_TIMEOUT` on all subprocess calls ✓, atomic state writes (`.tmp` → `os.replace()`) ✓, no credentials in env/argv/log ✓.
+
+**Note on Phase 2.K**: The WIP commit (70f5ed7) included ROADMAP/ARCHITECTURE edits claiming Phase 2.K (External Secrets Operator) was complete, but `external_secrets_manager.py`, `forge-init-eso.sh`, `register-secret-store.sh`, and its test suite were never committed. ROADMAP corrected to reflect actual state; Phase 2.K remains proposed.
+
+---
+
 **Cycle: 2026-06-10_00_00_00 UTC**
 
 ## Phase 2.A–2.I — Kubernetes Service Management Layer (USER-REQUESTED)

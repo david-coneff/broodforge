@@ -1,7 +1,7 @@
 # Broodforge — Roadmap
 
 Version: 7.1
-Last updated: 2026-06-11 (phases 1.L–2.K implemented since 2026-06-08:
+Last updated: 2026-06-13 (phases 1.L–2.J implemented since 2026-06-08:
 **Phase 1.L** — Static Analysis Self-Audit Integration (AD-062, commit f7446be);
 **Phase 1.M** — Dynamic Analysis Self-Audit Integration (2026-06-09);
 **Phase 1.N** — Migration Infrastructure (AD-065, 2026-06-09);
@@ -9,9 +9,9 @@ Last updated: 2026-06-11 (phases 1.L–2.K implemented since 2026-06-08:
 **Phase 1.P** — Credential Hierarchy and Key Rotation (2026-06-09);
 **Phase 1.Q** — Zero-Touch Node Provisioning (2026-06-10, commit 5dfa573);
 **Phase 1.U** — Kubernetes User Registry (2026-06-10);
-**Phases 2.A–2.K** — Cluster Services: SSO/Authentik, cert-manager, Prometheus/Grafana,
-Loki/Promtail, Longhorn, nginx-ingress, Flux CD, Velero, Linkerd, Kyverno,
-External Secrets Operator (2026-06-10/11))
+**Phases 2.A–2.J** — Cluster Services: SSO/Authentik, cert-manager, Prometheus/Grafana,
+Loki/Promtail, Longhorn, nginx-ingress, Flux CD, Velero, Linkerd, Kyverno (2026-06-10/13);
+**Phase 2.K** — External Secrets Operator: proposed, not yet implemented)
 Architecture: v7.1 (see ARCHITECTURE.md; design evolution in docs/DESIGN-HISTORY.md)
 
 ---
@@ -204,8 +204,8 @@ Architecture: v7.1 (see ARCHITECTURE.md; design evolution in docs/DESIGN-HISTORY
       user_registry.py (UserRecord, UserRegistry, disposition model, key throw-away);
       forge-onboard-user/provision-users.sh; dashboard Users panel.
       Centrally tracked users auto-provisioned on cluster rebuild.
-- [x] **Phases 2.A–2.K — Cluster Services** (2026-06-10/11):
-      Eleven k8s-layer services, each with a KeePass-gated init script, Python manager module,
+- [x] **Phases 2.A–2.J — Cluster Services** (2026-06-10/13):
+      Ten k8s-layer services, each with a KeePass-gated init script, Python manager module,
       dashboard panel, and unit tests:
       **2.A** authentik_manager.py + forge-init-authentik.sh (OIDC SSO, AD-060/061 compliant);
       **2.B** cert_manager.py + forge-init-cert-manager/rotate-tls-cert.sh (cert-manager, ClusterIssuers, 34 tests);
@@ -216,8 +216,11 @@ Architecture: v7.1 (see ARCHITECTURE.md; design evolution in docs/DESIGN-HISTORY
       **2.G** flux_manager.py + forge-init-flux/flux-reconcile.sh (Flux CD GitOps, ~35 tests);
       **2.H** velero_manager.py + forge-init-velero/velero-backup.sh (Velero workload backup, ~45 tests);
       **2.I** linkerd_manager.py + forge-init-linkerd/enroll-linkerd-ns.sh (Linkerd mTLS, default-deny);
-      **2.J** kyverno_manager.py + forge-init-kyverno/kyverno-policy.sh (Kyverno policy enforcement, 25 tests);
-      **2.K** external_secrets_manager.py + forge-init-eso/register-secret-store.sh (External Secrets Operator, 20 tests).
+      **2.J** kyverno_manager.py + forge-init-kyverno/forge-kyverno-policy.sh (Kyverno policy enforcement, AD-073, 25 tests).
+- [ ] **Phase 2.K — External Secrets Operator** *(proposed, not yet implemented)*:
+      external_secrets_manager.py + forge-init-eso/register-secret-store.sh;
+      ESO syncs secrets from Vault/AWS SM/etc. into k8s Secrets via ExternalSecret CRDs.
+      Proposed scope: Helm install, SecretStore/ClusterSecretStore registry, ExternalSecret lifecycle tracking, ~20 tests.
 
 ---
 

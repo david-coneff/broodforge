@@ -28,7 +28,15 @@ behavior, not its development process, and is out of scope for this artifact
   added); R8-007 OBSERVATION (state docs predate Phase 2 — fixed). 0 BLOCKERs. 0 DEFECTs outstanding.
   1 IMPROVEMENT accepted. Next operational action: **deploy to hardware**.
 
-- **active_milestone**: (Updated — seventeenth milestone, 2026-06-10 Phase 2.A–2.I + Audit Cycle R8.)
+- **active_milestone**: (Updated — eighteenth milestone, 2026-06-13 Phase 2.J + state cleanup.)
+  Phase 2.J (Kyverno) committed: kyverno_manager.py, forge-init-kyverno.sh, forge-kyverno-policy.sh,
+  tests/unit/test_kyverno_manager.py (25 tests). AD-073 added to ARCHITECTURE.md.
+  State cleanup: ROADMAP.md corrected (Phase 2.K incorrectly marked complete in WIP commit 70f5ed7 —
+  no ESO files were committed; reverted to proposed/not-started). FEATURE-HISTORY.md Phase 2.J cycle
+  added. CURRENT_STATE.md, RESUME_BLOCK.md, HTML companions updated.
+  0 open issues. Next action: deploy to hardware.
+
+  (Previous — seventeenth milestone, 2026-06-10 Phase 2.A–2.I + Audit Cycle R8.)
   Phase 2.A–2.I committed (Google Drive sync recovery): 8 k8s service management modules, 8 forge-init
   scripts, 4 additional scripts, 8 test suites. R8 PAP audit (39-pattern scan) complete: 7 findings,
   all resolved or accepted. AD-065–072 added to ARCHITECTURE.md. 4 HTML companions regenerated.
@@ -257,11 +265,10 @@ behavior, not its development process, and is out of scope for this artifact
   recent PAP-AUDIT of broodforge; broodforge's own `docs/AUDIT-FINDINGS.md`
   cycles likewise show no open blocking item as of the last entry.)
 
-- **next_action**: **(Updated — seventeenth milestone closed, 2026-06-10.)**
-  R8 audit cycle complete. Phase 2.A–2.I committed. 7 findings total: R8-001 IMPROVEMENT accepted;
-  R8-002–005 DEFECTs (stale HTML) fixed; R8-006 RISK (missing ADs) fixed; R8-007 OBSERVATION recorded.
-  0 BLOCKERs, 0 open DEFECTs. All 4516 tests pass (Phase 2 test suites included in count from
-  previous session; sandbox git does not re-run full suite). Static pre-flight: 0 findings.
+- **next_action**: **(Updated — eighteenth milestone closed, 2026-06-13.)**
+  Phase 2.J (Kyverno) committed. State cleanup complete: ROADMAP Phase 2.K false-complete claim
+  corrected; AD-073 added; FEATURE-HISTORY, CURRENT_STATE, RESUME_BLOCK, HTML companions updated.
+  0 open issues. 0 open DEFECTs.
   **Next operational action**: deploy to hardware — run `python3
   proxmox-bootstrap/forge-planner.py` on a real Proxmox host to forge the
   first cell. See `FORGING.md`.

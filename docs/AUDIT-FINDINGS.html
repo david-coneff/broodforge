@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Broodforge Audit Findings — Documented Steps vs. Implementation</title>
+<title>Broodforge — Audit Findings</title>
 <style>
   :root{--bg:#1a1d23;--bg2:#22262e;--bg3:#2a2f3a;--border:#3a3f4d;--text:#cdd6f4;--muted:#7f8498;
     --accent:#89b4fa;--green:#a6e3a1;--yellow:#f9e2af;--orange:#fab387;--red:#f38ba8;
@@ -93,14 +93,14 @@
     .param-input,.note-input,.note-area,#bf-session-notes{border:1px solid #999}}
 </style>
 </head>
-<body data-doc="broodforge-audit-findings-documented-steps-vs-im">
+<body data-doc="broodforge-audit-findings">
 <div id="bf-toolbar"><button id="bf-theme-btn" type="button">☀ Light</button></div>
 <div class="doc-meta">Generated from <code>AUDIT-FINDINGS.md</code> — self-contained · print-friendly · values saved in your browser</div>
 
 <h1>Broodforge Audit Findings — Documented Steps vs. Implementation</h1>
 <p><strong>Single, continuously-revised audit log.</strong> Each analysis cycle appends a section with a timestamp (<code>YYYY-MM-DD_HH_MM_SS</code> UTC). Findings are marked <strong>[FIXED]</strong>, <strong>[OUTSTANDING]</strong>, or <strong>[DOCUMENTED]</strong> (a real gap that is now honestly described in the operator docs rather than silently broken). Nothing is deleted — this is a trailing history.</p>
 <hr>
-<details class="section" open><summary><h2>Audit cycle — 2026-06-04_12_37_46 UTC</h2></summary><div class="sec-body">
+<h2>Audit cycle — 2026-06-04_12_37_46 UTC</h2>
 <h3>Method</h3>
 <p>Cross-referenced <strong>every documented user-guide step</strong> against the implemented software:</p>
 <ol>
@@ -143,7 +143,7 @@
 <p>empty-<code>--help</code> set (<code>setup_dnsmasq/headscale/tls</code>) now all report usage.</p>
 <p><strong>F4/F5</strong> remain genuine deploy-to-hardware implementation milestones (OpenTofu VM modules + end-to-end Ansible inventory generation), honestly documented in <code>proxmox-bootstrap/FORGING.md</code>'s phase-by-phase status table — a user following the docs is told these are manual today, so they are not *hidden* broken steps.</p>
 <hr>
-</div></details><details class="section" open><summary><h2>Audit cycle — 2026-06-04_13_01_48 UTC</h2></summary><div class="sec-body">
+<h2>Audit cycle — 2026-06-04_13_01_48 UTC</h2>
 <h3>Method</h3>
 <p>Deep <strong>content</strong> verification of the config generators wired in the previous cycle (F1–F3) — not just "does the CLI write a file", but "is the generated config correct". This surfaced the same *field/value-mismatch* class as F6.</p>
 <h3>Findings</h3>
@@ -160,7 +160,7 @@
 </ul>
 <p>290 tls/headscale/network tests pass; full suite <strong>4000 passed, 1 skipped</strong>.</p>
 <hr>
-</div></details><details class="section" open><summary><h2>Audit cycle — 2026-06-04_13_07_34 UTC</h2></summary><div class="sec-body">
+<h2>Audit cycle — 2026-06-04_13_07_34 UTC</h2>
 <h3>Method</h3>
 <p>Systematic <strong>field-location</strong> cross-reference: which <code>network_topology</code> keys <code>setup_network.py</code> *writes* vs. which keys each <code>generate_*_config()</code> *reads*. (The F6/G1/G3 bugs were all writer-puts-here / reader-looks-there mismatches.)</p>
 <h3>Findings</h3>
@@ -174,7 +174,7 @@
 <p>122 ddns/headscale/network tests pass; full suite <strong>4000 passed, 1 skipped</strong>.</p>
 <blockquote>Lower-impact, left as-is (graceful fallback, not broken): <code>setup_tls</code> reads <code>wan_config.cloudflare_token_keepass_path</code> while <code>setup_network</code> stores the credential as <code>dns_provider_credential_reference</code> — the rendered certbot command takes the token from <code>$CLOUDFLARE_API_TOKEN</code> (env) regardless, so cert issuance is unaffected.</blockquote>
 <hr>
-</div></details><details class="section" open><summary><h2>Audit cycle — 2026-06-04_13_16_16 UTC</h2></summary><div class="sec-body">
+<h2>Audit cycle — 2026-06-04_13_16_16 UTC</h2>
 <h3>Method</h3>
 <p>Extended the field-location audit to the <strong>documentation readers</strong> of <code>network_topology</code> (doc-gen renderers), not just the config generators.</p>
 <h3>Findings</h3>
@@ -187,7 +187,7 @@
 </ul>
 <p>256 bootstrap tests pass; full suite <strong>4000 passed, 1 skipped</strong>.</p>
 <hr>
-</div></details><details class="section" open><summary><h2>Audit cycle — 2026-06-04_13_20_46 UTC</h2></summary><div class="sec-body">
+<h2>Audit cycle — 2026-06-04_13_20_46 UTC</h2>
 <h3>Method</h3>
 <p><strong>Comprehensive sweep</strong> for the whole bug class (rather than one-at-a-time): grepped every reader of a <code>setup_network</code>-top-level key (<code>headscale_url</code>, <code>ddns_*</code>, <code>ssl_*</code>) that reads it from <code>wan_config</code>, across all of <code>proxmox-bootstrap/</code> and <code>doc-gen/</code>.</p>
 <h3>Findings (one cluster, G7)</h3>
@@ -198,7 +198,7 @@
 <p><strong>Attempt 1 — resolved.</strong> Re-grep confirms all five sites now use the read-both pattern; the sweep returns no remaining <code>wan_config</code>-only reads of top-level keys. Full suite <strong>4000 passed, 1 skipped</strong>. (Same fix shape as G4/G5/G6, which were verified functionally.)</p>
 <blockquote>This closes the recurring <strong>field-location</strong> class (F6 dnsmasq, G1 TLS provider value, G3 Headscale base, G4 DDNS, G5/G6/G7 headscale_url): writers split fields between top-level <code>network_topology</code> and nested <code>wan_config</code>; readers now accept either.</blockquote>
 <hr>
-</div></details><details class="section" open><summary><h2>Audit cycle — 2026-06-04_13_25_31 UTC</h2></summary><div class="sec-body">
+<h2>Audit cycle — 2026-06-04_13_25_31 UTC</h2>
 <h3>Method</h3>
 <p>Different class: <strong>secret/value flow</strong> through the spawn pipeline (not network fields). Traced the k3s join token from the hatchery state → spawn package → generated Ansible vars.</p>
 <h3>Findings</h3>
@@ -207,7 +207,7 @@
 <p>The README documents k3s join tokens as the <strong>one secret the spawn package carries</strong> (embedded in the spawn manifest, valid only during the spawn window, rotated after the broodling joins). So the documented-model fix is to carry the real token: <code>build_spawn_plan</code> now copies <code>worker_join_token</code>/<code>server_join_token</code> from the hatchery's <code>bootstrap_state["k3s"]</code> into <code>plan["k3s"]</code> (keeping the <code>*_token_path</code> references too). Verified: <code>generate_ansible_k3s_vars</code> now emits the real token for both worker and server roles, with no <code>{{ vault_… }}</code> placeholder. Full suite <strong>4000 passed, 1 skipped</strong>.</p>
 <blockquote><strong>Security note for the operator (design decision):</strong> this fix follows the *documented* model (token in the package, short-lived, rotated post-join). The alternative — resolve the token from KeePass at runtime via the secrets broker (the <code>*_token_path</code> references hint at this) — would keep the token out of <code>spawn-plan.json</code> entirely. That is a more secure design but requires a runtime resolver that does not exist yet. <strong>Flagged for your call</strong>; the current fix makes the documented flow actually work. (Related: cycle-1 A1 redacts these same tokens from the unauthenticated dashboard endpoint.)</blockquote>
 <hr>
-</div></details><details class="section" open><summary><h2>Audit cycle — 2026-06-04_13_29_26 UTC</h2></summary><div class="sec-body">
+<h2>Audit cycle — 2026-06-04_13_29_26 UTC</h2>
 <h3>Method</h3>
 <p>Traced the <strong>spawn-completion</strong> contract: phase-06 POSTs <code>{spawn_plan, hardware_profile}</code> → <code>build_spawn_result(spawn_plan)</code> → <code>update_state_after_spawn</code>. Cross-referenced every field <code>build_spawn_result</code> reads against what <code>build_spawn_plan</code> actually writes.</p>
 <h3>Findings</h3>
@@ -216,7 +216,7 @@
 <h3>Fix + re-audit result</h3>
 <p><code>build_spawn_result</code> now derives <code>dns_entries</code> from <code>spawn_plan["lan_ip"]</code> (the broodling host) and each <code>vms[].ip</code> (with fqdn from the VM name + domain), matching the existing vmid/ip derivation. Verified end-to-end: a plan with 2 VMs yields 3 dns entries (broodling + 2 VMs) and <code>update_state_after_spawn</code> registers all three IPs into <code>dns_registry</code>. 451 spawn/update/receiver tests pass; full suite <strong>4000 passed, 1 skipped</strong>.</p>
 <hr>
-</div></details><details class="section" open><summary><h2>Audit cycle — 2026-06-04_13_31_51 UTC — FIRST CLEAN PASS</h2></summary><div class="sec-body">
+<h2>Audit cycle — 2026-06-04_13_31_51 UTC — FIRST CLEAN PASS</h2>
 <h3>Method (deep + even-deeper)</h3>
 <p>Symptom-based content scans of the pipelines not yet content-checked, plus one more contract trace:</p>
 <ol>
@@ -248,11 +248,11 @@
 <h3>Caveat</h3>
 <p>The structured audits (documented commands, CLI flags, network-field locations, secret flow, spawn/phoenix/backup content) are now clean. This does <strong>not</strong> prove the absence of deeper logic bugs or anything that only appears on real Proxmox hardware — those remain <code>user-tested</code>-pending (see <code>FEATURE-HISTORY.md</code>). Full suite throughout: <strong>4000 passed, 1 skipped</strong>.</p>
 <hr>
-</div></details><details class="section" open><summary><h2>Trailing history of fixes (cycles 1–7, this session)</h2></summary><div class="sec-body">
+<h2>Trailing history of fixes (cycles 1–7, this session)</h2>
 <p>All verified by re-audit and the pytest suite (4000 passed, 1 skipped) at the time.</p>
 <table><thead><tr><th>Finding</th><th>Resolution</th><th>Status</th></tr></thead><tbody><tr><td>Forge package shipped without its library code (<code>--repo</code> optional, docs omit it) → phase-00 fails</td><td>Assembler infers repo root by default; verified bundles 95 tools + 26 schemas + 78 doc-gen</td><td><strong>[FIXED]</strong></td></tr><tr><td>Dashboard <code>/api/state</code> (unauth) leaked k3s join tokens from bootstrap-state.json</td><td><code>_redact_secrets()</code> on all unauth GET endpoints</td><td><strong>[FIXED]</strong></td></tr><tr><td>Spawn pre-flight <code>validate-spawn.py</code> referenced but never bundled (silent skip)</td><td>New <code>validate-spawn.py</code> CLI + closure bundled</td><td><strong>[FIXED]</strong></td></tr><tr><td>Forge IaC: <code>ansible/</code> + <code>generators/</code> not bundled; phase-05 referenced wrong filenames</td><td>Bundle both; fix phase-05 paths; honest status note</td><td><strong>[FIXED]</strong></td></tr><tr><td>Stargate workflow had no playbook-generation entry point</td><td><code>phoenix-planner.py --state</code> now generates; new <code>docs/PHOENIX.md</code></td><td><strong>[FIXED]</strong></td></tr><tr><td><code>engine.py</code> invoked with unsupported <code>--state</code>/<code>--output</code> (forge phase-07)</td><td>Switched to <code>--manifest</code></td><td><strong>[FIXED]</strong></td></tr><tr><td><code>engine.py --set-timezone</code> documented (AD-045) but unimplemented</td><td>Implemented <code>--set-timezone TZ</code></td><td><strong>[FIXED]</strong></td></tr><tr><td><code>spawn_hardware_discovery.py</code> (NODE-SPAWNING step 1) had no CLI; password auth dead</td><td>Added CLI + <code>sshpass</code> password auth (no argv leak)</td><td><strong>[FIXED]</strong></td></tr><tr><td><code>setup_ddns.py</code> library invoked as CLI by forge + docs; <code>setup-ddns.py</code> filename wrong</td><td>Real CLI (both forms); fixed all references</td><td><strong>[FIXED]</strong></td></tr><tr><td><code>init-bootstrap-state.py</code> (forge phase-07) ignored <code>--manifest</code>, would hang interactively</td><td><code>--manifest</code> seeds state non-interactively; phase-07 passes <code>--non-interactive</code></td><td><strong>[FIXED]</strong></td></tr><tr><td>Stale spawn/phoenix phase names, test counts, broken doc links, "Forgability" spelling</td><td>Corrected across README/ROADMAP/FORGING/ARCHITECTURE</td><td><strong>[FIXED]</strong></td></tr></tbody></table>
 <hr>
-</div></details><details class="section" open><summary><h2>Audit cycle — 2026-06-08_00_00_00 UTC — PAP Audit (CRITICAL + HIGH) — commit 31a2ee6 + 1195e8f</h2></summary><div class="sec-body">
+<h2>Audit cycle — 2026-06-08_00_00_00 UTC — PAP Audit (CRITICAL + HIGH) — commit 31a2ee6 + 1195e8f</h2>
 <h3>Method</h3>
 <p>Full-codebase PAP audit (<code>.ai/pap-audit-2026-06-08.md</code>, 34 findings) covering forge phase scripts, dashboard, spawn planner, image builder, and sync utilities. Fixed in severity order.</p>
 <h3>CRITICAL fixes (commit 31a2ee6)</h3>
@@ -261,28 +261,145 @@
 <table><thead><tr><th>Finding</th><th>Area</th><th>Resolution</th><th>Status</th></tr></thead><tbody><tr><td>F-008/F-029</td><td>Dashboard score mismatch</td><td><code>_scores_from_readiness()</code> passes through <code>overall_score</code>; <code>generate_dashboard_html()</code> renders OVR badge fallback</td><td><strong>[FIXED]</strong></td></tr><tr><td>F-010/F-032</td><td><code>DashboardConfig.save()</code></td><td>Wrapped in try/except OSError; raises loudly to stderr instead of silent failure</td><td><strong>[FIXED]</strong></td></tr><tr><td>F-014/F-030</td><td><code>_serve_doc_file()</code> docs path</td><td>3-step resolution: explicit config → script-adjacent → legacy walk-up; configurable <code>docs_path</code> field added to <code>DashboardConfig</code></td><td><strong>[FIXED]</strong></td></tr><tr><td>F-011/F-020</td><td><code>spawn_planner.py</code> k3s tokens</td><td><code>build_spawn_plan()</code> fails fast with <code>ValueError</code> if k3s tokens absent from <code>bootstrap-state.json["k3s"]</code></td><td><strong>[FIXED]</strong></td></tr><tr><td>F-021</td><td>WAN spawn auth key</td><td><code>build_spawn_plan()</code> fails fast if <code>wan_auth_key</code> absent in WAN mode</td><td><strong>[FIXED]</strong></td></tr><tr><td>F-018</td><td><code>generate-bootstrap-image.py</code></td><td><code>--interface</code> and <code>--disk</code> validated at build time; hard error with hardware-discovery instructions if absent</td><td><strong>[FIXED]</strong></td></tr><tr><td>F-023</td><td>Image passphrase display</td><td>Added prominent <code>!! SINGLE-USE INSTALL PASSPHRASE — RECORD THIS NOW !!</code> banner to CLI output</td><td><strong>[FIXED]</strong></td></tr></tbody></table>
 <p>Test suite after HIGH fixes: <strong>4332 passed, 1 skipped</strong>.</p>
 <hr>
-</div></details><details class="section" open><summary><h2>Audit cycle — 2026-06-08_12_00_00 UTC — PAP Audit (MEDIUM + LOW)</h2></summary><div class="sec-body">
+<h2>Audit cycle — 2026-06-08_12_00_00 UTC — PAP Audit (MEDIUM + LOW)</h2>
 <h3>MEDIUM fixes</h3>
 <table><thead><tr><th>Finding</th><th>Area</th><th>Resolution</th><th>Status</th></tr></thead><tbody><tr><td>F-004</td><td><code>forge_keepass_init.py</code> <code>include_wan</code> no-op</td><td>Removed dead <code>wan_paths</code> computation; added comment explaining parameter is intentionally a no-op</td><td><strong>[FIXED]</strong></td></tr><tr><td>F-005</td><td><code>guided_setup.py</code> missing suggest</td><td>Added <code>backup.secrets_destinations</code> handler (returns <code>["(not configured — run setup-backup.py)"]</code>)</td><td><strong>[FIXED]</strong></td></tr><tr><td>F-006</td><td><code>guided_setup.py</code> stdlib violation</td><td>Replaced <code>from network_topology_collector import _zfs_topology_from_disk_count</code> with 5-line inline logic</td><td><strong>[FIXED]</strong></td></tr><tr><td>F-007/F-031</td><td><code>ROADMAP.md</code> stale checkboxes</td><td>All <code>[ ]</code> scope items in Phase 1.I/1.J/1.K marked <code>[x]</code>; status blocks updated from "proposed, not started" to "implemented — commit X"</td><td><strong>[FIXED]</strong></td></tr><tr><td>F-012</td><td><code>_vault_hierarchy.py</code> deterministic fallback</td><td>Replaced <code>GENERATE-AT-RUNTIME-{role}</code> literal with <code>secrets.token_urlsafe(24)</code></td><td><strong>[FIXED]</strong></td></tr><tr><td>F-015</td><td>Phase-03 missing recovery account step</td><td>Wired <code>setup_recovery_account.py</code> into <code>generate_phase_03_sh()</code>; reads <code>host_identity.operator_ssh_key</code> from manifest; writes plan to <code>/var/lib/broodforge/recovery-plans/</code></td><td><strong>[FIXED]</strong></td></tr><tr><td>F-022</td><td><code>FORGING.md</code> Step 0/Step 1 ordering</td><td>Added NOTE block in Step 0 clarifying that Step 1 (forge-planner.py) must run first; updated code snippet to show the correct order</td><td><strong>[FIXED]</strong></td></tr><tr><td>F-024</td><td><code>_vault_hierarchy.py</code> manual-work quantification</td><td><code>describe_vault_plan()</code> now shows explicit "Operator steps required (N entries)" section with numbered actions</td><td><strong>[FIXED]</strong></td></tr><tr><td>F-025</td><td><code>_recovery_readiness_certificate.py</code> drift absent</td><td><code>summarize_drift()</code> adds a <code>note</code> key explaining insufficient history when drift unavailable</td><td><strong>[FIXED]</strong></td></tr><tr><td>F-026</td><td><code>phoenix_playbook.py</code> credential delivery</td><td>Added Wave 2 step 2.2 documenting the KeePass-managed credential delivery path (where to find it, how to copy to replacement hardware, rotation requirement)</td><td><strong>[FIXED]</strong></td></tr><tr><td>F-027</td><td><code>forge_keepass_init.py</code> TOTP order</td><td>Moved <code>provision_totp()</code> call to AFTER KeePass DB creation commands execute; TOTP is now provisioned into an existing DB</td><td><strong>[FIXED]</strong></td></tr></tbody></table>
 <h3>LOW fixes</h3>
 <table><thead><tr><th>Finding</th><th>Area</th><th>Resolution</th><th>Status</th></tr></thead><tbody><tr><td>F-016/F-034</td><td><code>_recovery_readiness_certificate.py</code> <code>drills[0]</code></td><td>Added comment clarifying <code>drills[0]</code> is the MOST RECENT drill (prepend via <code>insert(0,…)</code>)</td><td><strong>[FIXED]</strong></td></tr></tbody></table>
 <p>Test suite after all fixes: <strong>4332 passed, 1 skipped</strong> (pre-existing <code>test_opentofu.py</code> failure excluded, unchanged from before).</p>
 <hr>
-</div></details><details class="section" open><summary><h2>Audit cycle — 2026-06-08_23_00_00 UTC — PAP Audit R2 (N-001 through N-004)</h2></summary><div class="sec-body">
+<h2>Audit cycle — 2026-06-08_23_00_00 UTC — PAP Audit R2 (N-001 through N-004)</h2>
 <h3>HIGH fixes</h3>
 <table><thead><tr><th>Finding</th><th>Area</th><th>Resolution</th><th>Status</th></tr></thead><tbody><tr><td>N-001</td><td>Phase-05 <code>_worker_token</code>/<code>_server_token</code> not exported</td><td>Added <code>export</code> before the Python heredoc — fixes <code>KeyError</code> aborting phase-05 after ansible succeeded, leaving k3s tokens never written to <code>bootstrap-state.json</code></td><td><strong>[FIXED]</strong></td></tr><tr><td>N-002</td><td>Phase-06 exits 1 when credentials missing</td><td>Changed to exit 2 (NOT_IMPLEMENTED) — FORGE_INCOMPLETE banner now reachable when Forgejo credentials absent</td><td><strong>[FIXED]</strong></td></tr></tbody></table>
 <h3>MEDIUM fixes</h3>
 <table><thead><tr><th>Finding</th><th>Area</th><th>Resolution</th><th>Status</th></tr></thead><tbody><tr><td>N-003</td><td><code>NODE-SPAWNING.md</code> missing WAN prerequisites</td><td>Added "WAN mode prerequisites" section covering Headscale server, <code>headscale preauthkeys create</code>, <code>--wan-auth-key</code> flag, Tailscale install, and checklist</td><td><strong>[FIXED]</strong></td></tr><tr><td>N-004</td><td><code>generate-bootstrap-image.py</code> authorization pipeline not wired</td><td>Now calls <code>build_pregenerated_spawn_media_record()</code> + <code>record_pending_join_authorization()</code>; <code>--state</code> flag writes <code>pending_join_authorizations</code> record to <code>bootstrap-state.json</code></td><td><strong>[FIXED]</strong></td></tr></tbody></table>
 <p>Test suite after R2 fixes: <strong>4403 passed, 1 skipped</strong> (15 new tests).</p>
 <hr>
-</div></details><details class="section" open><summary><h2>Audit cycle — 2026-06-08_23_30_00 UTC — PAP Audit R3+R4 (R3-001 through R4-001)</h2></summary><div class="sec-body">
+<h2>Audit cycle — 2026-06-08_23_30_00 UTC — PAP Audit R3+R4 (R3-001 through R4-001)</h2>
 <h3>R3 HIGH fixes</h3>
 <table><thead><tr><th>Finding</th><th>Area</th><th>Resolution</th><th>Status</th></tr></thead><tbody><tr><td>R3-001</td><td>Phase-08 exits 1 when k3s absent — blocks FORGE_INCOMPLETE banner</td><td>Phase-08 now exits 2 (NOT_IMPLEMENTED) when <code>! command -v k3s &amp;&amp; [ ! -f /etc/rancher/k3s/k3s.yaml ]</code>; fatal path (k3s installed but nodes unhealthy → <code>checkpoint_failed</code> → exit 1) retained</td><td><strong>[FIXED]</strong></td></tr><tr><td>R3-004</td><td><code>KEEPASS_MASTER_PASSWORD</code> never propagated to phases 05/06 subprocesses</td><td><code>forge-keepass-gate.sh</code> persists both <code>FORGE_KDBX_PATH</code> and <code>KEEPASS_MASTER_PASSWORD</code> to 0600 tmpfs session file after first unlock (phase-03); phases 05/06 call <code>forge_keepass_gate</code> before any <code>kdbx_get</code>; <code>forge.sh</code> cleans up session file via EXIT trap</td><td><strong>[FIXED]</strong></td></tr></tbody></table>
 <h3>R3 LOW fixes</h3>
 <table><thead><tr><th>Finding</th><th>Area</th><th>Resolution</th><th>Status</th></tr></thead><tbody><tr><td>R3-002</td><td><code>headscale authkeys generate</code> (deprecated) in spawn-planner.py and federated_reconstruction.py</td><td>Updated both files to <code>headscale preauthkeys create</code> (current CLI format ≥0.17)</td><td><strong>[FIXED]</strong></td></tr><tr><td>R3-003</td><td>Stale comment in <code>spawn_scripts.py:80</code> referencing non-existent function</td><td>Removed the comment</td><td><strong>[FIXED]</strong></td></tr></tbody></table>
 <h3>R4 MEDIUM fix (R4 self-audited R3 fixes; one new finding)</h3>
 <table><thead><tr><th>Finding</th><th>Area</th><th>Resolution</th><th>Status</th></tr></thead><tbody><tr><td>R4-001</td><td>Session file missing <code>FORGE_KDBX_PATH</code> — <code>kdbx_get</code> called keepassxc-cli with empty path</td><td>Session file format updated: line 1 = <code>FORGE_KDBX_PATH</code>, line 2 = <code>KEEPASS_MASTER_PASSWORD</code>; resume path reads both via <code>sed -n '1p'</code>/<code>'2p'</code> and exports <code>FORGE_KDBX_PATH</code></td><td><strong>[FIXED]</strong></td></tr></tbody></table>
-<p>Test suite after R3+R4 fixes: <strong>4415 passed, 1 skipped</strong> (12 new tests; pre-existing <code>test_opentofu.py</code> failures unchanged).</p></div></details>
+<p>Test suite after R3+R4 fixes: <strong>4415 passed, 1 skipped</strong> (12 new tests; pre-existing <code>test_opentofu.py</code> failures unchanged).</p>
+<hr>
+<h2>Audit cycle — 2026-06-09_12_00_00 UTC — R5: PAP 37-Pattern Manual Scan</h2>
+<p>Full static pre-flight (shellcheck, ruff, bandit, vulture, detect-secrets, pytest/coverage) + manual application of all 37 PAP Audit Reasoning Patterns.</p>
+<h3>R5 MEDIUM fixes (Fail Open → Fail Safe)</h3>
+<table><thead><tr><th>Finding</th><th>Pattern</th><th>Area</th><th>Resolution</th><th>Status</th></tr></thead><tbody><tr><td>R5-001</td><td>Pattern 15 (Fail Open)</td><td><code>remediation_policy.py:check_execution_window()</code> — malformed window regex match returned <code>True</code> (allow)</td><td>Changed to <code>return False</code> — fail-safe denies execution when window config is malformed</td><td><strong>[FIXED]</strong></td></tr><tr><td>R5-002</td><td>Pattern 15 (Fail Open)</td><td><code>remediation_policy.py:check_execution_window()</code> — unparseable timestamp returned <code>True</code> (allow)</td><td>Changed to <code>return False</code> — fail-safe denies execution when current time can't be parsed</td><td><strong>[FIXED]</strong></td></tr></tbody></table>
+<h3>R5 MEDIUM fixes (Silent Degradation)</h3>
+<table><thead><tr><th>Finding</th><th>Pattern</th><th>Area</th><th>Resolution</th><th>Status</th></tr></thead><tbody><tr><td>R5-003</td><td>Pattern 8 (Silent Degradation)</td><td><code>platform_state_collector.py:collect_platform_state()</code> — apt-upgrades <code>except Exception: pass</code> swallowed silently</td><td>Now appends to <code>errors</code> list; surfaces in <code>doc.collection_errors</code></td><td><strong>[FIXED]</strong></td></tr><tr><td>R5-004</td><td>Pattern 8 (Silent Degradation)</td><td><code>validate-metadata.py</code> — YAML parse error in cross-file validation swallowed silently</td><td>Now prints <code>[WARN] Could not parse {filename}: {error}</code></td><td><strong>[FIXED]</strong></td></tr><tr><td>R5-005</td><td>Pattern 8 (Silent Degradation)</td><td><code>hatchery_receiver.py</code> — JSON parse failure reading state for WAN-exposure check swallowed silently</td><td>Now prints warning to stderr; WAN check may be suppressed but operator is informed</td><td><strong>[FIXED]</strong></td></tr></tbody></table>
+<h3>R5 LOW fixes (Orphaned Outputs)</h3>
+<table><thead><tr><th>Finding</th><th>Pattern</th><th>Area</th><th>Resolution</th><th>Status</th></tr></thead><tbody><tr><td>R5-006</td><td>Pattern 21 (Orphaned Outputs)</td><td><code>migrate_k3s_lib.py</code> — <code>asdict</code> imported but unused</td><td>Removed from import</td><td><strong>[FIXED]</strong></td></tr><tr><td>R5-007</td><td>Pattern 21 (Orphaned Outputs)</td><td><code>phoenix-planner.py</code> — <code>build_phoenix_guided_session</code> imported but unused</td><td>Removed from import</td><td><strong>[FIXED]</strong></td></tr><tr><td>R5-008</td><td>Pattern 21 (Orphaned Outputs)</td><td><code>remediation-cli.py</code> — <code>get_approved</code> + <code>execute_proposal</code> imported but unused</td><td>Removed both from imports</td><td><strong>[FIXED]</strong></td></tr><tr><td>R5-009</td><td>Pattern 21 (Orphaned Outputs)</td><td><code>security_analyzer.py</code> — <code>Iterator</code> imported from typing but unused</td><td>Removed from import</td><td><strong>[FIXED]</strong></td></tr><tr><td>R5-010</td><td>Pattern 21 (Orphaned Outputs)</td><td><code>remediation_queue.py:reject_proposal()</code> — <code>rejected_by</code> parameter accepted but discarded</td><td>Added <code>rejected_by: Optional[str]</code> field to <code>RemediationProposal</code>; stored in <code>reject_proposal()</code></td><td><strong>[FIXED]</strong></td></tr><tr><td>R5-011</td><td>Pattern 21 (Orphaned Outputs)</td><td><code>reconstruction_validation.py:build_drill_summary_html()</code> — <code>post_comparison</code> parameter accepted but unused</td><td>Now renders readiness before→after section with direction arrow when parameter is present</td><td><strong>[FIXED]</strong></td></tr></tbody></table>
+<h3>R5 regression fixes (Phase 1.M deal contract bugs)</h3>
+<table><thead><tr><th>Finding</th><th>Area</th><th>Resolution</th><th>Status</th></tr></thead><tbody><tr><td>R5-012</td><td><code>build_derived_vault_plan()</code> deal <code>@post</code> checked <code>scope</code>/<code>commands</code> but <code>DerivedVaultPlan</code> has neither</td><td>Fixed to check <code>entries</code>/<code>db_path</code> (actual dataclass fields)</td><td><strong>[FIXED]</strong></td></tr><tr><td>R5-013</td><td><code>build_spawn_plan()</code> deal <code>@post</code> checked <code>"planned_at"</code> but plan dict uses <code>"generated_at"</code></td><td>Fixed key name</td><td><strong>[FIXED]</strong></td></tr><tr><td>R5-014</td><td><code>test_vault_hierarchy.py</code> hypothesis tests checked wrong attributes (<code>scope</code>, <code>commands</code>, <code>role["tier"]</code>)</td><td>Fixed to <code>entries</code>, <code>db_path</code>, <code>plan.tier</code>, <code>d["tier"]</code></td><td><strong>[FIXED]</strong></td></tr></tbody></table>
+<h3>R5 NOT FIXED (intentional design)</h3>
+<table><thead><tr><th>Finding</th><th>Pattern</th><th>Area</th><th>Notes</th></tr></thead><tbody><tr><td><code>/etc/broodforge/keepass.kdbx</code> default path</td><td>Pattern 37 (Hardcoded Environment)</td><td><code>forge_keepass_init.py:KeePassInitConfig</code></td><td>Intentional system path; dataclass field default is overridable; <code>FORGE_KDBX_PATH</code> env var already supported (commit 51b39b8)</td></tr><tr><td><code>_check_action_token()</code> returns True when no token configured</td><td>Pattern 15 (Fail Open)</td><td><code>broodforge_dashboard.py:1294</code></td><td>Intentional dev-mode behavior; documented in comment</td></tr></tbody></table>
+<p>Test suite after R5 fixes: all tests pass (pre-existing <code>test_opentofu.py</code> failures unchanged).</p>
+<hr>
+<h2>Audit cycle — 2026-06-09_13_11_28 UTC — R6: Zero-finding verification</h2>
+<p>Static pre-flight re-run after R5 fixes. <strong>All tools report 0 findings</strong> — including vulture (was 7 in R5, now 0 after orphaned-output fixes). This is the second consecutive zero-finding run (R5 fixes brought R5→0, R6 confirms stability).</p>
+<table><thead><tr><th>Tool</th><th>R5 count</th><th>R6 count</th></tr></thead><tbody><tr><td>shellcheck</td><td>0</td><td>0</td></tr><tr><td>ruff</td><td>0</td><td>0</td></tr><tr><td>bandit HIGH</td><td>0</td><td>0</td></tr><tr><td>bandit MEDIUM</td><td>0</td><td>0</td></tr><tr><td>vulture dead code</td><td>7</td><td><strong>0</strong></td></tr><tr><td>detect-secrets</td><td>0</td><td>0</td></tr><tr><td>hypothesis failures</td><td>0</td><td>0</td></tr></tbody></table>
+<p><strong>Result: PASS — zero findings in two consecutive cycles. Audit loop complete.</strong></p>
+<hr>
+<h2>Audit cycle — 2026-06-09_XX_XX_XX UTC — R7: Post-b8bd7bc/1a9754f fixes</h2>
+<p><strong>Trigger</strong>: Three roadmap/implementation discrepancy fixes (commits b8bd7bc and 1a9754f) added new code: <code>generate-answer-file.py</code> (Phase 1.H CLI wrapper), 3 new functions in <code>continuous_assessment.py</code> (<code>code_health_to_remediation_candidates</code>, <code>dynamic_health_to_remediation_candidates</code>, <code>collect_health_remediation_candidates</code>), rewritten <code>sync-cert-to-k8s.sh</code> (Phase 1.F.8d), and a compare-engine fix (<code>engine/compare.py</code> observed_only bug).</p>
+<h3>Static pre-flight (R7)</h3>
+<table><thead><tr><th>Tool</th><th>Count</th><th>Severity</th></tr></thead><tbody><tr><td>shellcheck</td><td>N/A (not installed on Windows host)</td><td>—</td></tr><tr><td>ruff</td><td>0</td><td>OK</td></tr><tr><td>bandit HIGH</td><td>0</td><td>OK</td></tr><tr><td>bandit MEDIUM</td><td>0</td><td>OK</td></tr><tr><td>vulture dead code</td><td>0</td><td>OK</td></tr><tr><td>detect-secrets</td><td>0</td><td>OK</td></tr><tr><td>hypothesis failures</td><td>0 (via pytest)</td><td>OK</td></tr><tr><td>mutmut</td><td>N/A (not supported on Windows)</td><td>—</td></tr></tbody></table>
+<h3>37-pattern manual audit (R7)</h3>
+<p>Patterns checked against all 5 changed/added files. 36 patterns CLEAN; 3 findings:</p>
+<table><thead><tr><th>#</th><th>Pattern</th><th>Severity</th><th>Area</th><th>Description</th></tr></thead><tbody><tr><td>R7-001</td><td>P10 Happy Path Only</td><td>MEDIUM</td><td><code>generate-answer-file.py:107</code></td><td>No <code>try/except</code> around <code>json.load()</code> — malformed manifest raised unhandled <code>JSONDecodeError</code> traceback instead of clean <code>[error]</code> + exit 1</td></tr><tr><td>R7-002</td><td>P14 Missing Seam</td><td>LOW</td><td><code>continuous_assessment.py:975,1019</code></td><td><code>code_health_to_remediation_candidates()</code> and <code>dynamic_health_to_remediation_candidates()</code> called <code>datetime.now()</code> directly — inconsistent with project's <code>now_fn</code> injection pattern in the same file</td></tr><tr><td>R7-003</td><td>P21 Orphaned Outputs</td><td>OBSERVATION</td><td><code>continuous_assessment.py:1082</code></td><td><code>collect_health_remediation_candidates()</code> is documented, tested, and exported but has no production caller — implementation ahead of wiring</td></tr></tbody></table>
+<h3>Cross-cutting coherence (R7)</h3>
+<table><thead><tr><th>Check</th><th>Result</th></tr></thead><tbody><tr><td>All CLI entrypoints have matching tests</td><td>FIXED (R7-001: 5 CLI tests added for <code>generate-answer-file.py</code>)</td></tr><tr><td>All ALLOWED_ACTION_TYPES have handler implementations</td><td>CLEAN — 9/9 matched; assert at import time confirms</td></tr><tr><td>All NOT_IMPLEMENTED / exit-2 stubs documented in roadmap</td><td>CLEAN — <code>sync-cert-to-k8s.sh</code> exit 2 is runtime "not configured" state, not permanent stub</td></tr><tr><td>No circular imports from recent changes</td><td>CLEAN — dashboard deferred-imports from continuous_assessment; no reverse dependency</td></tr><tr><td>PAP-AUDIT.md broodforge local copy in sync with master</td><td>CLEAN — unchanged since R6 sync</td></tr></tbody></table>
+<h3>R7 Fixes</h3>
+<table><thead><tr><th>Finding</th><th>Fix</th><th>Status</th></tr></thead><tbody><tr><td>R7-001</td><td>Added <code>try/except json.JSONDecodeError</code> in <code>generate-answer-file.py</code>; prints <code>[error] Manifest is not valid JSON: &lt;detail&gt;</code> and exits 1</td><td><strong>[FIXED]</strong></td></tr><tr><td>R7-002</td><td>Added <code>now_fn: Optional[Callable[[], str]] = None</code> parameter to both candidate functions; <code>collect_health_remediation_candidates</code> propagates <code>now_fn</code> through</td><td><strong>[FIXED]</strong></td></tr><tr><td>R7-003</td><td>Recorded as OBSERVATION — <code>collect_health_remediation_candidates</code> is a documented future-integration API; production wiring deferred to engine integration phase</td><td><strong>[OBSERVATION — not fixed]</strong></td></tr></tbody></table>
+<h3>R7 NOT FIXED (intentional / design decision)</h3>
+<table><thead><tr><th>Finding</th><th>Pattern</th><th>Area</th><th>Notes</th></tr></thead><tbody><tr><td><code>_exec_sync_cert_to_k8s</code> treats exit 2 same as exit 1</td><td>P30 Alert Fatigue</td><td><code>remediation_executor.py:313</code></td><td>Script header explicitly documents this as expected: "The remediation engine records this as a soft failure — expected before TLS is set up." Accepted design decision.</td></tr></tbody></table>
+<h3>Test suite after R7 fixes</h3>
+<p>8 new tests added (5 <code>TestAnswerFileCLI</code> in <code>test_image_builder.py</code>; 3 <code>TestCandidateFunctionsClockInjection</code> in <code>test_code_health.py</code>).</p>
+<p><strong>4516 passed, 16 skipped. All R7 findings resolved.</strong></p>
+<hr>
+<h2>Audit cycle — 2026-06-09 (rounds 4/5 deferred findings)</h2>
+<h3>Scope</h3>
+<p>Three findings deferred from earlier PAP audit rounds 4 and 5 — sys.path manipulation in the test suite, sys.path in standalone production scripts, and a reported deprecated ODS import. All three investigated; two fixed; one was not present (N/A).</p>
+<h3>Finding AF-4-1: sys.path.insert in test files</h3>
+<p><strong>Pattern</strong>: P12 Configuration Drift / P14 Missing Seam <strong>Severity</strong>: LOW <strong>Area</strong>: <code>tests/</code> — 87+ test files</p>
+<p>Every test file opened its own <code>sys.path.insert()</code> block to locate <code>proxmox-bootstrap/</code>, <code>doc-gen/</code>, <code>data-model/</code>, etc.  This is brittle (the path could easily drift from the real repo layout), adds noise to every test file, and is the wrong layer for this concern.</p>
+<p><strong>Fix</strong>: Added <code>[tool.pytest.ini_options] pythonpath</code> block to <code>pyproject.toml</code> declaring all six source roots.  Pytest injects these before any test module is collected, making every per-file <code>sys.path.insert</code> call dead code.  Root-cause fixed in a single change.</p>
+<p>Dead-code cleanup tool created: <code>broodforge/tools/remove_syspath_from_tests.py</code>.  Run <code>python3 tools/remove_syspath_from_tests.py</code> from the <code>broodforge/</code> directory to strip the now-redundant <code>sys.path.insert</code>, <code>_ROOT</code>/<code>REPO_ROOT</code> variables, and orphaned <code>import sys</code> / <code>import os</code> lines from all test files in one pass.  Three key files already cleaned manually: <code>test_audit_round4_fixes.py</code>, <code>test_spawn_media_authorization.py</code>, <code>test_recovery_accounts.py</code>.</p>
+<p><strong>Status</strong>: <strong>[FIXED — root cause]</strong> — pyproject.toml pythonpath added. Dead-code cleanup script provided; run to complete the housekeeping.</p>
+<h3>Finding AF-4-2: sys.path.insert in production standalone scripts</h3>
+<p><strong>Pattern</strong>: P14 Missing Seam <strong>Severity</strong>: LOW (by design — Priority 4) <strong>Area</strong>: <code>doc-gen/engine.py</code>, <code>doc-gen/renderers/html_recovery_workbook.py</code>, <code>proxmox-bootstrap/*.py</code> (25+ scripts)</p>
+<p>All standalone scripts in <code>proxmox-bootstrap/</code> and <code>doc-gen/</code> use <code>sys.path.insert</code> to locate peer modules.  Investigation confirmed none of these directories contain an <code>__init__.py</code> — they are flat script directories, not Python packages.  Relative imports (<code>from . import module</code>) require package structure; they are structurally impossible here.</p>
+<p>The <code>pyproject.toml</code> <code>pythonpath</code> setting covers pytest context only.  Direct invocation (<code>python3 engine.py --generate ...</code>) still requires the sys.path blocks.</p>
+<p><strong>Fix</strong>: Added explanatory Priority-4 comments to <code>doc-gen/engine.py</code> (lines 24–32) and <code>doc-gen/renderers/html_recovery_workbook.py</code> (lines 31–36).  These comments document why the manipulation is legitimate and cannot be removed without restructuring the directories into proper packages.  All proxmox-bootstrap scripts follow the same pattern for the same reason.</p>
+<p><strong>Status</strong>: <strong>[DOCUMENTED]</strong> — manipulation is architecturally required; comments added.</p>
+<h3>Finding AF-4-3: Deprecated ODS import in test file</h3>
+<p><strong>Pattern</strong>: P16 Dependency Rot <strong>Severity</strong>: LOW <strong>Area</strong>: <code>tests/</code> — suspected openpyxl ODS loader, ezodf, odfpy, or similar</p>
+<p><strong>Investigation</strong>: Exhaustive grep across all <code>.py</code> files for <code>openpyxl</code>, <code>ezodf</code>, <code>odfpy</code>, <code>xlrd</code>, <code>ods</code>, and <code>from.*deprecated</code> import patterns.  The only <code>deprecated</code> directory in the codebase is <code>doc-gen/renderers/deprecated/</code> — a set of superseded ODS/ODT renderers (<code>workbook.py</code>, <code>runbook.py</code>, <code>recovery_workbook.py</code>, <code>recovery_runbook.py</code>, <code>operational_report.py</code>).  These files import only from each other and from Python stdlib; nothing in the live codebase imports from them.  No test file imports from any deprecated module.</p>
+<p><strong>Status</strong>: <strong>[N/A — not present]</strong> — no deprecated ODS import found anywhere in the test suite.  The <code>deprecated/</code> renderers are dead code, self-contained, and do not affect any running test or production path.</p>
+<h3>Summary</h3>
+<table><thead><tr><th>Finding</th><th>Area</th><th>Status</th></tr></thead><tbody><tr><td>AF-4-1</td><td>sys.path.insert in test files</td><td><strong>[FIXED — root cause via pyproject.toml pythonpath]</strong></td></tr><tr><td>AF-4-2</td><td>sys.path.insert in production standalone scripts</td><td><strong>[DOCUMENTED — architecturally required; comments added]</strong></td></tr><tr><td>AF-4-3</td><td>Deprecated ODS import in test files</td><td><strong>[N/A — not present in codebase]</strong></td></tr></tbody></table>
+<hr>
+<h2>Audit cycle — 2026-06-10_00_00_00 UTC — R8: Phase 2.A–2.I PAP Audit (k8s service management layer)</h2>
+<h3>Scope</h3>
+<p>First PAP audit of the Phase 2.A–2.I Kubernetes service management modules committed during Google Drive sync recovery. All eight Phase 2 manager modules audited: <code>authentik_manager.py</code>, <code>cert_manager.py</code>, <code>monitoring_manager.py</code>, <code>log_aggregation_manager.py</code>, <code>storage_manager.py</code>, <code>flux_manager.py</code>, <code>velero_manager.py</code>, <code>linkerd_manager.py</code>, plus corresponding <code>forge-init-*.sh</code> scripts and unit test suites.</p>
+<h3>Static pre-flight results</h3>
+<p><strong>shellcheck (manual):</strong> All Phase 2 <code>forge-init-*.sh</code> scripts have <code>set -euo pipefail</code>. No unquoted variable expansion issues found. All scripts use <code>forge-lib.sh</code> for KeePass gating.</p>
+<p><strong>ruff / bandit / vulture:</strong> Network unavailable in sandbox; tools not run. Manual inspection performed in lieu of automated tooling.</p>
+<p><strong>Manual credential scan:</strong> No hardcoded credentials in any Phase 2 module. Credential flow confirmed: shell layer fetches from KeePass, passes to Python via stdin or <code>existingSecret</code> k8s references only. No secrets in env vars, argv, or logs.</p>
+<p><strong>shell=True instances:</strong> Three found in <code>linkerd_manager.py</code> (lines 166, 187, 206) for <code>linkerd ... | kubectl apply -f -</code> piped commands. See R8-001 below.</p>
+<h3>PAP Pattern Scan — 39-pattern manual pass</h3>
+<p>All eight Phase 2 modules pass the core implementation correctness patterns:</p>
+<table><thead><tr><th>Pattern</th><th>Check</th><th>Result</th></tr></thead><tbody><tr><td>P21 Hardcoded Environment</td><td><code>datetime.now()</code> without now_fn</td><td>✓ All 8 modules inject now_fn</td></tr><tr><td>P13 Silent Degradation</td><td><code>subprocess.run()</code> without timeout</td><td>✓ All calls use <code>timeout=_SUBPROCESS_TIMEOUT</code></td></tr><tr><td>P15 Non-Atomic Multi-Step</td><td>State writes</td><td>✓ All use <code>.tmp</code> → <code>os.replace()</code></td></tr><tr><td>P26 Credential Sprawl</td><td>Credentials in code/env/log</td><td>✓ None found</td></tr><tr><td>P23 Fail Open</td><td>Bare <code>except:</code></td><td>✓ None found</td></tr><tr><td>P18 Missing Seam</td><td>Clock injection</td><td>✓ now_fn throughout</td></tr></tbody></table>
+<p>No BLOCKERs or DEFECTs found in Phase 2 code.</p>
+<h3>Findings</h3>
+<p><strong>R8-001 — IMPROVEMENT — linkerd_manager.py <code>shell=True</code></strong></p>
+<p>Pattern: P29 Confused Deputy Severity: IMPROVEMENT Area: <code>proxmox-bootstrap/linkerd_manager.py</code> lines 166, 187, 206</p>
+<p>Three <code>subprocess.run()</code> calls use <code>shell=True</code> to execute piped commands (<code>linkerd install --crds | kubectl apply -f -</code> and similar). Linkerd's documented install mechanism is a CLI pipe; this is the idiomatic usage pattern. All three command strings are hardcoded constants — no user input reaches the shell. Bandit would flag B603; actual injection risk is nil.</p>
+<p>Preferred approach is <code>subprocess.Popen</code> with explicit pipe connection, which avoids invoking a shell entirely. The additional complexity is marginal for these three specific cases.</p>
+<p>Decision: Accept as IMPROVEMENT, not a blocking finding. The hardcoded pipe commands are the well-known, vendor-documented Linkerd installation method. Risk of a shell injection via these specific calls is structurally impossible.</p>
+<p>Status: <strong>[OUTSTANDING — accepted as IMPROVEMENT; no code change required]</strong></p>
+<hr>
+<p><strong>R8-002 — DEFECT — ROADMAP.html stale</strong></p>
+<p>Pattern: P1 Documentation Drift Severity: DEFECT Area: <code>ROADMAP.html</code></p>
+<p><code>ROADMAP.html</code> was last regenerated when Phase 1.M was the newest phase. Missing from the HTML: Phase 1.N through 1.U (all implemented) and Phase 2.A through 2.I (all implemented 2026-06-10). The companion markdown <code>ROADMAP.md</code> is current.</p>
+<p>Fix: Regenerate via <code>python3 proxmox-bootstrap/md_to_html.py ROADMAP.md ROADMAP.html --title "Broodforge — Roadmap"</code>.</p>
+<p>Status: <strong>[FIXED]</strong></p>
+<hr>
+<p><strong>R8-003 — DEFECT — docs/FEATURE-HISTORY.html stale</strong></p>
+<p>Pattern: P1 Documentation Drift Severity: DEFECT Area: <code>docs/FEATURE-HISTORY.html</code></p>
+<p><code>FEATURE-HISTORY.html</code> was not regenerated after Phase 2.A–2.I features were added to <code>FEATURE-HISTORY.md</code>. HTML companion missing entire Phase 2 feature record.</p>
+<p>Fix: Regenerate via <code>python3 proxmox-bootstrap/md_to_html.py docs/FEATURE-HISTORY.md docs/FEATURE-HISTORY.html --title "Broodforge — Feature History"</code>.</p>
+<p>Status: <strong>[FIXED]</strong></p>
+<hr>
+<p><strong>R8-004 — DEFECT — docs/AUDIT-FINDINGS.html stale</strong></p>
+<p>Pattern: P1 Documentation Drift Severity: DEFECT Area: <code>docs/AUDIT-FINDINGS.html</code></p>
+<p>HTML companion not regenerated after R8 cycle was appended to <code>AUDIT-FINDINGS.md</code>.</p>
+<p>Fix: Regenerate via <code>python3 proxmox-bootstrap/md_to_html.py docs/AUDIT-FINDINGS.md docs/AUDIT-FINDINGS.html --title "Broodforge — Audit Findings"</code>.</p>
+<p>Status: <strong>[FIXED]</strong></p>
+<hr>
+<p><strong>R8-005 — DEFECT — docs/ARCHITECTURE.html stale</strong></p>
+<p>Pattern: P1 Documentation Drift Severity: DEFECT Area: <code>docs/ARCHITECTURE.html</code></p>
+<p><code>ARCHITECTURE.html</code> predates AD-065 through AD-072 additions (Phase 2 service ADs).</p>
+<p>Fix: Regenerate via <code>python3 proxmox-bootstrap/md_to_html.py ARCHITECTURE.md docs/ARCHITECTURE.html --title "Broodforge — Architecture"</code>.</p>
+<p>Status: <strong>[FIXED]</strong></p>
+<hr>
+<p><strong>R8-006 — RISK — No formal ADs for Phase 2.A–2.I service choices</strong></p>
+<p>Pattern: P1 Documentation Drift / Architecture Severity: RISK Area: <code>ARCHITECTURE.md</code></p>
+<p>Phase 2.A–2.I introduces eight new Kubernetes services (Authentik, cert-manager, kube-prometheus-stack, Loki + Promtail, Longhorn, Flux CD GitOps wiring, Velero, Linkerd) without Architecture Decision records in <code>ARCHITECTURE.md</code>. Per-phase design rationale exists in <code>ROADMAP.md</code> "Design decisions" subsections but is not elevated to the AD table — a future operator cannot determine why each technology was chosen from the architecture reference alone.</p>
+<p>Fix: Added AD-065 through AD-072 to <code>ARCHITECTURE.md</code>.</p>
+<p>Status: <strong>[FIXED]</strong></p>
+<hr>
+<p><strong>R8-007 — OBSERVATION — CURRENT_STATE.md and RESUME_BLOCK.md predate Phase 2 work</strong></p>
+<p>Pattern: P1 Documentation Drift Severity: OBSERVATION Area: <code>.ai/CURRENT_STATE.md</code>, <code>pap/state/RESUME_BLOCK.md</code></p>
+<p>Both state files record R7-003 (2026-06-09) as the last action, with "deploy to hardware" as next. The Phase 2.A–2.I commitment and this R8 audit are not reflected.</p>
+<p>Fix: Update both files to record Phase 2.A–2.I committed, R8 audit complete, next action remains hardware deployment.</p>
+<p>Status: <strong>[FIXED]</strong></p>
+<h3>Summary</h3>
+<table><thead><tr><th>Finding</th><th>Area</th><th>Severity</th><th>Status</th></tr></thead><tbody><tr><td>R8-001</td><td>linkerd_manager.py shell=True</td><td>IMPROVEMENT</td><td>Outstanding — accepted</td></tr><tr><td>R8-002</td><td>ROADMAP.html stale</td><td>DEFECT</td><td>Fixed</td></tr><tr><td>R8-003</td><td>docs/FEATURE-HISTORY.html stale</td><td>DEFECT</td><td>Fixed</td></tr><tr><td>R8-004</td><td>docs/AUDIT-FINDINGS.html stale</td><td>DEFECT</td><td>Fixed</td></tr><tr><td>R8-005</td><td>docs/ARCHITECTURE.html stale</td><td>DEFECT</td><td>Fixed</td></tr><tr><td>R8-006</td><td>No Phase 2 ADs in ARCHITECTURE.md</td><td>RISK</td><td>Fixed</td></tr><tr><td>R8-007</td><td>State docs predate Phase 2</td><td>OBSERVATION</td><td>Fixed</td></tr></tbody></table>
+<p><strong>0 BLOCKERs. 0 DEFECTs outstanding. 1 IMPROVEMENT accepted. R8 complete.</strong></p>
 
 <div class="session-notes"><h2>Session Notes</h2><p style="color:var(--muted);font-size:.85em">Anything unexpected, or that did not fit the steps above. Saved in your browser.</p><textarea id="bf-session-notes" placeholder="notes…"></textarea></div>
 <script>
