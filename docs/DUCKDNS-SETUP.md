@@ -375,4 +375,12 @@ Check that your token in KeePass matches the one on the DuckDNS dashboard.
 | Additional DNS records | No | Yes |
 | API reliability | Good | Excellent |
 
-I
+If you outgrow DuckDNS and acquire your own domain, migrating to Cloudflare involves:
+1. Setting up Cloudflare (this guide → CLOUDFLARE-SETUP.md)
+2. Updating `host_identity.fqdn` and `network_topology.*` in bootstrap-state.json
+3. Re-issuing certs with certbot
+4. Updating the ClusterIssuer to Cloudflare DNS-01
+5. Updating any external references to the old duckdns.org address
+
+Broodforge forge-time documentation should be re-generated after this migration
+(`engine.py --mode bootstrap --manifest proxmox-bootstrap/bootstrap-state.json`).

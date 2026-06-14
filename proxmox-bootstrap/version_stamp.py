@@ -327,4 +327,19 @@ def main(argv: Optional[list[str]] = None) -> None:
             p for p in root.rglob("*")
             if _should_include(p, root, rules)
         )
-       
+        for f in files:
+            print(f.relative_to(root).as_posix())
+        print(f"\n{len(files)} files total", file=sys.stderr)
+        return
+
+    if args.hash_only:
+        print(compute_codebase_hash(root, rules=rules))
+    elif args.timestamp_only:
+        now = datetime.now(timezone.utc)
+        print(f"{now.strftime('%Y-%m-%d_%H-%M-%S')}_{_tz_label(now)}")
+    else:
+        print(generate_stamp(root, rules=rules))
+
+
+if __name__ == "__main__":
+    main()

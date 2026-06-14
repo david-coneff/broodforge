@@ -287,4 +287,167 @@ class TestComputeCodebaseHash:
         assert len(h) == 8
         assert all(c in "0123456789abcdef" for c in h)
 
-    def test_deterministic(self, t
+    def test_deterministic(self, tmp_path, rules):
+        (tmp_path / "a.py").write_text("x=1")
+        (tmp_path / "b.sh").write_text("#!/bin/bash")
+        assert compute_codebase_hash(tmp_path, rules=rules) == \
+               compute_codebase_hash(tmp_path, rules=rules)
+
+    def test_changes_on_content_change(self, tmp_path, rules):
+        p = tmp_path / "foo.py"
+        p.write_text("x=1")
+        h1 = compute_codebase_hash(tmp_path, rules=rules)
+        p.write_text("x=2")
+        assert compute_codebase_hash(tmp_path, rules=rules) != h1
+
+    def test_changes_on_rename(self, tmp_path, rules):
+        p = tmp_path / "foo.py"
+        p.write_text("x=1")
+        h1 = compute_codebase_hash(tmp_path, rules=rules)
+        p.rename(tmp_path / "bar.py")
+        assert compute_codebase_hash(tmp_path, rules=rules) != h1
+
+    def test_doc_files_do_not_affect_hash(self, tmp_path, rules):
+        (tmp_path / "foo.py").write_text("x=1")
+        h1 = compute_codebase_hash(tmp_path, rules=rules)
+        (tmp_path / "ROADMAP.md").write_text("# Updated roadmap")
+        assert compute_codebase_hash(tmp_path, rules=rules) == h1
+
+    def test_pap_files_do_not_affect_hash(self, tmp_path, rules):
+        (tmp_path / "foo.py").write_text("x=1")
+        h1 = compute_codebase_hash(tmp_path, rules=rules)
+        pap = tmp_path / "pap"
+        pap.mkdir()
+        (pap / "state.py").write_text("state = {}")
+        assert compute_codebase_hash(tmp_path, rules=rules) == h1
+
+    def test_raises_when_no_files(self, tmp_path, rules):
+        (tmp_path / "README.md").write_text("# hi")
+        with pytest.raises(RuntimeError, match="No codebase files found"):
+            compute_codebase_hash(tmp_path, rules=rules)
+
+    def test_hash_matches_manual_computation(self, tmp_path, rules):
+        """Hash must equal SHA-256 of (sorted path+NUL+content+NUL) concatenated."""
+        files = {"a.py": "a", "m.sh": "m", "z.py": "z"}
+        for name, content in files.items():
+            (tmp_path / name).write_text(content)
+        h = compute_codebase_hash(tmp_path, rules=rules)
+
+        digest = hashlib.sha256()
+        for rel in sorted(files):  # lexicographic order
+            digest.update(rel.encode("utf-8"))
+            digest.update(b"\x00")
+            digest.update(files[rel].encode("utf-8"))
+            digest.update(b"\x00")
+        assert h == digest.hexdigest()[:8]
+
+    def test_loads_schema_from_file_when_rules_none(self, tmp_path):
+        """When rules=None, schema is loaded from proxmox-bootstrap/version-hash-schema.yaml."""
+        schema_dir = tmp_path / "proxmox-bootstrap"
+        schema_dir.mkdir()
+        schema_yaml = (
+            "schema_version: 1\n"
+            "include:\n  extensions:\n    - ext: \".py\"\n"
+            "exclude:\n  extensions:\n    - ext: \".md\"\n"
+            "  directories:\n    - name: \".git\"\n"
+        )
+        (schema_dir / "version-hash-schema.yaml").write_text(schema_yaml)
+        (tmp_path / "foo.py").write_text("x=1")
+        h = compute_codebase_hash(tmp_path)  # rules=None → loads schema
+        assert len(h) == 8
+
+
+# ---------------------------------------------------------------------------
+# generate_stamp
+# ---------------------------------------------------------------------------
+
+class TestGenerateStamp:
+    def test_format(self, tmp_path, rules):
+        (tmp_path / "foo.py").write_text("x=1")
+        fixed = datetime(2026, 6, 13, 19, 30, 0, tzinfo=timezone.utc)
+        stamp = generate_stamp(tmp_path, now_fn=lambda: fixed, rules=rules)
+        assert stamp.startswith("2026-06-13_19-30-00_")
+        assert len(stamp) == len("2026-06-13_19-30-00_") + 8
+
+    def test_shorthash_matches_compute(self, tmp_path, rules):
+        (tmp_path / "foo.py").write_text("x=1")
+        fixed = datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+        stamp = generate_stamp(tmp_path, now_fn=lambda: fixed, rules=rules)
+        assert stamp.split("_")[-1] == compute_codebase_hash(tmp_path, rules=rules)
+
+    def test_default_now_fn_produces_valid_stamp(self, tmp_path, rules):
+        (tmp_path / "foo.py").write_text("x=1")
+        stamp = generate_stamp(tmp_path, rules=rules)
+        parts = stamp.split("_")
+        assert len(parts) == 3 and len(parts[2]) == 8
+
+
+# ---------------------------------------------------------------------------
+# CLI
+# ---------------------------------------------------------------------------
+
+def _make_test_repo(tmp_path: Path) -> None:
+    """Create a minimal repo with schema file for CLI tests."""
+    schema_dir = tmp_path / "proxmox-bootstrap"
+    schema_dir.mkdir()
+    schema_yaml = (
+        "schema_version: 1\n"
+        "hash:\n  algorithm: sha256\n  truncate_chars: 8\n"
+        "include:\n  extensions:\n    - ext: \".py\"\n    - ext: \".sh\"\n"
+        "    - ext: \".yaml\"\n    - ext: \".yml\"\n    - ext: \".toml\"\n"
+        "    - ext: \".bats\"\n"
+        "exclude:\n  extensions:\n    - ext: \".md\"\n    - ext: \".html\"\n"
+        "  directories:\n    - name: \".git\"\n    - name: \"pap\"\n"
+        "    - name: \".ai\"\n    - name: \"docs\"\n"
+        "    - name: \"__pycache__\"\n    - name: \".pytest_cache\"\n"
+    )
+    (schema_dir / "version-hash-schema.yaml").write_text(schema_yaml)
+    (tmp_path / "foo.py").write_text("x=1")
+
+
+class TestCLI:
+    def test_hash_only(self, tmp_path, capsys):
+        _make_test_repo(tmp_path)
+        main(["--repo-root", str(tmp_path), "--hash-only"])
+        out = capsys.readouterr().out.strip()
+        assert len(out) == 8 and all(c in "0123456789abcdef" for c in out)
+
+    def test_timestamp_only(self, tmp_path, capsys):
+        _make_test_repo(tmp_path)
+        main(["--repo-root", str(tmp_path), "--timestamp-only"])
+        out = capsys.readouterr().out.strip()
+        assert len(out) == 19 and out[4] == "-" and out[10] == "_"
+
+    def test_list_files(self, tmp_path, capsys):
+        _make_test_repo(tmp_path)
+        (tmp_path / "bar.md").write_text("# doc")
+        main(["--repo-root", str(tmp_path), "--list-files"])
+        out = capsys.readouterr().out
+        assert "foo.py" in out
+        assert "bar.md" not in out
+
+    def test_show_schema(self, tmp_path, capsys):
+        _make_test_repo(tmp_path)
+        main(["--repo-root", str(tmp_path), "--show-schema"])
+        out = capsys.readouterr().out
+        assert "schema_version" in out
+        assert "include exts" in out
+        assert "exclude dirs" in out
+
+    def test_full_stamp_format(self, tmp_path, capsys):
+        _make_test_repo(tmp_path)
+        main(["--repo-root", str(tmp_path)])
+        out = capsys.readouterr().out.strip()
+        parts = out.split("_")
+        assert len(parts) == 3 and len(parts[2]) == 8
+
+    def test_bad_repo_root_exits(self, tmp_path):
+        with pytest.raises(SystemExit) as exc:
+            main(["--repo-root", str(tmp_path / "nonexistent")])
+        assert exc.value.code == 2
+
+    def test_missing_schema_raises(self, tmp_path, capsys):
+        """If schema file is absent, FileNotFoundError should propagate."""
+        (tmp_path / "foo.py").write_text("x=1")
+        with pytest.raises(FileNotFoundError, match="Schema file not found"):
+            main(["--repo-root", str(tmp_path), "--hash-only"])

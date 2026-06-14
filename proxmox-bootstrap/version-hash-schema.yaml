@@ -165,4 +165,18 @@ notes:
     typically data, lock files, or generated artifacts.
   - >
     The exclude.directories check applies to all ancestor directory components,
-    not just the top-level directory.  A 
+    not just the top-level directory.  A file at pap/modules/foo.py is
+    excluded because "pap" appears in its path.  A file at
+    proxmox-bootstrap/foo.py is included because no ancestor directory matches
+    an exclusion.
+  - >
+    The schema file itself (version-hash-schema.yaml) IS included in the hash
+    because it has a .yaml extension and lives in proxmox-bootstrap/, which is
+    not an excluded directory.  Changing the schema changes the hash.  This is
+    intentional: the hash covers "the complete specification of what is being
+    documented", which includes the rules for computing it.
+  - >
+    Runtime state files (*-state.json, forge-manifest.json, etc.) have a .json
+    extension, which is not in include.extensions, so they are implicitly
+    excluded.  JSON is omitted from include.extensions specifically to avoid
+    including mutable runtime state in a documentation-level fingerprint.

@@ -159,4 +159,16 @@ flux get kustomizations          # workloads reconciling
 
 Every wave step failure writes a **failure package** (structured logs + a pre-composed
 LLM analysis prompt). Attach it when asking for help, or feed it to an LLM to diagnose.
-F
+Fix the root cause, then resume with `bash run-all.sh`.
+
+@check[Post-failure actions taken|Reviewed failure package logs|Identified root cause|Applied fix|Re-ran run-all.sh|Verified wave completed on retry]
+
+---
+
+## General notes
+
+@area[Anything that did not fit the steps above — unexpected prompts, hardware quirks, manual interventions]
+
+---
+
+*Broodforge PHOENIX — Stargate Process | Use the ⬇ Export button to save this runbook record.*

@@ -917,4 +917,264 @@ $('btn-am-save').addEventListener('click',function(){
   vault.assets[aid]={
     type:type, label:label,
     tags:editTags.slice(),
-    created:existing.created||isoNow(), modified:isoN
+    created:existing.created||isoNow(), modified:isoNow(),
+    fields:collectTypedFields(type),
+    attachments:existing.attachments||{}
+  };
+  var sp=$('am-secrets-path').value.trim(); if(sp) vault.assets[aid].secrets_path=sp;
+  var nd=$('am-node').value.trim(); if(nd) vault.assets[aid].node=nd;
+  var kg=$('am-kp-group').value.trim(); if(kg) vault.assets[aid].keepass_group=kg;
+  $('asset-modal').classList.remove('active');
+  currentId=aid;
+  renderSidebar(); renderDetail();
+  toast(_editingId?'Asset updated':'Asset added','ok');
+});
+
+// ── Tags ───────────────────────────────────────────────────────────────────
+function renderTagChips(){
+  var row=$('am-tags-row');
+  row.querySelectorAll('.tag-chip').forEach(function(c){c.remove();});
+  var inp=$('am-tag-input');
+  editTags.forEach(function(t,i){
+    var chip=document.createElement('span'); chip.className='tag-chip';
+    chip.innerHTML=xesc(t)+'<button onclick="rmTag('+i+')">×</button>';
+    row.insertBefore(chip,inp);
+  });
+}
+window.rmTag=function(i){editTags.splice(i,1);renderTagChips();};
+$('am-tag-input').addEventListener('keydown',function(e){
+  if(e.key==='Enter'){e.preventDefault();var v=this.value.trim().toLowerCase().replace(/\s+/g,'-');if(v&&!editTags.includes(v)){editTags.push(v);renderTagChips();}this.value='';}
+});
+
+// ── Delete asset ───────────────────────────────────────────────────────────
+window.deleteAsset=function(aid){
+  if(!confirm('Delete "'+((vault.assets[aid]||{}).label||aid)+'"?')) return;
+  delete vault.assets[aid];
+  if(currentId===aid) currentId=null;
+  renderSidebar(); renderDetail(); toast('Deleted','ok');
+};
+
+// ── Export vault ───────────────────────────────────────────────────────────
+$('btn-export').addEventListener('click',function(){
+  $('exp-label').value=vault.label||'';
+  $('exp-phrase').value=genPhrase();
+  updateStrength('exp-phrase','exp-strength');
+  $('exp-err').style.display='none';
+  $('export-modal').classList.add('active');
+});
+$('btn-cancel-export').addEventListener('click',function(){$('export-modal').classList.remove('active');});
+$('btn-gen-phrase').addEventListener('click',function(){$('exp-phrase').value=genPhrase();updateStrength('exp-phrase','exp-strength');});
+$('exp-phrase').addEventListener('input',function(){updateStrength('exp-phrase','exp-strength');});
+
+$('btn-do-export').addEventListener('click', async function(){
+  var phrase=$('exp-phrase').value.trim(), label=$('exp-label').value.trim()||'vault';
+  var ee=$('exp-err'); ee.style.display='none';
+  if(!phrase){ee.textContent='Passphrase required';ee.style.display='block';return;}
+  this.disabled=true; this.textContent='Encrypting…';
+  try{
+    vault.label=label; vault.modified=isoNow();
+    var r=await encryptVault(phrase, vault);
+    var readme='BFVault Package\n===============\nLabel: '+label+'\nExported: '+new Date().toISOString()+'\n\nTo open:\n  1. Extract ZIP\n  2. Open bfvault.html in any modern browser\n  3. Drop meta.json + payload.enc onto the page, enter passphrase'+(vault._mfa?'\n  4. Enter your TOTP code from your authenticator app':'')+'\n\nCrypto: AES-256-GCM / PBKDF2-SHA256 / '+ITER+' iterations\nDependencies: none (Web Crypto API only)\n';
+    var entries=[{name:'README.txt',bytes:enc(readme)},{name:'meta.json',bytes:enc(r.meta)},{name:'payload.enc',bytes:r.ct},{name:'bfvault.html',bytes:enc(document.documentElement.outerHTML)}];
+    var fname='bfvault-'+stamp()+'-'+slugify(label)+'.zip';
+    saveBlob(buildZip(entries),fname);
+    $('export-modal').classList.remove('active');
+    $('vault-label-hdr').textContent='— '+label;
+    toast('Exported: '+fname,'ok');
+  } catch(e){ ee.textContent='Error: '+e.message; ee.style.display='block'; }
+  this.disabled=false; this.textContent='Export ZIP';
+});
+
+// ── Export CAB ─────────────────────────────────────────────────────────────
+window.exportCab=async function(aid){
+  var a=vault.assets[aid]; if(!a){toast('Asset not found','err');return;}
+  var phrase=prompt('CAB passphrase (blank = cancel):',''); if(!phrase) return;
+  try{
+    var cabVault={bfvault:'1',format:'cab',asset_id:aid,label:a.label,created:isoNow(),assets:{}};
+    cabVault.assets[aid]=a;
+    var r=await encryptVault(phrase, cabVault);
+    var xml=generateKpXml(cabVault);
+    var readme='BFVault CAB — '+a.label+'\nType: '+a.type+'\nExported: '+new Date().toISOString()+'\n\nOpen cab-open.html in any browser to decrypt.\n';
+    var entries=[{name:'README.txt',bytes:enc(readme)},{name:'meta.json',bytes:enc(r.meta)},{name:'payload.enc',bytes:r.ct},{name:'cab-open.html',bytes:enc(document.documentElement.outerHTML)},{name:'keepass-import.xml',bytes:enc(xml)}];
+    saveBlob(buildZip(entries),'cab-'+stamp()+'-'+slugify(a.label||aid)+'.zip');
+    toast('CAB exported','ok');
+  } catch(e){ toast('CAB error: '+e.message,'err'); }
+};
+
+// ── Import CAB ─────────────────────────────────────────────────────────────
+$('btn-import-cab').addEventListener('click',function(){
+  _cabMeta=null; _cabPayload=null;
+  $('cab-file-status').textContent='';
+  $('cab-phrase').value='';
+  $('cab-err').style.display='none';
+  $('cab-modal').classList.add('active');
+});
+$('btn-cancel-cab').addEventListener('click',function(){$('cab-modal').classList.remove('active');});
+$('cab-peek').addEventListener('click',function(){var i=$('cab-phrase');i.type=i.type==='password'?'text':'password';});
+
+function handleCabFiles(files){
+  Array.prototype.forEach.call(files,function(f){
+    var rd=new FileReader();
+    if(f.name.endsWith('.zip')){
+      rd.onload=function(){var z=readZip(new Uint8Array(rd.result));if(z['meta.json']){_cabMeta=dec(z['meta.json']);}if(z['payload.enc']){_cabPayload=z['payload.enc'];}$('cab-file-status').textContent=(_cabMeta?'meta.json ✓ ':'')+(_cabPayload?'payload.enc ✓':'');};
+      rd.readAsArrayBuffer(f);
+    } else {
+      rd.onload=function(){_cabPayload=new Uint8Array(rd.result);};
+      rd.readAsArrayBuffer(f);
+    }
+  });
+}
+
+$('cab-drop').addEventListener('dragover',function(e){e.preventDefault();this.style.borderColor='var(--accent)';});
+$('cab-drop').addEventListener('dragleave',function(){this.style.borderColor='var(--border)';});
+$('cab-drop').addEventListener('drop',function(e){e.preventDefault();this.style.borderColor='var(--border)';handleCabFiles(e.dataTransfer.files);});
+$('btn-pick-cab').addEventListener('click',function(){$('cab-file-pick').click();});
+$('cab-file-pick').addEventListener('change',function(){handleCabFiles(this.files);this.value='';});
+
+$('btn-do-import-cab').addEventListener('click', async function(){
+  var phrase=$('cab-phrase').value; var ce=$('cab-err'); ce.style.display='none';
+  if(!_cabMeta||!_cabPayload){ce.textContent='Drop or pick the CAB ZIP first';ce.style.display='block';return;}
+  if(!phrase){ce.textContent='Passphrase required';ce.style.display='block';return;}
+  this.disabled=true; this.textContent='Decrypting…';
+  try{
+    var cabVault=await decryptPayload(phrase, _cabMeta, _cabPayload);
+    var assets=cabVault.assets||{};
+    var count=0;
+    Object.keys(assets).forEach(function(aid){
+      vault.assets[aid]=assets[aid];
+      vault.assets[aid].modified=isoNow();
+      count++;
+    });
+    vault.modified=isoNow();
+    $('cab-modal').classList.remove('active');
+    renderSidebar();
+    if(count===1) selectAsset(Object.keys(assets)[0]);
+    toast('Imported '+count+' asset(s) from CAB','ok');
+  } catch(e){ ce.textContent='Import failed: '+e.message; ce.style.display='block'; }
+  this.disabled=false; this.textContent='Import asset';
+});
+
+// ── KeePass XML ────────────────────────────────────────────────────────────
+$('btn-keepass').addEventListener('click',function(){
+  var xml=generateKpXml(vault);
+  $('kp-pre').textContent=xml.slice(0,3500)+(xml.length>3500?'\n…(truncated — full file on download)':'');
+  $('kp-modal').classList.add('active');
+});
+$('btn-kp-close').addEventListener('click',function(){$('kp-modal').classList.remove('active');});
+$('btn-kp-dl').addEventListener('click',function(){
+  var xml=generateKpXml(vault);
+  saveBlob(new Blob([xml],{type:'application/xml'}),'bfvault-keepass-'+stamp()+'.xml');
+  toast('XML downloaded','ok');
+});
+
+// ── Settings ───────────────────────────────────────────────────────────────
+$('btn-settings').addEventListener('click',function(){
+  $('settings-label').value=vault.label||'';
+  $('settings-mfa-status').textContent=vault._mfa?'✓ TOTP MFA enabled':'⚠️ No MFA configured';
+  $('settings-mfa-status').style.color=vault._mfa?'var(--green)':'var(--muted)';
+  $('settings-modal').classList.add('active');
+});
+$('btn-close-settings').addEventListener('click',function(){$('settings-modal').classList.remove('active');});
+$('btn-save-settings').addEventListener('click',function(){
+  vault.label=$('settings-label').value.trim();
+  $('vault-label-hdr').textContent=vault.label?'— '+vault.label:'';
+  $('settings-modal').classList.remove('active');
+  toast('Settings saved','ok');
+});
+$('btn-open-mfa').addEventListener('click',function(){
+  $('settings-modal').classList.remove('active');
+  openMfaModal();
+});
+
+// ── MFA ────────────────────────────────────────────────────────────────────
+function renderMfaHeader(){
+  var el=$('mfa-hdr');
+  if(vault&&vault._mfa&&vault._mfa.type==='totp'){
+    el.innerHTML='<span class="mfa-badge">🔐 TOTP</span>';
+  } else {
+    el.innerHTML='<span class="mfa-badge off" title="No MFA — recommended for vaults containing a master KeePass database">⚠ No MFA</span>';
+  }
+}
+
+function openMfaModal(){
+  _pendingMfaSeed=null;
+  $('mfa-seed-display').style.display='none';
+  $('mfa-gen-row').style.display='block';
+  $('mfa-confirm-code').value='';
+  $('mfa-confirm-err').style.display='none';
+  $('mfa-verify-code').value='';
+  $('mfa-verify-result').textContent='';
+  if(vault._mfa&&vault._mfa.type==='totp'){
+    $('mfa-enroll-panel').style.display='none';
+    $('mfa-active-panel').style.display='block';
+  } else {
+    $('mfa-enroll-panel').style.display='block';
+    $('mfa-active-panel').style.display='none';
+  }
+  $('mfa-modal').classList.add('active');
+}
+$('btn-close-mfa').addEventListener('click',function(){$('mfa-modal').classList.remove('active');});
+
+$('btn-gen-seed').addEventListener('click',function(){
+  _pendingMfaSeed=genTotpSeed();
+  var label=vault.label||'BFVault';
+  $('mfa-uri-display').textContent=totpUri(_pendingMfaSeed, label);
+  $('mfa-seed-display').style.display='block';
+  $('mfa-gen-row').style.display='none';
+  $('mfa-confirm-code').focus();
+});
+
+$('btn-copy-uri').addEventListener('click',function(){
+  navigator.clipboard.writeText($('mfa-uri-display').textContent||'').then(function(){toast('URI copied — paste into your authenticator app','ok');}).catch(function(){toast('Copy failed','err');});
+});
+
+$('btn-confirm-enroll').addEventListener('click', async function(){
+  var code=$('mfa-confirm-code').value.replace(/\s/g,'');
+  var ce=$('mfa-confirm-err'); ce.style.display='none';
+  if(!code||code.length<6){ce.textContent='Enter the 6-digit code from your authenticator';ce.style.display='block';return;}
+  if(!_pendingMfaSeed){ce.textContent='Generate a seed first';ce.style.display='block';return;}
+  this.disabled=true; this.textContent='Verifying…';
+  try{
+    var ok=await verifyTotp(_pendingMfaSeed, code);
+    if(ok){
+      vault._mfa={type:'totp',seed:_pendingMfaSeed,enrolled:isoNow()};
+      _pendingMfaSeed=null;
+      $('mfa-modal').classList.remove('active');
+      renderMfaHeader();
+      toast('TOTP MFA enabled ✓ — export the vault to save','ok');
+    } else {
+      ce.textContent='Code incorrect — check your authenticator and try again.';
+      ce.style.display='block';
+      $('mfa-confirm-code').value='';
+      $('mfa-confirm-code').focus();
+    }
+  } catch(e){ ce.textContent='Error: '+e.message; ce.style.display='block'; }
+  this.disabled=false; this.textContent='Confirm & Enable MFA';
+});
+
+$('btn-verify-mfa').addEventListener('click', async function(){
+  var code=$('mfa-verify-code').value.replace(/\s/g,'');
+  var res=$('mfa-verify-result');
+  if(!code){res.textContent='Enter code first';res.style.color='var(--muted)';return;}
+  var ok=await verifyTotp(vault._mfa.seed, code);
+  if(ok){res.textContent='✓ Code valid — device is in sync';res.style.color='var(--green)';}
+  else{res.textContent='✗ Code invalid — check device time or re-enroll';res.style.color='var(--red)';}
+});
+
+$('btn-disable-mfa').addEventListener('click',function(){
+  if(!confirm('Remove TOTP MFA? You will only need the passphrase to unlock after next export.')) return;
+  delete vault._mfa;
+  $('mfa-modal').classList.remove('active');
+  renderMfaHeader();
+  toast('MFA disabled — export to save change','ok');
+});
+
+// ── Close modals on backdrop click ─────────────────────────────────────────
+document.querySelectorAll('.modal').forEach(function(m){
+  m.addEventListener('click',function(e){if(e.target===m) m.classList.remove('active');});
+});
+
+})();
+</script>
+</body>
+</html>
