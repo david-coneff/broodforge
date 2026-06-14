@@ -185,6 +185,12 @@
     letter-spacing:.07em;margin:0 0 4px}
   .nts-section{margin:4px 0;border:1px solid var(--border);border-radius:var(--radius);
     overflow:hidden}
+  /* dim only a section's OWN header + direct body content — nested sections unaffected */
+  .nts-ch{opacity:1!important}  /* child-section wrapper: never inherit parent dim */
+  .nts-section>summary.nts-hdr,
+  .nts-section>.nts-body>:not(.nts-section):not(.nts-ch){transition:opacity .15s}
+  .nts-section[data-nts-dim]>summary.nts-hdr,
+  .nts-section[data-nts-dim]>.nts-body>:not(.nts-section):not(.nts-ch){opacity:var(--nts-dim-op,0.7)}
   .nts-section>summary.nts-hdr{list-style:none;cursor:pointer;user-select:none;
     display:flex;align-items:center;gap:4px;background:var(--bg3);
     padding:5px 8px;font-size:.79em}
@@ -1397,6 +1403,7 @@ curl -s "https://www.duckdns.org/update?domains=<span class="tpl" data-var="SUBD
       body.appendChild(ta);
 
       var chCont=document.createElement('div');
+      chCont.className='nts-ch';
       (node.ch||[]).forEach(function(c){chCont.appendChild(mkNode(c));});
       body.appendChild(chCont);
 
@@ -2159,20 +2166,18 @@ curl -s "https://www.duckdns.org/update?domains=<span class="tpl" data-var="SUBD
         if(notesBody){
           var fOp=fieldOpacity();
           var qn=document.getElementById('bf-session-notes');
-          if(qn&&qn!==activeNoteContainer) qn.style.opacity=fOp;
+          /* quick-notes textarea: direct opacity fine (leaf element, no children) */
+          if(qn) qn.style.opacity=(qn===activeNoteContainer)?'1':fOp;
+          /* sections: set attribute so CSS dims only own header+content, not nested sections */
           notesBody.querySelectorAll('.nts-section').forEach(function(s){
-            if(s!==activeNoteContainer) s.style.opacity=fOp;
-          });
-          if(activeNoteContainer){
-            activeNoteContainer.style.opacity='1';
-            /* CSS opacity is multiplicative — un-fade all ancestor .nts-section elements
-               so a nested active subsection isn't dimmed by its parent's fOp */
-            var par=activeNoteContainer.parentElement;
-            while(par&&par!==notesBody){
-              if(par.classList&&par.classList.contains('nts-section')) par.style.opacity='1';
-              par=par.parentElement;
+            if(s===activeNoteContainer){
+              s.removeAttribute('data-nts-dim');
+              s.style.removeProperty('--nts-dim-op');
+            } else {
+              s.style.setProperty('--nts-dim-op',fOp);
+              s.setAttribute('data-nts-dim','');
             }
-          }
+          });
         }
       }
       if(opVal) opVal.textContent=opPct+'%';
@@ -2201,9 +2206,8 @@ curl -s "https://www.duckdns.org/update?domains=<span class="tpl" data-var="SUBD
         if(e.target.tagName!=='TEXTAREA'&&e.target.tagName!=='INPUT') return;
         var container=getNoteContainer(e.target);
         if(container!==activeNoteContainer){
-          if(activeNoteContainer) activeNoteContainer.style.opacity=fieldOpacity();
-          container.style.opacity='1';
           activeNoteContainer=container;
+          applyOpacity();
         }
       });
     }
@@ -2234,7 +2238,10 @@ curl -s "https://www.duckdns.org/update?domains=<span class="tpl" data-var="SUBD
         if(notesBody){
           var qn2=document.getElementById('bf-session-notes');
           if(qn2) qn2.style.opacity='';
-          notesBody.querySelectorAll('.nts-section').forEach(function(s){ s.style.opacity=''; });
+          notesBody.querySelectorAll('.nts-section').forEach(function(s){
+            s.removeAttribute('data-nts-dim');
+            s.style.removeProperty('--nts-dim-op');
+          });
         }
         if(drag) drag.classList.remove('notes-floating');
         fbtn.textContent='⊞'; fbtn.title='Pop out notes panel';
