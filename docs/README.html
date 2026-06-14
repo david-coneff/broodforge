@@ -153,13 +153,11 @@
   details.subsection .sub-body{padding-left:14px;padding-bottom:6px}
   /* +/- controls and clear button appear right-aligned in the summary row */
   .bf-sub-controls{display:flex;gap:3px;flex-shrink:0;margin-left:auto;margin-right:10px;align-items:center}
-  .bf-sub-expand,.bf-sub-collapse{background:var(--bg3);border:1px solid var(--border);
-    color:var(--muted);border-radius:3px;padding:0 6px;cursor:pointer;font-size:.78em;
+  .bf-sub-expand,.bf-sub-collapse{background:var(--bg3);border:1px solid var(--accent);
+    color:var(--accent);border-radius:3px;padding:0 6px;cursor:pointer;font-size:.78em;
     line-height:1.6;font-family:inherit;font-weight:700}
-  .bf-sub-expand:hover,.bf-sub-collapse:hover{border-color:var(--accent);color:var(--accent)}
+  .bf-sub-expand:hover,.bf-sub-collapse:hover{background:var(--accent);color:var(--bg)}
   .bf-ctrl-sep{width:10px;flex-shrink:0}
-  /* ghost = always-present placeholder when button not applicable */
-  .bf-ctrl-ghost{color:transparent !important;pointer-events:none;cursor:default;opacity:0.25}
   /* ── split-pane layout ─────────────────────────────────────────────────── */
   #bf-app{display:flex;height:100vh;overflow:hidden}
   #bf-doc-pane{flex:1 1 auto;overflow-y:auto;padding:24px 28px 80px;min-width:0;scrollbar-gutter:stable}
@@ -429,7 +427,7 @@
   .bf-edited-mark{font-size:.65em;color:var(--muted);margin-left:6px;opacity:.7}
   @media print{#bf-doc-pane{padding:12px}#bf-notes-pane,#bf-drag{display:none}
     #bf-theme-btn,.copy-btn{display:none}
-    .bf-sub-controls,.bf-edit-btn,.bf-edit-controls{display:none}
+    .bf-edit-btn,.bf-edit-controls{display:none}
     .param-input,.note-input,.note-area,#bf-session-notes{border:1px solid #999}}
 </style>
 </head>
@@ -2400,9 +2398,22 @@ Phase 7   Monitoring ────────────────  GATE 4: p
       return det.querySelector('.note-input,.note-area,.cred-input,input[type=radio],input[type=checkbox],.input-table')!==null;
     }
     function directChildSubs(det){
-      var body=det.querySelector(':scope>.sec-body,:scope>.sub-body');
+      // Find the direct body child (.sec-body or .sub-body) without relying on :scope> in querySelectorAll
+      var body=null;
+      for(var i=0;i<det.children.length;i++){
+        var ch=det.children[i];
+        if(ch.classList.contains('sec-body')||ch.classList.contains('sub-body')){body=ch;break;}
+      }
       if(!body)return[];
-      return Array.prototype.slice.call(body.querySelectorAll(':scope>details.subsection'));
+      // Collect direct child <details> that are sections or subsections
+      var result=[];
+      for(var i=0;i<body.children.length;i++){
+        var ch=body.children[i];
+        if(ch.tagName==='DETAILS'&&(ch.classList.contains('section')||ch.classList.contains('subsection'))){
+          result.push(ch);
+        }
+      }
+      return result;
     }
     function clearSection(det){
       det.querySelectorAll('.note-input,.note-area').forEach(function(f){
@@ -2419,55 +2430,44 @@ Phase 7   Monitoring ────────────────  GATE 4: p
     }
     document.querySelectorAll('details.section,details.subsection').forEach(function(det){
       var sum=det.querySelector(':scope>summary');if(!sum)return;
-      var controls=sum.querySelector('.bf-sub-controls');
-      if(!controls){controls=document.createElement('div');controls.className='bf-sub-controls';sum.appendChild(controls);}
       var children=directChildSubs(det);
       var hasChildren=children.length>=1;
       var canClear=hasInputs(det);
-      // clear button — leftmost; ghost placeholder when no inputs
-      var clr=document.createElement('button');
-      clr.type='button';clr.className='sec-clear-btn';clr.textContent='⊘ Clear';
+if(!hasChildren&&!canClear)return; // nothing applicable — skip entirely
+      var controls=sum.querySelector('.bf-sub-controls');
+      if(!controls){controls=document.createElement('div');controls.className='bf-sub-controls';sum.appendChild(controls);}
+      // order: clear | sep | collapse | expand (rightmost)
       if(canClear){
+        var clr=document.createElement('button');
+        clr.type='button';clr.className='sec-clear-btn';clr.textContent='⊘ Clear';
         clr.title='Clear all fields in this section';
         clr.addEventListener('click',function(e){
           e.stopPropagation();
           if(!confirm('Clear all fields in this section?'))return;
           clearSection(det);
         });
-      } else {
-        clr.classList.add('bf-ctrl-ghost');clr.title='';
+        controls.appendChild(clr);
       }
-      // separator
-      var sep=document.createElement('div');sep.className='bf-ctrl-sep';
-      // collapse button — always active when section has any child subsections
-      var cBtn=document.createElement('button');
-      cBtn.type='button';cBtn.className='bf-sub-collapse';cBtn.textContent='⊟';
       if(hasChildren){
+        var sep=document.createElement('div');sep.className='bf-ctrl-sep';
+        var cBtn=document.createElement('button');
+        cBtn.type='button';cBtn.className='bf-sub-collapse';cBtn.textContent='⊟';
         cBtn.title='Collapse child sections';
         cBtn.addEventListener('click',function(e){
           e.stopPropagation();
           directChildSubs(det).forEach(function(d){d.removeAttribute('open');});
         });
-      } else {
-        cBtn.classList.add('bf-ctrl-ghost');cBtn.title='';
-      }
-      // expand button — always active when section has any child subsections
-      var eBtn=document.createElement('button');
-      eBtn.type='button';eBtn.className='bf-sub-expand';eBtn.textContent='⊞';
-      if(hasChildren){
+        var eBtn=document.createElement('button');
+        eBtn.type='button';eBtn.className='bf-sub-expand';eBtn.textContent='⊞';
         eBtn.title='Expand child sections';
         eBtn.addEventListener('click',function(e){
           e.stopPropagation();
           directChildSubs(det).forEach(function(d){d.setAttribute('open','');});
         });
-      } else {
-        eBtn.classList.add('bf-ctrl-ghost');eBtn.title='';
+        controls.appendChild(sep);
+        controls.appendChild(cBtn);
+        controls.appendChild(eBtn);
       }
-      // order: clear | sep | collapse | expand (rightmost)
-      controls.appendChild(clr);
-      controls.appendChild(sep);
-      controls.appendChild(cBtn);
-      controls.appendChild(eBtn);
     });
   })();
 
@@ -2540,8 +2540,8 @@ Phase 7   Monitoring ────────────────  GATE 4: p
     /* The last-focused notes container (quick-notes textarea or a .nts-section) */
     var activeNoteContainer=null;
     function fieldOpacity(){
-      /* Non-active notes fields: panel opacity + 10%, capped at 100% */
-      return (Math.min(100,opPct+10)/100).toFixed(2);
+      /* Non-active notes fields dim to a fixed fraction — independent of panel opacity */
+      return '0.35';
     }
     function getNoteContainer(el){
       /* Quick-notes textarea is its own box; section notes live inside .nts-section */
@@ -2560,15 +2560,21 @@ Phase 7   Monitoring ────────────────  GATE 4: p
           var qn=document.getElementById('bf-session-notes');
           /* quick-notes textarea: direct opacity fine (leaf element, no children) */
           if(qn) qn.style.opacity=(qn===activeNoteContainer)?'1':fOp;
-          /* sections: set attribute so CSS dims only own header+content, not nested sections */
+          /* sections: directly dim own header+notes textarea; nested sections untouched */
           notesBody.querySelectorAll('.nts-section').forEach(function(s){
-            if(s===activeNoteContainer){
-              s.removeAttribute('data-nts-dim');
-              s.style.removeProperty('--nts-dim-op');
-            } else {
-              s.style.setProperty('--nts-dim-op',fOp);
-              s.setAttribute('data-nts-dim','');
+            var dim=(s!==activeNoteContainer);
+            var hdr=null,body=null;
+            for(var ci=0;ci<s.children.length;ci++){
+              var ch=s.children[ci];
+              if(!hdr&&ch.tagName==='SUMMARY') hdr=ch;
+              if(!body&&ch.classList.contains('nts-body')) body=ch;
             }
+            var ta=null;
+            if(body){for(var bi=0;bi<body.children.length;bi++){
+              if(body.children[bi].tagName==='TEXTAREA'){ta=body.children[bi];break;}
+            }}
+            if(hdr) hdr.style.opacity=dim?fOp:'';
+            if(ta) ta.style.opacity=dim?fOp:'';
           });
         }
       }
@@ -2631,6 +2637,18 @@ Phase 7   Monitoring ────────────────  GATE 4: p
           var qn2=document.getElementById('bf-session-notes');
           if(qn2) qn2.style.opacity='';
           notesBody.querySelectorAll('.nts-section').forEach(function(s){
+            var hdr=null,body=null;
+            for(var ci=0;ci<s.children.length;ci++){
+              var ch=s.children[ci];
+              if(!hdr&&ch.tagName==='SUMMARY') hdr=ch;
+              if(!body&&ch.classList.contains('nts-body')) body=ch;
+            }
+            var ta=null;
+            if(body){for(var bi=0;bi<body.children.length;bi++){
+              if(body.children[bi].tagName==='TEXTAREA'){ta=body.children[bi];break;}
+            }}
+            if(hdr) hdr.style.opacity='';
+            if(ta) ta.style.opacity='';
             s.removeAttribute('data-nts-dim');
             s.style.removeProperty('--nts-dim-op');
           });

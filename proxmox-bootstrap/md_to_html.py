@@ -47,7 +47,7 @@ _CSS = """
   :root{--bg:#1a1d23;--bg2:#22262e;--bg3:#2a2f3a;--border:#3a3f4d;--text:#cdd6f4;--muted:#7f8498;
     --accent:#89b4fa;--green:#a6e3a1;--yellow:#f9e2af;--orange:#fab387;--red:#f38ba8;
     --code-bg:#181b21;--code-text:#a6e3a1;--radius:6px;--btn-bg:#2a2f3a;--bg2-rgb:34,38,46}
-  body.light{--bg:#ffffff;--bg2:#f4f5f7;--bg3:#eceff2;--border:#b0bac5;--text:#1f2328;--muted:#57606a;
+  body.light{--bg:#ffffff;--bg2:#f4f5f7;--bg3:#eceff2;--border:#6b7a8a;--text:#1f2328;--muted:#57606a;
     --accent:#0969da;--green:#1a7f37;--yellow:#9a6700;--orange:#bc4c00;--red:#cf222e;
     --code-bg:#f6f8fa;--code-text:#0a3069;--btn-bg:#eaeef2;--bg2-rgb:244,245,247}
   *{box-sizing:border-box;margin:0;padding:0}
@@ -192,13 +192,11 @@ _CSS = """
   details.subsection .sub-body{padding-left:14px;padding-bottom:6px}
   /* +/- controls and clear button appear right-aligned in the summary row */
   .bf-sub-controls{display:flex;gap:3px;flex-shrink:0;margin-left:auto;margin-right:10px;align-items:center}
-  .bf-sub-expand,.bf-sub-collapse{background:var(--bg3);border:1px solid var(--border);
-    color:var(--muted);border-radius:3px;padding:0 6px;cursor:pointer;font-size:.78em;
+  .bf-sub-expand,.bf-sub-collapse{background:var(--bg3);border:1px solid var(--accent);
+    color:var(--accent);border-radius:3px;padding:0 6px;cursor:pointer;font-size:.78em;
     line-height:1.6;font-family:inherit;font-weight:700}
-  .bf-sub-expand:hover,.bf-sub-collapse:hover{border-color:var(--accent);color:var(--accent)}
+  .bf-sub-expand:hover,.bf-sub-collapse:hover{background:var(--accent);color:var(--bg)}
   .bf-ctrl-sep{width:10px;flex-shrink:0}
-  /* ghost = always-present placeholder when button not applicable */
-  .bf-ctrl-ghost{color:transparent !important;pointer-events:none;cursor:default;opacity:0.25}
   /* ── split-pane layout ─────────────────────────────────────────────────── */
   #bf-app{display:flex;height:100vh;overflow:hidden}
   #bf-doc-pane{flex:1 1 auto;overflow-y:auto;padding:24px 28px 80px;min-width:0;scrollbar-gutter:stable}
@@ -228,8 +226,9 @@ _CSS = """
   .nts-ch{opacity:1!important}  /* child-section wrapper: never inherit parent dim */
   .nts-section>summary.nts-hdr,
   .nts-section>.nts-body>:not(.nts-section):not(.nts-ch){transition:opacity .15s}
-  .nts-section[data-nts-dim]>summary.nts-hdr,
-  .nts-section[data-nts-dim]>.nts-body>:not(.nts-section):not(.nts-ch){opacity:var(--nts-dim-op,0.7)}
+  .nts-section.nts-dim>summary.nts-hdr{opacity:0.35}
+  .nts-section.nts-dim>.nts-body>textarea.note-area{opacity:0.35!important;border-color:transparent!important}
+  .nts-section.nts-dim>.nts-body>textarea.note-area::placeholder{opacity:0.25!important}
   .nts-section>summary.nts-hdr{list-style:none;cursor:pointer;user-select:none;
     display:flex;align-items:center;gap:4px;background:var(--bg3);
     padding:5px 8px;font-size:.79em}
@@ -246,7 +245,7 @@ _CSS = """
   .nts-hdr-btn:hover{color:var(--accent)}
   .nts-hdr-btn.del{color:var(--red)}
   .nts-hdr-btn.del:hover{opacity:.75}
-  .nts-body{padding:5px 8px 8px;background:var(--bg)}
+  .nts-body{padding:5px 8px 8px;background:transparent}
   .nts-body textarea{width:100%;min-height:50px;resize:vertical;margin-bottom:4px;
     font-size:.81em}
   .nts-add-btn{display:block;width:100%;background:none;
@@ -468,7 +467,7 @@ _CSS = """
   .bf-edited-mark{font-size:.65em;color:var(--muted);margin-left:6px;opacity:.7}
   @media print{#bf-doc-pane{padding:12px}#bf-notes-pane,#bf-drag{display:none}
     #bf-theme-btn,.copy-btn{display:none}
-    .bf-sub-controls,.bf-edit-btn,.bf-edit-controls{display:none}
+    .bf-edit-btn,.bf-edit-controls{display:none}
     .param-input,.note-input,.note-area,#bf-session-notes{border:1px solid #999}}
 """
 
@@ -1859,9 +1858,22 @@ _JS = r"""
       return det.querySelector('.note-input,.note-area,.cred-input,input[type=radio],input[type=checkbox],.input-table')!==null;
     }
     function directChildSubs(det){
-      var body=det.querySelector(':scope>.sec-body,:scope>.sub-body');
+      // Find the direct body child (.sec-body or .sub-body) without relying on :scope> in querySelectorAll
+      var body=null;
+      for(var i=0;i<det.children.length;i++){
+        var ch=det.children[i];
+        if(ch.classList.contains('sec-body')||ch.classList.contains('sub-body')){body=ch;break;}
+      }
       if(!body)return[];
-      return Array.prototype.slice.call(body.querySelectorAll(':scope>details.subsection'));
+      // Collect direct child <details> that are sections or subsections
+      var result=[];
+      for(var i=0;i<body.children.length;i++){
+        var ch=body.children[i];
+        if(ch.tagName==='DETAILS'&&(ch.classList.contains('section')||ch.classList.contains('subsection'))){
+          result.push(ch);
+        }
+      }
+      return result;
     }
     function clearSection(det){
       det.querySelectorAll('.note-input,.note-area').forEach(function(f){
@@ -1878,55 +1890,44 @@ _JS = r"""
     }
     document.querySelectorAll('details.section,details.subsection').forEach(function(det){
       var sum=det.querySelector(':scope>summary');if(!sum)return;
-      var controls=sum.querySelector('.bf-sub-controls');
-      if(!controls){controls=document.createElement('div');controls.className='bf-sub-controls';sum.appendChild(controls);}
       var children=directChildSubs(det);
       var hasChildren=children.length>=1;
       var canClear=hasInputs(det);
-      // clear button — leftmost; ghost placeholder when no inputs
-      var clr=document.createElement('button');
-      clr.type='button';clr.className='sec-clear-btn';clr.textContent='⊘ Clear';
+if(!hasChildren&&!canClear)return; // nothing applicable — skip entirely
+      var controls=sum.querySelector('.bf-sub-controls');
+      if(!controls){controls=document.createElement('div');controls.className='bf-sub-controls';sum.appendChild(controls);}
+      // order: clear | sep | collapse | expand (rightmost)
       if(canClear){
+        var clr=document.createElement('button');
+        clr.type='button';clr.className='sec-clear-btn';clr.textContent='⊘ Clear';
         clr.title='Clear all fields in this section';
         clr.addEventListener('click',function(e){
           e.stopPropagation();
           if(!confirm('Clear all fields in this section?'))return;
           clearSection(det);
         });
-      } else {
-        clr.classList.add('bf-ctrl-ghost');clr.title='';
+        controls.appendChild(clr);
       }
-      // separator
-      var sep=document.createElement('div');sep.className='bf-ctrl-sep';
-      // collapse button — always active when section has any child subsections
-      var cBtn=document.createElement('button');
-      cBtn.type='button';cBtn.className='bf-sub-collapse';cBtn.textContent='⊟';
       if(hasChildren){
+        var sep=document.createElement('div');sep.className='bf-ctrl-sep';
+        var cBtn=document.createElement('button');
+        cBtn.type='button';cBtn.className='bf-sub-collapse';cBtn.textContent='⊟';
         cBtn.title='Collapse child sections';
         cBtn.addEventListener('click',function(e){
           e.stopPropagation();
           directChildSubs(det).forEach(function(d){d.removeAttribute('open');});
         });
-      } else {
-        cBtn.classList.add('bf-ctrl-ghost');cBtn.title='';
-      }
-      // expand button — always active when section has any child subsections
-      var eBtn=document.createElement('button');
-      eBtn.type='button';eBtn.className='bf-sub-expand';eBtn.textContent='⊞';
-      if(hasChildren){
+        var eBtn=document.createElement('button');
+        eBtn.type='button';eBtn.className='bf-sub-expand';eBtn.textContent='⊞';
         eBtn.title='Expand child sections';
         eBtn.addEventListener('click',function(e){
           e.stopPropagation();
           directChildSubs(det).forEach(function(d){d.setAttribute('open','');});
         });
-      } else {
-        eBtn.classList.add('bf-ctrl-ghost');eBtn.title='';
+        controls.appendChild(sep);
+        controls.appendChild(cBtn);
+        controls.appendChild(eBtn);
       }
-      // order: clear | sep | collapse | expand (rightmost)
-      controls.appendChild(clr);
-      controls.appendChild(sep);
-      controls.appendChild(cBtn);
-      controls.appendChild(eBtn);
     });
   })();
 
@@ -1999,8 +2000,8 @@ _JS = r"""
     /* The last-focused notes container (quick-notes textarea or a .nts-section) */
     var activeNoteContainer=null;
     function fieldOpacity(){
-      /* Non-active notes fields: panel opacity + 10%, capped at 100% */
-      return (Math.min(100,opPct+10)/100).toFixed(2);
+      /* Non-active notes fields dim to a fixed fraction — independent of panel opacity */
+      return '0.35';
     }
     function getNoteContainer(el){
       /* Quick-notes textarea is its own box; section notes live inside .nts-section */
@@ -2019,15 +2020,15 @@ _JS = r"""
           var qn=document.getElementById('bf-session-notes');
           /* quick-notes textarea: direct opacity fine (leaf element, no children) */
           if(qn) qn.style.opacity=(qn===activeNoteContainer)?'1':fOp;
-          /* sections: set attribute so CSS dims only own header+content, not nested sections */
+          /* sections: dim own header+notes textarea via inline style (bypasses CSS cascade
+             issues that prevent nested section headers from visibly inheriting opacity) */
           notesBody.querySelectorAll('.nts-section').forEach(function(s){
-            if(s===activeNoteContainer){
-              s.removeAttribute('data-nts-dim');
-              s.style.removeProperty('--nts-dim-op');
-            } else {
-              s.style.setProperty('--nts-dim-op',fOp);
-              s.setAttribute('data-nts-dim','');
-            }
+            var dim=(s!==activeNoteContainer);
+            s.classList.toggle('nts-dim',dim);
+            var hdr=s.querySelector(':scope>summary');
+            if(hdr) hdr.style.opacity=dim?fOp:'';
+            var ta=s.querySelector(':scope>.nts-body>textarea');
+            if(ta){ta.style.opacity=dim?fOp:'';ta.style.borderColor=dim?'transparent':'';}
           });
         }
       }
@@ -2077,6 +2078,13 @@ _JS = r"""
           pane.style.top='48px';
         }
         pane.style.right='auto';
+        /* If a notes textarea already has focus when we go floating, honour it */
+        if(notesBody){
+          var ae=document.activeElement;
+          if(ae&&(ae.tagName==='TEXTAREA'||ae.tagName==='INPUT')&&notesBody.contains(ae)){
+            activeNoteContainer=getNoteContainer(ae);
+          }
+        }
         applyOpacity();
         applyBlur();
       }else{
@@ -2090,8 +2098,11 @@ _JS = r"""
           var qn2=document.getElementById('bf-session-notes');
           if(qn2) qn2.style.opacity='';
           notesBody.querySelectorAll('.nts-section').forEach(function(s){
-            s.removeAttribute('data-nts-dim');
-            s.style.removeProperty('--nts-dim-op');
+            s.classList.remove('nts-dim');
+            var hdr=s.querySelector(':scope>summary');
+            if(hdr) hdr.style.opacity='';
+            var ta=s.querySelector(':scope>.nts-body>textarea');
+            if(ta){ta.style.opacity='';ta.style.borderColor='';}
           });
         }
         if(drag) drag.classList.remove('notes-floating');
@@ -2872,13 +2883,6 @@ if __name__ == "__main__":
     title = args.title or ""
     nav_docs = []
     if args.manifest:
-        try:
-            mf = json.loads(Path(args.manifest).read_text(encoding="utf-8"))
-            nav_docs = mf.get("docs", [])
-        except Exception:
-            pass
-    out = render_html(md, title=title, collapsible=args.collapsible,
-                      force_walkthrough=args.playbook, nav_docs=nav_docs,
-                      current_output=args.dst)
-    dst.write_text(out, encoding="utf-8")
-    print(f"[md_to_html] wrote {dst} ({dst.stat().st_size:,} bytes)")
+        import json
+        mf=json.loads(Path(args.manifest).read_text(encoding="utf-8"))
+        nav_docs=mf.get
