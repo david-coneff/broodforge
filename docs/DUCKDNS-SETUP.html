@@ -43,27 +43,30 @@
   .doc-meta{color:var(--muted);font-size:.8em;margin:4px 0 20px}
   /* theme toggle */
   #bf-toolbar{position:sticky;top:0;z-index:50;display:flex;flex-direction:column;
-    background:var(--bg)}
-  .bf-toolbar-main{display:flex;align-items:center;flex-wrap:wrap;gap:6px 8px;padding:6px 0}
+    background:var(--bg);border-bottom:3px solid var(--accent);margin-bottom:14px}
+  .bf-toolbar-main{display:flex;align-items:center;flex-wrap:wrap;gap:6px 8px;padding:12px 0 6px}
   .bf-toolbar-end{margin-left:auto;display:flex;align-items:center;gap:6px 8px;flex-wrap:wrap}
   .bf-attach-bar{display:flex;align-items:center;gap:10px;
     padding:4px 0 6px;border-top:1px solid var(--border)}
   .bf-attach-hint{color:var(--muted);font-size:.76em}
   .bf-attach-bar-end{margin-left:auto;display:flex;align-items:center;gap:6px}
-  #bf-collapse-all,#bf-expand-all{background:var(--btn-bg);color:var(--text);
-    border:1px solid var(--border);border-radius:var(--radius);padding:5px 12px;
-    cursor:pointer;font-size:.8em;font-family:inherit}
-  #bf-collapse-all:hover,#bf-expand-all:hover{border-color:var(--accent);color:var(--accent)}
-  #bf-section-count{color:var(--muted);font-size:.75em;white-space:nowrap;
-    display:inline-block;text-align:center;font-variant-numeric:tabular-nums;
-    font-family:'Consolas','Cascadia Code','SF Mono','Menlo',monospace;
-    border:1px solid var(--border);border-radius:var(--radius);padding:3px 8px;background:var(--bg2)}
+  /* unified toolbar element height — all buttons and badge-links are 28px tall */
   #bf-toolbar button{background:var(--btn-bg);color:var(--text);border:1px solid var(--border);
-    border-radius:var(--radius);padding:5px 12px;cursor:pointer;font-size:.8em;font-family:inherit}
+    border-radius:var(--radius);padding:0 12px;cursor:pointer;font-size:.8em;font-family:inherit;
+    height:28px;display:inline-flex;align-items:center;box-sizing:border-box;line-height:1;
+    flex-shrink:0}
   #bf-toolbar button:hover{border-color:var(--accent);color:var(--accent)}
-  .about-docs-link{background:var(--btn-bg);color:var(--muted);border:1px solid var(--border);
-    border-radius:var(--radius);padding:5px 10px;display:inline-flex;align-items:center;
-    font-size:.8em;text-decoration:none;cursor:pointer;flex-shrink:0;font-family:inherit}
+  #bf-collapse-all,#bf-expand-all{padding:0 12px}
+  #bf-collapse-all:hover,#bf-expand-all:hover{border-color:var(--accent);color:var(--accent)}
+  #bf-section-count{color:var(--text);font-size:.75em;white-space:nowrap;
+    display:inline-flex;align-items:center;text-align:center;font-variant-numeric:tabular-nums;
+    font-family:'Consolas','Cascadia Code','SF Mono','Menlo',monospace;
+    border:1px solid var(--border);border-radius:var(--radius);padding:0 8px;background:var(--bg2);
+    height:28px;box-sizing:border-box;flex-shrink:0}
+  .about-docs-link{background:var(--btn-bg);color:var(--text);border:1px solid var(--border);
+    border-radius:var(--radius);padding:0 10px;display:inline-flex;align-items:center;
+    font-size:.8em;text-decoration:none;cursor:pointer;flex-shrink:0;font-family:inherit;
+    height:28px;box-sizing:border-box;line-height:1}
   .about-docs-link:hover{border-color:var(--accent);color:var(--accent)}
   /* attachments - toolbar dropdown panel */
   #bf-attach-count{font-size:.75em;opacity:.8}
@@ -155,14 +158,14 @@
   .bf-sub-controls{display:flex;gap:3px;flex-shrink:0;margin-left:auto;margin-right:10px;align-items:center}
   .bf-sub-expand,.bf-sub-collapse{background:var(--bg3);border:1px solid var(--border);
     color:var(--muted);border-radius:3px;padding:0 6px;cursor:pointer;font-size:.78em;
-    line-height:1.6;font-family:inherit;font-weight:700}
+    line-height:1.6;font-family:inherit;font-weight:700;outline:none}
   .bf-sub-expand:hover,.bf-sub-collapse:hover{border-color:var(--accent);color:var(--accent)}
   .bf-ctrl-sep{width:10px;flex-shrink:0}
   /* ghost = always-present placeholder when button not applicable */
   .bf-ctrl-ghost{color:transparent !important;pointer-events:none;cursor:default;opacity:0.25}
   /* ── split-pane layout ─────────────────────────────────────────────────── */
   #bf-app{display:flex;height:100vh;overflow:hidden}
-  #bf-doc-pane{flex:1 1 auto;overflow-y:auto;padding:24px 28px 80px;min-width:0;scrollbar-gutter:stable}
+  #bf-doc-pane{flex:1 1 auto;overflow-y:auto;padding:0 28px 80px;min-width:0;scrollbar-gutter:stable}
   #bf-drag{flex:0 0 5px;cursor:col-resize;background:var(--border);
     transition:background .1s;z-index:20}
   #bf-drag:hover,#bf-drag.dragging{background:var(--accent)}
@@ -177,7 +180,7 @@
     border-radius:var(--radius);padding:2px 8px;cursor:pointer;font-size:.72em;
     font-family:inherit;flex-shrink:0}
   .nts-export-btn:hover{border-color:var(--accent);color:var(--accent)}
-  #bf-notes-body{flex:1;overflow-y:auto;padding:8px 10px 20px}
+  #bf-notes-body{flex:1;overflow-y:auto;padding:8px 10px 20px;scrollbar-gutter:stable}
   #bf-session-notes{width:100%;min-height:80px;resize:vertical}
   /* ── notes tree (recursive collapsible sections) ──────────────────────── */
   .nts-divider{border:none;border-top:1px solid var(--border);margin:10px 0 6px}
@@ -437,7 +440,7 @@
 <body data-doc="duckdns-setup">
 <div id="bf-app">
   <div id="bf-doc-pane">
-    <div id="bf-toolbar"><div class="bf-toolbar-main"><button id="bf-nav-toggle" type="button">☰ Docs</button><div id="bf-nav-panel"><div class="bf-nav-group"><div class="bf-nav-group-label">Runbooks</div><a class="bf-nav-item" href="PHOENIX.html" title="PHOENIX — Stargate Process">PHOENIX — Stargate Process</a><a class="bf-nav-item" href="FORGING.html" title="FORGING — Hatchery Build">FORGING — Hatchery Build</a><a class="bf-nav-item" href="NODE-SPAWNING.html" title="NODE-SPAWNING — Hatchery Process">NODE-SPAWNING — Hatchery Process</a><a class="bf-nav-item" href="RECONSTRUCTION-DRILL.html" title="Reconstruction Drill">Reconstruction Drill</a></div><div class="bf-nav-sep"></div><div class="bf-nav-group"><div class="bf-nav-group-label">Guides</div><a class="bf-nav-item" href="CLOUD-STORAGE-SETUP.html" title="Cloud Storage Setup">Cloud Storage Setup</a><a class="bf-nav-item" href="CLOUDFLARE-SETUP.html" title="Cloudflare Setup">Cloudflare Setup</a><a class="bf-nav-item current" href="DUCKDNS-SETUP.html" title="DuckDNS Setup">DuckDNS Setup</a><a class="bf-nav-item" href="SNIPPET-UPLOAD.html" title="Snippet Upload">Snippet Upload</a><a class="bf-nav-item" href="TIER2-COLLECTION.html" title="Tier 2 State Collection">Tier 2 State Collection</a><a class="bf-nav-item" href="ABOUT-DOCS.html" title="About This Documentation">About This Documentation</a></div><div class="bf-nav-sep"></div><div class="bf-nav-group"><div class="bf-nav-group-label">Reference</div><a class="bf-nav-item" href="README.html" title="Broodforge README">Broodforge README</a><a class="bf-nav-item" href="ARCHITECTURE.html" title="Broodforge Architecture">Broodforge Architecture</a><a class="bf-nav-item" href="ROADMAP.html" title="Broodforge Roadmap">Broodforge Roadmap</a><a class="bf-nav-item" href="USER-REGISTRY.html" title="User Registry">User Registry</a><a class="bf-nav-item" href="TALOS-ALTERNATIVE.html" title="Talos Alternative">Talos Alternative</a><a class="bf-nav-item" href="FEATURE-HISTORY.html" title="Feature History">Feature History</a><a class="bf-nav-item" href="DESIGN-HISTORY.html" title="Design History">Design History</a><a class="bf-nav-item" href="AUDIT-FINDINGS.html" title="Audit Findings">Audit Findings</a></div><div class="bf-nav-sep"></div><div class="bf-nav-group"><div class="bf-nav-group-label">Index</div><a class="bf-nav-item" href="DOCS-INDEX.html" title="Documentation Index">Documentation Index</a></div><div class="bf-nav-sep"></div><div class="bf-nav-group"><div class="bf-nav-group-label">Tools</div><a class="bf-nav-item" href="forge-image-builder.html" title="Forge Image Builder">Forge Image Builder</a><a class="bf-nav-item" href="bfvault.html" title="BFVault — Secret Store">BFVault — Secret Store</a></div></div><a class="about-docs-link" href="ABOUT-DOCS.html" target="_blank" title="About this documentation — how fields, notes, and export work">ⓘ About</a><div class="bf-toolbar-end"><button id="bf-clear-fields-btn" type="button">⊘ Clear Fields</button><button id="bf-download-edits-btn" type="button" title="Download this page with any text edits baked in">⬇ Download with Edits</button><button id="bf-theme-btn" type="button">☀ Light</button><span id="bf-section-count"></span><button id="bf-collapse-all" type="button">⊟ Collapse All</button><button id="bf-expand-all" type="button">⊞ Expand All</button></div></div><div class="bf-attach-bar"><button id="bf-attach-toggle" type="button" title="Attach files — bundled into the export package">📎 Attach <span id="bf-attach-count"></span></button><span class="bf-attach-hint">Drag files anywhere on the page to attach</span><div class="bf-attach-bar-end"><button id="bf-import-session-btn" type="button">↑ Import Session</button><button id="bf-export-btn" type="button">⬇ Export DuckDNS Setup Package</button></div></div><div id="bf-attach-panel"><input type="file" id="bf-attach-input" multiple style="display:none"><div id="bf-attach-zone"><span class="bf-attach-prompt">Drag files here — logs, screenshots, manifests</span><button type="button" class="bf-attach-btn" id="bf-attach-add">⬆ Browse…</button></div><ul class="attach-list" id="bf-attach-list"></ul></div></div>
+    <div id="bf-toolbar"><div class="bf-toolbar-main"><button id="bf-nav-toggle" type="button">☰ Docs</button><div id="bf-nav-panel"><div class="bf-nav-group"><div class="bf-nav-group-label">Runbooks</div><a class="bf-nav-item" href="PHOENIX.html" title="PHOENIX — Stargate Process">PHOENIX — Stargate Process</a><a class="bf-nav-item" href="FORGING.html" title="FORGING — Hatchery Build">FORGING — Hatchery Build</a><a class="bf-nav-item" href="NODE-SPAWNING.html" title="NODE-SPAWNING — Hatchery Process">NODE-SPAWNING — Hatchery Process</a><a class="bf-nav-item" href="RECONSTRUCTION-DRILL.html" title="Reconstruction Drill">Reconstruction Drill</a></div><div class="bf-nav-sep"></div><div class="bf-nav-group"><div class="bf-nav-group-label">Guides</div><a class="bf-nav-item" href="CLOUD-STORAGE-SETUP.html" title="Cloud Storage Setup">Cloud Storage Setup</a><a class="bf-nav-item" href="CLOUDFLARE-SETUP.html" title="Cloudflare Setup">Cloudflare Setup</a><a class="bf-nav-item current" href="DUCKDNS-SETUP.html" title="DuckDNS Setup">DuckDNS Setup</a><a class="bf-nav-item" href="SNIPPET-UPLOAD.html" title="Snippet Upload">Snippet Upload</a><a class="bf-nav-item" href="TIER2-COLLECTION.html" title="Tier 2 State Collection">Tier 2 State Collection</a><a class="bf-nav-item" href="ABOUT-DOCS.html" title="About This Documentation">About This Documentation</a></div><div class="bf-nav-sep"></div><div class="bf-nav-group"><div class="bf-nav-group-label">Reference</div><a class="bf-nav-item" href="README.html" title="Broodforge README">Broodforge README</a><a class="bf-nav-item" href="ARCHITECTURE.html" title="Broodforge Architecture">Broodforge Architecture</a><a class="bf-nav-item" href="ROADMAP.html" title="Broodforge Roadmap">Broodforge Roadmap</a><a class="bf-nav-item" href="USER-REGISTRY.html" title="User Registry">User Registry</a><a class="bf-nav-item" href="TALOS-ALTERNATIVE.html" title="Talos Alternative">Talos Alternative</a><a class="bf-nav-item" href="FEATURE-HISTORY.html" title="Feature History">Feature History</a><a class="bf-nav-item" href="DESIGN-HISTORY.html" title="Design History">Design History</a><a class="bf-nav-item" href="AUDIT-FINDINGS.html" title="Audit Findings">Audit Findings</a></div><div class="bf-nav-sep"></div><div class="bf-nav-group"><div class="bf-nav-group-label">Index</div><a class="bf-nav-item" href="DOCS-INDEX.html" title="Documentation Index">Documentation Index</a></div><div class="bf-nav-sep"></div><div class="bf-nav-group"><div class="bf-nav-group-label">Tools</div><a class="bf-nav-item" href="forge-image-builder.html" title="Forge Image Builder">Forge Image Builder</a><a class="bf-nav-item" href="bfvault.html" title="BFVault — Secret Store">BFVault — Secret Store</a></div></div><a class="about-docs-link" href="ABOUT-DOCS.html" target="_blank" title="About this documentation — how fields, notes, and export work">ⓘ About</a><button id="bf-theme-btn" type="button">☀ Light</button><div class="bf-toolbar-end"><button id="bf-clear-fields-btn" type="button">⊘ Clear Fields</button><button id="bf-download-edits-btn" type="button" title="Download this page with any text edits baked in">⬇ Download with Edits</button><span id="bf-section-count"></span><button id="bf-collapse-all" type="button">⊟ Collapse All</button><button id="bf-expand-all" type="button">⊞ Expand All</button></div></div><div class="bf-attach-bar"><button id="bf-attach-toggle" type="button" title="Attach files — bundled into the export package">📎 Attach <span id="bf-attach-count"></span></button><span class="bf-attach-hint">Drag files anywhere on the page to attach</span><div class="bf-attach-bar-end"><button id="bf-import-session-btn" type="button">↑ Import Session</button><button id="bf-export-btn" type="button">⬇ Export DuckDNS Setup Package</button></div></div><div id="bf-attach-panel"><input type="file" id="bf-attach-input" multiple style="display:none"><div id="bf-attach-zone"><span class="bf-attach-prompt">Drag files here — logs, screenshots, manifests</span><button type="button" class="bf-attach-btn" id="bf-attach-add">⬆ Browse…</button></div><ul class="attach-list" id="bf-attach-list"></ul></div></div>
     <div id="bf-walkthrough-hint">📋 Walkthrough — fill in fields as you go; entries are saved in your browser. Credential fields (🔑) are exported in encrypted packages. <a href="ABOUT-DOCS.html" target="_blank">How this works ↗</a></div>
     <div id="params"><h3>Parameters</h3><p class="params-hint">Fill in values here — every command below updates live. Copy button copies the resolved command.</p><div class="param-row"><label for="p-subdomain">SUBDOMAIN</label><input id="p-subdomain" class="param-input" type="text" data-var="SUBDOMAIN" value="myhatchery" placeholder="myhatchery"></div><div class="param-row"><label for="p-le-email">LE_EMAIL</label><input id="p-le-email" class="param-input" type="text" data-var="LE_EMAIL" value="admin@{{SUBDOMAIN}}.duckdns.org" placeholder="admin@{{SUBDOMAIN}}.duckdns.org"></div><div class="param-row"><label for="p-kdbx-path">KDBX_PATH</label><input id="p-kdbx-path" class="param-input" type="text" data-var="KDBX_PATH" value="Infrastructure/duckdns/token" placeholder="Infrastructure/duckdns/token"></div><div class="param-row"><label for="p-duckdns-token">DUCKDNS_TOKEN</label><input id="p-duckdns-token" class="param-input" type="text" data-var="DUCKDNS_TOKEN" value="" placeholder=""></div></div>
     <div id="bf-doc-body">

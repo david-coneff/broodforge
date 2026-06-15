@@ -82,27 +82,30 @@ _CSS = """
   .doc-meta{color:var(--muted);font-size:.8em;margin:4px 0 20px}
   /* theme toggle */
   #bf-toolbar{position:sticky;top:0;z-index:50;display:flex;flex-direction:column;
-    background:var(--bg)}
-  .bf-toolbar-main{display:flex;align-items:center;flex-wrap:wrap;gap:6px 8px;padding:6px 0}
+    background:var(--bg);border-bottom:3px solid var(--accent);margin-bottom:14px}
+  .bf-toolbar-main{display:flex;align-items:center;flex-wrap:wrap;gap:6px 8px;padding:12px 0 6px}
   .bf-toolbar-end{margin-left:auto;display:flex;align-items:center;gap:6px 8px;flex-wrap:wrap}
   .bf-attach-bar{display:flex;align-items:center;gap:10px;
     padding:4px 0 6px;border-top:1px solid var(--border)}
   .bf-attach-hint{color:var(--muted);font-size:.76em}
   .bf-attach-bar-end{margin-left:auto;display:flex;align-items:center;gap:6px}
-  #bf-collapse-all,#bf-expand-all{background:var(--btn-bg);color:var(--text);
-    border:1px solid var(--border);border-radius:var(--radius);padding:5px 12px;
-    cursor:pointer;font-size:.8em;font-family:inherit}
-  #bf-collapse-all:hover,#bf-expand-all:hover{border-color:var(--accent);color:var(--accent)}
-  #bf-section-count{color:var(--muted);font-size:.75em;white-space:nowrap;
-    display:inline-block;text-align:center;font-variant-numeric:tabular-nums;
-    font-family:'Consolas','Cascadia Code','SF Mono','Menlo',monospace;
-    border:1px solid var(--border);border-radius:var(--radius);padding:3px 8px;background:var(--bg2)}
+  /* unified toolbar element height — all buttons and badge-links are 28px tall */
   #bf-toolbar button{background:var(--btn-bg);color:var(--text);border:1px solid var(--border);
-    border-radius:var(--radius);padding:5px 12px;cursor:pointer;font-size:.8em;font-family:inherit}
+    border-radius:var(--radius);padding:0 12px;cursor:pointer;font-size:.8em;font-family:inherit;
+    height:28px;display:inline-flex;align-items:center;box-sizing:border-box;line-height:1;
+    flex-shrink:0}
   #bf-toolbar button:hover{border-color:var(--accent);color:var(--accent)}
-  .about-docs-link{background:var(--btn-bg);color:var(--muted);border:1px solid var(--border);
-    border-radius:var(--radius);padding:5px 10px;display:inline-flex;align-items:center;
-    font-size:.8em;text-decoration:none;cursor:pointer;flex-shrink:0;font-family:inherit}
+  #bf-collapse-all,#bf-expand-all{padding:0 12px}
+  #bf-collapse-all:hover,#bf-expand-all:hover{border-color:var(--accent);color:var(--accent)}
+  #bf-section-count{color:var(--text);font-size:.75em;white-space:nowrap;
+    display:inline-flex;align-items:center;text-align:center;font-variant-numeric:tabular-nums;
+    font-family:'Consolas','Cascadia Code','SF Mono','Menlo',monospace;
+    border:1px solid var(--border);border-radius:var(--radius);padding:0 8px;background:var(--bg2);
+    height:28px;box-sizing:border-box;flex-shrink:0}
+  .about-docs-link{background:var(--btn-bg);color:var(--text);border:1px solid var(--border);
+    border-radius:var(--radius);padding:0 10px;display:inline-flex;align-items:center;
+    font-size:.8em;text-decoration:none;cursor:pointer;flex-shrink:0;font-family:inherit;
+    height:28px;box-sizing:border-box;line-height:1}
   .about-docs-link:hover{border-color:var(--accent);color:var(--accent)}
   /* attachments - toolbar dropdown panel */
   #bf-attach-count{font-size:.75em;opacity:.8}
@@ -194,14 +197,14 @@ _CSS = """
   .bf-sub-controls{display:flex;gap:3px;flex-shrink:0;margin-left:auto;margin-right:10px;align-items:center}
   .bf-sub-expand,.bf-sub-collapse{background:var(--bg3);border:1px solid var(--border);
     color:var(--muted);border-radius:3px;padding:0 6px;cursor:pointer;font-size:.78em;
-    line-height:1.6;font-family:inherit;font-weight:700}
+    line-height:1.6;font-family:inherit;font-weight:700;outline:none}
   .bf-sub-expand:hover,.bf-sub-collapse:hover{border-color:var(--accent);color:var(--accent)}
   .bf-ctrl-sep{width:10px;flex-shrink:0}
   /* ghost = always-present placeholder when button not applicable */
   .bf-ctrl-ghost{color:transparent !important;pointer-events:none;cursor:default;opacity:0.25}
   /* ── split-pane layout ─────────────────────────────────────────────────── */
   #bf-app{display:flex;height:100vh;overflow:hidden}
-  #bf-doc-pane{flex:1 1 auto;overflow-y:auto;padding:24px 28px 80px;min-width:0;scrollbar-gutter:stable}
+  #bf-doc-pane{flex:1 1 auto;overflow-y:auto;padding:0 28px 80px;min-width:0;scrollbar-gutter:stable}
   #bf-drag{flex:0 0 5px;cursor:col-resize;background:var(--border);
     transition:background .1s;z-index:20}
   #bf-drag:hover,#bf-drag.dragging{background:var(--accent)}
@@ -216,7 +219,7 @@ _CSS = """
     border-radius:var(--radius);padding:2px 8px;cursor:pointer;font-size:.72em;
     font-family:inherit;flex-shrink:0}
   .nts-export-btn:hover{border-color:var(--accent);color:var(--accent)}
-  #bf-notes-body{flex:1;overflow-y:auto;padding:8px 10px 20px}
+  #bf-notes-body{flex:1;overflow-y:auto;padding:8px 10px 20px;scrollbar-gutter:stable}
   #bf-session-notes{width:100%;min-height:80px;resize:vertical}
   /* ── notes tree (recursive collapsible sections) ──────────────────────── */
   .nts-divider{border:none;border-top:1px solid var(--border);margin:10px 0 6px}
@@ -2801,11 +2804,12 @@ def render_html(md: str, title: str, collapsible: bool = False, force_walkthroug
         toolbar += nav_panel_html
     toolbar += ('<a class="about-docs-link" href="ABOUT-DOCS.html" target="_blank"'
                 ' title="About this documentation — how fields, notes, and export work">ⓘ About</a>')
+    # ── theme toggle: left-aligned group, right of About (task #2) ──
+    toolbar += '<button id="bf-theme-btn" type="button">\u2600 Light</button>'
     toolbar += '<div class="bf-toolbar-end">'
     if is_walkthrough:
         toolbar += '<button id="bf-clear-fields-btn" type="button">\u2298 Clear Fields</button>'
     toolbar += '<button id="bf-download-edits-btn" type="button" title="Download this page with any text edits baked in">\u2b07 Download with Edits</button>'
-    toolbar += '<button id="bf-theme-btn" type="button">\u2600 Light</button>'
     if collapsible:
         toolbar += '<span id="bf-section-count"></span>'
         toolbar += '<button id="bf-collapse-all" type="button">\u229f Collapse All</button>'
