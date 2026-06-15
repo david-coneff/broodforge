@@ -191,7 +191,8 @@
   .nts-section.nts-dim>.nts-body>textarea.note-area{opacity:0!important;border-color:transparent!important;background:transparent!important}
   .nts-section.nts-dim>.nts-body>textarea.note-area::placeholder{opacity:0!important}
   .nts-section.nts-dim>.nts-body>.nts-ch>button{opacity:0!important;pointer-events:none}
-  .nts-section.nts-dim>.nts-body{background:transparent!important}
+  .nts-section.nts-dim>.nts-body{background:transparent!important;visibility:hidden}
+  .nts-section:not(.nts-dim){visibility:visible}
   .nts-section>summary.nts-hdr{list-style:none;cursor:pointer;user-select:none;
     display:flex;align-items:center;gap:4px;background:var(--bg3);
     padding:5px 8px;font-size:.79em}
@@ -2072,7 +2073,7 @@ git -C <span class="tpl" data-var="broodforge-repo-root-path">broodforge-repo-ro
           if(qn) qn.style.opacity=(qn===activeNoteContainer)?'':fOp;
           /* sections: set attribute so CSS dims only own header+content, not nested sections */
           notesBody.querySelectorAll('.nts-section').forEach(function(s){
-            var dim=(s!==activeNoteContainer);
+            var dim=(s!==activeNoteContainer)&&!activeNoteContainer.contains(s)&&!s.contains(activeNoteContainer);
             s.classList.toggle('nts-dim',dim);
             s.style.background=dim?'transparent':'';
             s.style.borderColor=dim?'transparent':'';
