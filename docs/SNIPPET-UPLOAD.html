@@ -2105,7 +2105,7 @@ sha256sum snippets/network-config/infra-bootstrap.yaml</code></pre></div>
             var hdr=s.querySelector(':scope>summary');
             if(hdr) hdr.style.opacity=dim?fOp:'';
             var ta=s.querySelector(':scope>.nts-body>textarea');
-            if(ta){ta.style.opacity=dim?fOp:'';ta.style.borderColor=dim?'transparent':'';}
+            if(ta){ta.style.opacity=dim?fOp:'';ta.style.borderColor=dim?'transparent':'';ta.style.background=dim?'var(--bg3)':'';}}
           });
         }
       }
@@ -2172,7 +2172,7 @@ sha256sum snippets/network-config/infra-bootstrap.yaml</code></pre></div>
             var hdr=s.querySelector(':scope>summary');
             if(hdr) hdr.style.opacity='';
             var ta=s.querySelector(':scope>.nts-body>textarea');
-            if(ta){ta.style.opacity='';ta.style.borderColor='';}
+            if(ta){ta.style.opacity='';ta.style.borderColor='';ta.style.background='';}
           });
         }
         if(drag) drag.classList.remove('notes-floating');

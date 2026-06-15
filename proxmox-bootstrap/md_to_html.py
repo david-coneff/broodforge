@@ -2811,4 +2811,74 @@ def render_html(md: str, title: str, collapsible: bool = False, force_walkthroug
     if is_walkthrough:
         toolbar += (
             '<div id="bf-attach-panel">'
-            '<input type="file" id="bf-attach-input" mult
+            '<input type="file" id="bf-attach-input" multiple style="display:none">'
+            '<div id="bf-attach-zone">'
+            '<span class="bf-attach-prompt">Drag files here — logs, screenshots, manifests</span>'
+            '<button type="button" class="bf-attach-btn" id="bf-attach-add">⬆ Browse…</button>'
+            '</div>'
+            '<ul class="attach-list" id="bf-attach-list"></ul>'
+            '</div>'
+        )
+    toolbar += '</div>'  # close bf-toolbar
+
+
+    hint_html = ""
+    if is_walkthrough:
+        hint_html = (
+            '<div id="bf-walkthrough-hint">📋 Walkthrough — fill in fields as you go; '
+            'entries are saved in your browser. Credential fields (🔑) are exported in '
+            'encrypted packages. <a href="ABOUT-DOCS.html" target="_blank">How this works ↗</a></div>'
+        )
+
+    return (
+        "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n"
+        '<meta charset="UTF-8">\n'
+        '<meta name="viewport" content="width=device-width, initial-scale=1.0">\n'
+        f"<title>{html.escape(title)}</title>\n"
+        f"<style>{_CSS}</style>\n"
+        "</head>\n"
+        f'<body data-doc="{doc_slug}">\n'
+        '<div id="bf-app">\n'
+        '  <div id="bf-doc-pane">\n'
+        f"    {toolbar}\n"
+        f"    {hint_html}\n"
+        f"    {params_html}\n"
+        '    <div id="bf-doc-body">\n'
+        f"{body}\n"
+        "    </div>\n"
+        "  </div>\n"
+        '  <div id="bf-drag"></div>\n'
+        '  <div id="bf-notes-pane">\n'
+        f"{_NOTES_HTML}"
+        "  </div>\n"
+        "</div>\n"
+        f"<script>{_JS}</script>\n"
+        "</body>\n</html>"
+    )
+
+
+if __name__ == "__main__":
+    ap = argparse.ArgumentParser(description="Render a Markdown doc to broodforge-style HTML.")
+    ap.add_argument("--title", default="")
+    ap.add_argument("--collapsible", action="store_true")
+    ap.add_argument("--playbook", action="store_true")
+    ap.add_argument("--manifest", default="", help="Path to doc-manifest.json for nav tree")
+    ap.add_argument("src")
+    ap.add_argument("dst")
+    args = ap.parse_args()
+    src = Path(args.src)
+    dst = Path(args.dst)
+    md = src.read_text(encoding="utf-8")
+    title = args.title or ""
+    nav_docs = []
+    if args.manifest:
+        try:
+            mf = json.loads(Path(args.manifest).read_text(encoding="utf-8"))
+            nav_docs = mf.get("docs", [])
+        except Exception:
+            pass
+    out = render_html(md, title=title, collapsible=args.collapsible,
+                      force_walkthrough=args.playbook, nav_docs=nav_docs,
+                      current_output=args.dst)
+    dst.write_text(out, encoding="utf-8")
+    print(f"[md_to_html] wrote {dst} ({dst.stat().st_size:,} bytes)")
