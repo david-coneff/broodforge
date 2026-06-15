@@ -230,6 +230,7 @@ _CSS = """
   .nts-section.nts-dim>.nts-body>textarea.note-area{opacity:0!important;border-color:transparent!important;background:transparent!important}
   .nts-section.nts-dim>.nts-body>textarea.note-area::placeholder{opacity:0!important}
   .nts-section.nts-dim>.nts-body>.nts-ch>button{opacity:0!important;pointer-events:none}
+  .nts-section.nts-dim>.nts-body{background:transparent!important}
   .nts-section>summary.nts-hdr{list-style:none;cursor:pointer;user-select:none;
     display:flex;align-items:center;gap:4px;background:var(--bg3);
     padding:5px 8px;font-size:.79em}
