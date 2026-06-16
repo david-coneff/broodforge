@@ -468,8 +468,9 @@ _CSS = """
   .bf-toc-l3{padding-left:16px;margin-top:2px}
   .bf-toc-section>summary{list-style:none;cursor:pointer;padding:1px 0}
   .bf-toc-section>summary::-webkit-details-marker{display:none}
-  .bf-toc-section[open]>summary::before{content:'\25BE ';font-size:.75em;color:var(--muted)}
-  .bf-toc-section>summary::before{content:'\25B8 ';font-size:.75em;color:var(--muted)}
+  .bf-toc-section>summary::before{content:'+';font-size:.8em;font-weight:600;
+    color:var(--muted);margin-right:5px;opacity:.7;display:inline-block;min-width:.8em}
+  .bf-toc-section[open]>summary::before{content:'\2212'}
   .bf-toc-active>a{color:var(--accent)!important;font-weight:600}
   .bf-section-num{display:inline-block;font-size:.75em;color:var(--muted);font-variant-numeric:tabular-nums;margin-right:6px;opacity:.7;min-width:2ch;text-align:right}
   /* TOC navbar dropdown panel */
@@ -484,10 +485,11 @@ _CSS = """
   #bf-toc-panel .bf-toc-l2{padding-left:16px}
   #bf-toc-panel .bf-toc-l3{padding-left:16px}
   #bf-toc-panel details{border:none}
-  #bf-toc-panel details>summary{list-style:none;cursor:pointer;padding:1px 0;display:block}
+  #bf-toc-panel details>summary{list-style:none;cursor:pointer;padding:1px 0}
   #bf-toc-panel details>summary::-webkit-details-marker{display:none}
-  #bf-toc-panel details[open]>summary::before{content:'\25BE ';font-size:.75em;color:var(--muted)}
-  #bf-toc-panel details>summary::before{content:'\25B8 ';font-size:.75em;color:var(--muted)}
+  #bf-toc-panel details>summary::before{content:'+';font-size:.8em;font-weight:600;
+    color:var(--muted);margin-right:5px;opacity:.7;display:inline-block;min-width:.8em}
+  #bf-toc-panel details[open]>summary::before{content:'\2212'}
   #bf-toc-panel .bf-toc-active>a{font-weight:600}
   .select-input{width:100%;max-width:360px;padding:3px 8px;height:30px;
     background:var(--code-bg);color:var(--text);border:1px solid var(--border);
