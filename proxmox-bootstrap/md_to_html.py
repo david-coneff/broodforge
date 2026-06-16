@@ -449,6 +449,13 @@ _CSS = """
   #bf-toc>summary{background:var(--btn-bg);padding:6px 14px;cursor:pointer;
     user-select:none;list-style:none;font-size:.88em;font-weight:600;color:var(--muted);
     border-radius:var(--radius);letter-spacing:.04em;text-transform:uppercase}
+  #bf-toc>summary{display:flex;align-items:center;justify-content:space-between}
+  .bf-toc-title{flex:1}
+  .bf-toc-controls{display:flex;gap:4px;flex-shrink:0;margin-left:8px}
+  .bf-toc-controls button{background:none;border:1px solid var(--border);color:var(--muted);
+    border-radius:var(--radius);padding:0 5px;cursor:pointer;font-size:.75em;line-height:1.6;
+    height:20px;display:inline-flex;align-items:center}
+  .bf-toc-controls button:hover{border-color:var(--accent);color:var(--accent)}
   #bf-toc>summary::-webkit-details-marker{display:none}
   #bf-toc[open]>summary{border-radius:var(--radius) var(--radius) 0 0}
   #bf-toc nav{padding:8px 16px 12px}
@@ -457,7 +464,7 @@ _CSS = """
   #bf-toc a{color:var(--accent);text-decoration:none}
   #bf-toc a:hover{text-decoration:underline}
   .bf-toc-num{color:var(--muted);font-variant-numeric:tabular-nums;margin-right:4px}
-  .bf-toc-l2{padding-left:18px;margin-top:2px}
+  .bf-toc-l2{padding-left:16px;margin-top:2px}
   .bf-toc-l3{padding-left:16px;margin-top:2px}
   .bf-toc-section>summary{list-style:none;cursor:pointer;padding:1px 0}
   .bf-toc-section>summary::-webkit-details-marker{display:none}
@@ -474,8 +481,8 @@ _CSS = """
   #bf-toc-panel li{margin:2px 0;font-size:.85em}
   #bf-toc-panel a{color:var(--accent);text-decoration:none;display:block;padding:2px 0}
   #bf-toc-panel a:hover{text-decoration:underline}
-  #bf-toc-panel .bf-toc-l2{padding-left:14px}
-  #bf-toc-panel .bf-toc-l3{padding-left:12px}
+  #bf-toc-panel .bf-toc-l2{padding-left:16px}
+  #bf-toc-panel .bf-toc-l3{padding-left:16px}
   #bf-toc-panel details{border:none}
   #bf-toc-panel details>summary{list-style:none;cursor:pointer;padding:1px 0;display:block}
   #bf-toc-panel details>summary::-webkit-details-marker{display:none}
@@ -1653,53 +1660,18 @@ _JS = r"""
     });
   })();
 
-  // ---- TOC navbar dropdown panel ----
+  // ---- TOC collapse/expand all ----
   (function(){
-    var tocToggle=document.getElementById('bf-toc-toggle');
-    var tocPanel=document.getElementById('bf-toc-panel');
-    var tocInline=document.getElementById('bf-toc');
-    if(!tocToggle||!tocPanel||!tocInline) return;
-    // Clone inner nav; expand all nested details for full visibility
-    var tocNav=tocInline.querySelector('nav');
-    if(tocNav){
-      var clone=tocNav.cloneNode(true);
-      clone.querySelectorAll('details').forEach(function(d){d.open=true;});
-      tocPanel.appendChild(clone);
-      // Wire navigation + auto-close on link click
-      tocPanel.querySelectorAll('a').forEach(function(a){
-        _bfTocNav(a);
-        a.addEventListener('click',function(){
-          setTimeout(function(){tocPanel.classList.remove('open');},80);
-        });
-      });
-    }
-    // Mirror active state from inline TOC to panel
-    var _panelSync=new MutationObserver(function(){
-      var activeEl=document.querySelector('#bf-toc li.bf-toc-active a');
-      var activeHref=activeEl?activeEl.getAttribute('href'):'';
-      tocPanel.querySelectorAll('li').forEach(function(li){li.classList.remove('bf-toc-active');});
-      if(activeHref){
-        var pa=tocPanel.querySelector('a[href="'+activeHref+'"]');
-        if(pa) pa.closest('li').classList.add('bf-toc-active');
-      }
+    var colBtn=document.getElementById('bf-toc-collapse-all');
+    var expBtn=document.getElementById('bf-toc-expand-all');
+    function _stop(e){e.stopPropagation();e.preventDefault();}
+    if(colBtn) colBtn.addEventListener('click',function(e){
+      _stop(e);
+      document.querySelectorAll('#bf-toc .bf-toc-section').forEach(function(d){d.open=false;});
     });
-    _panelSync.observe(tocInline,{subtree:true,attributeFilter:['class']});
-    // Toggle button
-    tocToggle.addEventListener('click',function(e){
-      e.stopPropagation();
-      if(tocPanel.classList.contains('open')){
-        tocPanel.classList.remove('open');
-      } else {
-        var r=tocToggle.getBoundingClientRect();
-        tocPanel.style.top=r.bottom+'px';
-        tocPanel.style.left=r.left+'px';
-        tocPanel.classList.add('open');
-      }
-    });
-    document.addEventListener('click',function(e){
-      if(tocPanel.classList.contains('open')&&!tocPanel.contains(e.target)&&e.target!==tocToggle){
-        tocPanel.classList.remove('open');
-      }
+    if(expBtn) expBtn.addEventListener('click',function(e){
+      _stop(e);
+      document.querySelectorAll('#bf-toc .bf-toc-section').forEach(function(d){d.open=true;});
     });
   })();
 
@@ -3162,7 +3134,13 @@ def _build_toc_html(toc_entries: list) -> str:
     items = "".join(_h2_li(h2, h3s) for h2, h3s in tree)
     return (
         '<details id="bf-toc" open>'
-        '<summary>Contents</summary>'
+        '<summary>'
+        '<span class="bf-toc-title">Contents</span>'
+        '<span class="bf-toc-controls">'
+        '<button type="button" id="bf-toc-collapse-all" title="Collapse all sections">⊟</button>'
+        '<button type="button" id="bf-toc-expand-all" title="Expand all sections">⊞</button>'
+        '</span>'
+        '</summary>'
         f'<nav><ul class="bf-toc-l1">{items}</ul></nav>'
         '</details>'
     )
