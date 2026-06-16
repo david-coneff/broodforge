@@ -218,6 +218,18 @@
       "description": "Sysadmin-facing index of all broodforge documentation \u2014 designed for Control Nexus integration."
     },
     {
+      "id": "setup-guide",
+      "title": "Broodforge Setup Guide",
+      "source": "docs/SETUP-GUIDE.md",
+      "output": "docs/SETUP-GUIDE.html",
+      "flags": [
+        "--collapsible"
+      ],
+      "type": "guide",
+      "description": "Pre-flight checklists and full configuration reference for Forge, Spawn, and Phoenix processes.",
+      "notes": "Migrated from hand-authored HTML (Phase 3.P). Follow-up items: progress bars (Forge/Spawn/Phoenix PHS), localStorage field persistence, and manifest import/export panel are logged as Phase 3.Q for md_to_html.py extension."
+    },
+    {
       "id": "forge-image-builder",
       "title": "Forge Image Builder",
       "output": "docs/forge-image-builder.html",

@@ -3319,4 +3319,24 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser(description="Render a Markdown doc to broodforge-style HTML.")
     ap.add_argument("--title", default="")
     ap.add_argument("--collapsible", action="store_true")
-    ap.add_arg
+    ap.add_argument("--playbook", action="store_true")
+    ap.add_argument("--manifest", default="", help="Path to doc-manifest.json for nav tree")
+    ap.add_argument("src")
+    ap.add_argument("dst")
+    args = ap.parse_args()
+    src = Path(args.src)
+    dst = Path(args.dst)
+    md = src.read_text(encoding="utf-8")
+    title = args.title or ""
+    nav_docs = []
+    if args.manifest:
+        try:
+            mf = json.loads(Path(args.manifest).read_text(encoding="utf-8"))
+            nav_docs = mf.get("docs", [])
+        except Exception:
+            pass
+    out = render_html(md, title=title, collapsible=args.collapsible,
+                      force_walkthrough=args.playbook, nav_docs=nav_docs,
+                      current_output=args.dst)
+    dst.write_text(out, encoding="utf-8")
+    print(f"[md_to_html] wrote {dst} ({dst.stat().st_size:,} bytes)")
