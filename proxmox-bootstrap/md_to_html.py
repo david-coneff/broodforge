@@ -465,6 +465,23 @@ _CSS = """
   .bf-toc-section>summary::before{content:'\25B8 ';font-size:.75em;color:var(--muted)}
   .bf-toc-active>a{color:var(--accent)!important;font-weight:600}
   .bf-section-num{float:right;font-size:.75em;color:var(--muted);font-variant-numeric:tabular-nums;margin-left:8px;opacity:.7}
+  /* TOC navbar dropdown panel */
+  #bf-toc-panel{position:fixed;width:320px;max-height:70vh;overflow-y:auto;
+    background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+    box-shadow:0 6px 18px rgba(0,0,0,.38);z-index:9999;display:none;padding:10px 14px 12px}
+  #bf-toc-panel.open{display:block}
+  #bf-toc-panel ul{margin:0;padding:0;list-style:none}
+  #bf-toc-panel li{margin:2px 0;font-size:.85em}
+  #bf-toc-panel a{color:var(--accent);text-decoration:none;display:block;padding:2px 0}
+  #bf-toc-panel a:hover{text-decoration:underline}
+  #bf-toc-panel .bf-toc-l2{padding-left:14px}
+  #bf-toc-panel .bf-toc-l3{padding-left:12px}
+  #bf-toc-panel details{border:none}
+  #bf-toc-panel details>summary{list-style:none;cursor:pointer;padding:1px 0;display:block}
+  #bf-toc-panel details>summary::-webkit-details-marker{display:none}
+  #bf-toc-panel details[open]>summary::before{content:'\25BE ';font-size:.75em;color:var(--muted)}
+  #bf-toc-panel details>summary::before{content:'\25B8 ';font-size:.75em;color:var(--muted)}
+  #bf-toc-panel .bf-toc-active>a{font-weight:600}
   .select-input{width:100%;max-width:360px;padding:3px 8px;height:30px;
     background:var(--code-bg);color:var(--text);border:1px solid var(--border);
     border-radius:var(--radius);font-family:inherit;font-size:.88em}
@@ -1549,24 +1566,25 @@ _JS = r"""
     }
 
     // ---- TOC link navigation: open section + smooth scroll ----
-  (function(){
-    document.querySelectorAll('#bf-toc a').forEach(function(a){
-      a.addEventListener('click',function(e){
-        e.preventDefault();
-        var id=a.getAttribute('href').slice(1);
-        var el=document.getElementById(id);
-        if(!el) return;
-        var det=el.closest('details.section,details.subsection');
-        if(det) det.open=true;
-        var p=det?det.parentElement:null;
-        while(p){
-          var pd=p.closest('details');
-          if(pd) pd.open=true; else break;
-          p=pd.parentElement;
-        }
-        el.scrollIntoView({behavior:'smooth',block:'start'});
-      });
+  function _bfTocNav(a){
+    a.addEventListener('click',function(e){
+      e.preventDefault();
+      var id=a.getAttribute('href').slice(1);
+      var el=document.getElementById(id);
+      if(!el) return;
+      var det=el.closest('details.section,details.subsection');
+      if(det) det.open=true;
+      var p=det?det.parentElement:null;
+      while(p){
+        var pd=p.closest('details');
+        if(pd) pd.open=true; else break;
+        p=pd.parentElement;
+      }
+      el.scrollIntoView({behavior:'smooth',block:'start'});
     });
+  }
+  (function(){
+    document.querySelectorAll('#bf-toc a').forEach(_bfTocNav);
   })();
 
   // ---- TOC active-section IntersectionObserver ----
@@ -1582,6 +1600,106 @@ _JS = r"""
     },{rootMargin:'-10% 0px -80% 0px',threshold:0});
     document.querySelectorAll('details.section>summary>[id],details.subsection>summary>[id]').forEach(function(el){
       _tio.observe(el);
+    });
+  })();
+
+  // ---- TOC navbar dropdown panel ----
+  (function(){
+    var tocToggle=document.getElementById('bf-toc-toggle');
+    var tocPanel=document.getElementById('bf-toc-panel');
+    var tocInline=document.getElementById('bf-toc');
+    if(!tocToggle||!tocPanel||!tocInline) return;
+    // Clone inner nav; expand all nested details for full visibility
+    var tocNav=tocInline.querySelector('nav');
+    if(tocNav){
+      var clone=tocNav.cloneNode(true);
+      clone.querySelectorAll('details').forEach(function(d){d.open=true;});
+      tocPanel.appendChild(clone);
+      // Wire navigation + auto-close on link click
+      tocPanel.querySelectorAll('a').forEach(function(a){
+        _bfTocNav(a);
+        a.addEventListener('click',function(){
+          setTimeout(function(){tocPanel.classList.remove('open');},80);
+        });
+      });
+    }
+    // Mirror active state from inline TOC to panel
+    var _panelSync=new MutationObserver(function(){
+      var activeEl=document.querySelector('#bf-toc li.bf-toc-active a');
+      var activeHref=activeEl?activeEl.getAttribute('href'):'';
+      tocPanel.querySelectorAll('li').forEach(function(li){li.classList.remove('bf-toc-active');});
+      if(activeHref){
+        var pa=tocPanel.querySelector('a[href="'+activeHref+'"]');
+        if(pa) pa.closest('li').classList.add('bf-toc-active');
+      }
+    });
+    _panelSync.observe(tocInline,{subtree:true,attributeFilter:['class']});
+    // Toggle button
+    tocToggle.addEventListener('click',function(e){
+      e.stopPropagation();
+      if(tocPanel.classList.contains('open')){
+        tocPanel.classList.remove('open');
+      } else {
+        var r=tocToggle.getBoundingClientRect();
+        tocPanel.style.top=r.bottom+'px';
+        tocPanel.style.left=r.left+'px';
+        tocPanel.classList.add('open');
+      }
+    });
+    document.addEventListener('click',function(e){
+      if(tocPanel.classList.contains('open')&&!tocPanel.contains(e.target)&&e.target!==tocToggle){
+        tocPanel.classList.remove('open');
+      }
+    });
+  })();
+
+  // ---- TOC navbar dropdown panel ----
+  (function(){
+    var tocToggle=document.getElementById('bf-toc-toggle');
+    var tocPanel=document.getElementById('bf-toc-panel');
+    var tocInline=document.getElementById('bf-toc');
+    if(!tocToggle||!tocPanel||!tocInline) return;
+    // Clone inner nav; expand all nested details for full visibility
+    var tocNav=tocInline.querySelector('nav');
+    if(tocNav){
+      var clone=tocNav.cloneNode(true);
+      clone.querySelectorAll('details').forEach(function(d){d.open=true;});
+      tocPanel.appendChild(clone);
+      // Wire navigation + auto-close on link click
+      tocPanel.querySelectorAll('a').forEach(function(a){
+        _bfTocNav(a);
+        a.addEventListener('click',function(){
+          setTimeout(function(){tocPanel.classList.remove('open');},80);
+        });
+      });
+    }
+    // Mirror active state from inline TOC to panel
+    var _panelSync=new MutationObserver(function(){
+      var activeEl=document.querySelector('#bf-toc li.bf-toc-active a');
+      var activeHref=activeEl?activeEl.getAttribute('href'):'';
+      tocPanel.querySelectorAll('li').forEach(function(li){li.classList.remove('bf-toc-active');});
+      if(activeHref){
+        var pa=tocPanel.querySelector('a[href="'+activeHref+'"]');
+        if(pa) pa.closest('li').classList.add('bf-toc-active');
+      }
+    });
+    _panelSync.observe(tocInline,{subtree:true,attributeFilter:['class']});
+    // Toggle button
+    tocToggle.addEventListener('click',function(e){
+      e.stopPropagation();
+      if(tocPanel.classList.contains('open')){
+        tocPanel.classList.remove('open');
+      } else {
+        var r=tocToggle.getBoundingClientRect();
+        tocPanel.style.top=r.bottom+'px';
+        tocPanel.style.left=r.left+'px';
+        tocPanel.classList.add('open');
+      }
+    });
+    document.addEventListener('click',function(e){
+      if(tocPanel.classList.contains('open')&&!tocPanel.contains(e.target)&&e.target!==tocToggle){
+        tocPanel.classList.remove('open');
+      }
     });
   })();
 
@@ -2901,7 +3019,6 @@ def _render_blocks(md: str, tpl_vars: dict, collapsible: bool = False):
             kind_cls = "section" if level <= 2 else "subsection"
             sum_cls = '' if kind_cls == 'section' else ' class="sub-summary"'
             hid = re.sub(r"[^a-z0-9]+", "-", raw_title.lower()).strip("-")
-            if level == 2:
             # Tiered TOC numbering
             if level == 2:
                 _h_counters[0] += 1; _h_counters[1] = 0; _h_counters[2] = 0
@@ -3060,12 +3177,6 @@ def render_html(md: str, title: str, collapsible: bool = False, force_walkthroug
     toc_html = ""
     if collapsible and len(toc_entries) >= 3:
         toc_html = _build_toc_html(toc_entries)
-        toc_html = (
-            '<details id="bf-toc" open>'
-            '<summary>Contents</summary>'
-            f'<nav><ol>{items}</ol></nav>'
-            '</details>'
-        )
 
     params_html = ""
     if tpl_vars:
@@ -3126,6 +3237,9 @@ def render_html(md: str, title: str, collapsible: bool = False, force_walkthroug
     if nav_docs:
         toolbar += '<button id="bf-nav-toggle" type="button">☰ Docs</button>'
         toolbar += nav_panel_html
+    if toc_html:
+        toolbar += '<button id="bf-toc-toggle" type="button">≡ Contents</button>'
+        toolbar += '<div id="bf-toc-panel"></div>'
     toolbar += ('<a class="about-docs-link" href="ABOUT-DOCS.html" target="_blank"'
                 ' title="About this documentation — how fields, notes, and export work">ⓘ About</a>')
     # ── theme toggle: left-aligned group, right of About (task #2) ──
@@ -3205,24 +3319,4 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser(description="Render a Markdown doc to broodforge-style HTML.")
     ap.add_argument("--title", default="")
     ap.add_argument("--collapsible", action="store_true")
-    ap.add_argument("--playbook", action="store_true")
-    ap.add_argument("--manifest", default="", help="Path to doc-manifest.json for nav tree")
-    ap.add_argument("src")
-    ap.add_argument("dst")
-    args = ap.parse_args()
-    src = Path(args.src)
-    dst = Path(args.dst)
-    md = src.read_text(encoding="utf-8")
-    title = args.title or ""
-    nav_docs = []
-    if args.manifest:
-        try:
-            mf = json.loads(Path(args.manifest).read_text(encoding="utf-8"))
-            nav_docs = mf.get("docs", [])
-        except Exception:
-            pass
-    out = render_html(md, title=title, collapsible=args.collapsible,
-                      force_walkthrough=args.playbook, nav_docs=nav_docs,
-                      current_output=args.dst)
-    dst.write_text(out, encoding="utf-8")
-    print(f"[md_to_html] wrote {dst} ({dst.stat().st_size:,} bytes)")
+    ap.add_arg
