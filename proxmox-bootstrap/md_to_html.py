@@ -453,8 +453,8 @@ _CSS = """
   .bf-toc-title{flex:1}
   .bf-toc-controls{display:flex;gap:4px;flex-shrink:0;margin-left:8px}
   .bf-toc-controls button{background:none;border:1px solid var(--border);color:var(--muted);
-    border-radius:var(--radius);padding:0 5px;cursor:pointer;font-size:.75em;line-height:1.6;
-    height:20px;display:inline-flex;align-items:center}
+    border-radius:var(--radius);padding:0 6px;cursor:pointer;font-size:.85em;font-weight:600;
+    height:20px;min-width:20px;display:inline-flex;align-items:center;justify-content:center}
   .bf-toc-controls button:hover{border-color:var(--accent);color:var(--accent)}
   #bf-toc>summary::-webkit-details-marker{display:none}
   #bf-toc[open]>summary{border-radius:var(--radius) var(--radius) 0 0}
@@ -471,7 +471,7 @@ _CSS = """
   .bf-toc-section[open]>summary::before{content:'\25BE ';font-size:.75em;color:var(--muted)}
   .bf-toc-section>summary::before{content:'\25B8 ';font-size:.75em;color:var(--muted)}
   .bf-toc-active>a{color:var(--accent)!important;font-weight:600}
-  .bf-section-num{float:right;font-size:.75em;color:var(--muted);font-variant-numeric:tabular-nums;margin-left:8px;opacity:.7}
+  .bf-section-num{display:inline-block;font-size:.75em;color:var(--muted);font-variant-numeric:tabular-nums;margin-right:6px;opacity:.7;min-width:2ch;text-align:right}
   /* TOC navbar dropdown panel */
   #bf-toc-panel{position:fixed;width:320px;max-height:70vh;overflow-y:auto;
     background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
@@ -1660,18 +1660,18 @@ _JS = r"""
     });
   })();
 
-  // ---- TOC collapse/expand all ----
+  // ---- TOC collapse/expand toggle ----
   (function(){
-    var colBtn=document.getElementById('bf-toc-collapse-all');
-    var expBtn=document.getElementById('bf-toc-expand-all');
-    function _stop(e){e.stopPropagation();e.preventDefault();}
-    if(colBtn) colBtn.addEventListener('click',function(e){
-      _stop(e);
-      document.querySelectorAll('#bf-toc .bf-toc-section').forEach(function(d){d.open=false;});
-    });
-    if(expBtn) expBtn.addEventListener('click',function(e){
-      _stop(e);
-      document.querySelectorAll('#bf-toc .bf-toc-section').forEach(function(d){d.open=true;});
+    var btn=document.getElementById('bf-toc-section-toggle');
+    if(!btn) return;
+    var expanded=true;
+    btn.addEventListener('click',function(e){
+      e.stopPropagation();
+      e.preventDefault();
+      expanded=!expanded;
+      document.querySelectorAll('#bf-toc .bf-toc-section').forEach(function(d){d.open=expanded;});
+      btn.innerHTML=expanded?'&#x2212;':'+';
+      btn.title=expanded?'Collapse all sections':'Expand all sections';
     });
   })();
 
@@ -3012,7 +3012,7 @@ def _render_blocks(md: str, tpl_vars: dict, collapsible: bool = False):
             _num_badge = (f'<span class="bf-section-num">{_num}</span>' if _num else '')
             out.append(
                 f'<details class="{kind_cls}" open>'
-                f'<summary{sum_cls}><{tag} id="{hid}">{title_text}</{tag}>{_num_badge}</summary>'
+                f'<summary{sum_cls}><{tag} id="{hid}">{_num_badge}{title_text}</{tag}></summary>'
                 f'<div class="sec-body" style="margin-left:{(level-1)*12}px">'
             )
             open_sections.append(level)
@@ -3137,8 +3137,7 @@ def _build_toc_html(toc_entries: list) -> str:
         '<summary>'
         '<span class="bf-toc-title">Contents</span>'
         '<span class="bf-toc-controls">'
-        '<button type="button" id="bf-toc-collapse-all" title="Collapse all sections">⊟</button>'
-        '<button type="button" id="bf-toc-expand-all" title="Expand all sections">⊞</button>'
+        '<button type="button" id="bf-toc-section-toggle" title="Collapse all sections">&#x2212;</button>'
         '</span>'
         '</summary>'
         f'<nav><ul class="bf-toc-l1">{items}</ul></nav>'
