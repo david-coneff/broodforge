@@ -239,27 +239,11 @@
     },
     {
       "id": "bfvault",
-      "title": "BFVault \u2014 Secret Store",
+      "title": "BFVault — Secret Store",
       "output": "docs/bfvault.html",
       "handAuthored": true,
       "type": "tool",
-      "description": "Browser-based encrypted credential vault for broodforge cluster secrets \u2014 TOTP, CAB import, typed field editor."
+      "description": "BFVault secret store management tool."
     }
-  ],
-  "style_standards": {
-    "version": "2026-06-13",
-    "pipeline": "md_to_html.py",
-    "required_flags": [
-      "--collapsible"
-    ],
-    "timestamp_format": "YYYY-MM-DD_HH-MM_SS_TZ",
-    "heading_ids": true,
-    "collapsible_sections": true,
-    "expand_collapse_all": true,
-    "session_notes_panel": true,
-    "inline_editor": true,
-    "attachments_position": "top",
-    "section_clear_alignment": "right",
-    "opacity_control": "buttons_5pct"
-  }
+  ]
 }
