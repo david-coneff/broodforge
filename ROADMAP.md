@@ -998,3 +998,398 @@ items 1 and 3 above as implementation targets and item 2 as the
   and `test_phase_06_calls_keepass_gate_before_kdbx_get`: assert gate precedes
   any `kdbx_get` call in generated phase scripts (text-position enforcement)
 - No `kdbx_get`, `keepassxc-cli`, or KeePass credential access appears in
+
+
+---
+
+### Phase 3.L — OpenBao Secrets Broker *(proposed)*
+
+**Purpose:** Introduce OpenBao as a machine-facing secrets API layer sitting between
+runtime components and the KeePass credential store.  KeePass remains the
+operator-facing encrypted vault (root of trust, AD-061); OpenBao becomes the
+programmatic API that enforces RBAC, TTL leases, and produces an audit log — all
+the things a CLI call to `keepassxc-cli` cannot provide.  The `child://` reference
+scheme continues to work; only the implementation behind `kdbx_get_child()` changes.
+
+**Topology (AD-074):** OpenBao runs as a systemd service on the Proxmox host (not
+inside k3s).  Rationale: it must be reachable during bootstrap before k3s is up,
+and it governs hypervisor-level secrets that must not depend on a cluster that may
+be down during a recovery.  A single-node OpenBao instance is sufficient; HA is
+deferred until Phase 3.P+ multi-node federation.  Listen address: loopback only
+(`127.0.0.1:8200`); external access proxied through the governance VM's nginx.
+
+**Bootstrap ceremony:** `lib/forge-lib.sh` `forge_openbao_seed()` — a one-time
+seeding function called at the end of the Forging runbook (Phase 1.F).  It reads
+each credential from the KeePass child DBs using the existing `kdbx_get_child()`
+path, then writes each secret into the appropriate OpenBao path using `bao kv put`.
+After seeding, `kdbx_get_child()` is switched to call the OpenBao API; the KeePass
+side becomes read-only backup.  The seeding ceremony must be run under operator
+presence (KeePass gate, AD-065 pattern).
+
+**Auto-unseal (AD-075):** OpenBao sealed state blocks all secret reads.  On
+Proxmox-host restart, a systemd `ExecStartPost` script calls
+`lib/forge-lib.sh` `forge_openbao_unseal()`, which reads the unseal key shard from
+a hardware-bound file (`/etc/broodforge/unseal-shard.enc`) decrypted by the
+Proxmox-host's own SSH host key (using `openssl rsautl`).  The unseal shard itself
+is generated at bootstrap and recorded in the forge-autonomous KeePass DB.
+Threat model: physical access to the host already grants full compromise; the
+unseal-at-boot mechanism adds no new attack surface over the current keepassxc-cli
+approach.  TOTP-based manual unseal remains available as a fallback.
+
+**Policy mapping:**
+- `forge-autonomous` KeePass DB → OpenBao path `secret/autonomous/`; policy
+  `autonomous-policy` allows `read` on `secret/autonomous/*`, `deny` on `write`.
+- `forge-spawn` → `secret/spawn/`; policy `spawn-policy` allows `read/write`
+  for session-scoped spawn credentials only; `deny` on `secret/autonomous/*`.
+- `forge-migrate` → `secret/migrate/`; policy `migrate-policy` allows `read`
+  on `secret/migrate/*` during a migration session; denies everything else.
+  Each policy enforces TTL ≤ 24 h; spawn/migrate leases expire at session end.
+
+**`lib/forge-lib.sh` change:** `kdbx_get_child()` gains a `--via-openbao` flag
+(default once seeded).  Internally it calls `curl -s -H "X-Vault-Token: $BFVAULT_TOKEN"
+http://127.0.0.1:8200/v1/secret/data/<path>` and extracts `.data.data.value`.
+The token is read from `/run/broodforge/openbao-token` (tmpfs, mode 0600),
+written by `forge_openbao_login()` at session start using the AppRole credentials
+stored in `/etc/broodforge/approle-<role>.env`.  Fallback: if OpenBao is
+unreachable, `kdbx_get_child()` falls through to the original `keepassxc-cli` path
+and logs a `WARN_OPENBAO_FALLBACK` event.
+
+**Key rotation:** `forge_rotate_secret()` in `lib/forge-lib.sh` writes a new value
+to the OpenBao KV path, increments the KV version, and records the rotation as a
+`SecretRotationRecord` published to the EventBus (Phase 3.A) and covered by the
+Governance Integrity Chain (Phase 3.I).  The old KeePass DB entry is updated
+simultaneously using `keepassxc-cli edit` to keep both stores in sync.
+
+**Files to create/modify:**
+- `lib/forge-lib.sh` — `kdbx_get_child()` + `forge_openbao_seed()` + `forge_openbao_unseal()` + `forge_openbao_login()` + `forge_openbao_totp()`
+- `proxmox-bootstrap/openbao/install-openbao.sh` — download, verify, install systemd unit
+- `proxmox-bootstrap/openbao/openbao-policies/` — `autonomous-policy.hcl`, `spawn-policy.hcl`, `migrate-policy.hcl`
+- `proxmox-bootstrap/openbao/openbao-unseal.sh` — boot-time unseal helper
+- `docs/OPENBAO-SETUP.md` + `docs/OPENBAO-SETUP.html` — operator walkthrough (add to doc-manifest.json)
+- Tests: `tests/test_openbao_broker.py` (~20 unit tests covering seed, login, get, rotate, fallback)
+
+**Dependencies:** Phase 3.H (Secrets & Trust Brokerage) — 3.L is the concrete
+OpenBao backend for the abstract `SecretsBroker` defined in 3.H.  Integrates with
+Phase 3.I (Governance Integrity Chain) for rotation audit records.
+
+**Operator decisions required:**
+- Confirm that loopback-only OpenBao on the Proxmox host is the right topology
+  (alternative: run in a dedicated governance LXC).
+- Choose unseal-shard encryption: SSH host key (current plan) vs. a TPM-backed
+  sealing (more secure but requires TPM 2.0 hardware confirmation).
+- Confirm whether forge-autonomous credentials should be seeded into OpenBao at all,
+  or whether autonomous-mode scripts should continue to call KeePass directly.
+
+---
+
+### Phase 3.M — Markdown Source Editor (Standalone Tool) *(proposed)*
+
+**Purpose:** Provide a standalone HTML editor tool (`docs/bf-editor.html`) that
+operators launch when they want to edit a doc's markdown source and regenerate it.
+This keeps individual doc pages lightweight — no editor machinery embedded in each
+generated HTML file.
+
+**Design (standalone tool approach):** A dedicated `docs/bf-editor.html` file,
+not generated by `md_to_html.py`, contains the full editor UI.  It is opened via
+an "✎ Edit" badge in the left-side nav of every generated doc page (alongside the
+existing Light/Dark mode badge).  The badge passes the current doc's manifest id
+as a URL parameter: `bf-editor.html?id=forging`.  The editor page then:
+- Fetches the doc's markdown source via `GET /api/docs/source?id=<id>` from
+  `broodforge_dashboard.py`, displaying it in a full-page CodeMirror-style textarea
+  (using only inline JS — no CDN; a ~12 KB minimal syntax-highlight shim is inlined).
+- Provides a lint pass: scans for unknown `@directive` syntax and malformed
+  `@credential[...]` refs; highlights offending lines in a gutter.
+- "Save & Regenerate" POSTs `{id, source}` to `POST /api/docs/edit`; dashboard
+  writes the `.md` file and runs `regenerate_docs.py --id=<id>`.  On success,
+  the editor offers a link to reload the regenerated doc page.
+- Fallback when dashboard is not running: "⬇ Download .md" button only (uses a
+  pre-fetched source stored in sessionStorage from the originating doc page).
+
+**How the originating doc page passes context:** `md_to_html.py` embeds the doc
+manifest id as `<meta name="bf-doc-id" content="{id}">` in the `<head>`.  The
+"✎ Edit" nav badge reads this meta tag and opens
+`bf-editor.html?id={id}` in a new tab.  No markdown source is embedded in the
+generated HTML (keeps file sizes down and avoids self-referential editing).
+
+**Files to create/modify:**
+- `docs/bf-editor.html` — standalone editor (hand-authored, not in doc-manifest.json).
+- `proxmox-bootstrap/md_to_html.py` — add `<meta name="bf-doc-id">` to `<head>`;
+  add "✎ Edit" badge to the left-side nav toolbar.
+- `proxmox-bootstrap/broodforge_dashboard.py` — add `GET /api/docs/source?id=<id>`
+  and `POST /api/docs/edit` endpoints.
+- `proxmox-bootstrap/regenerate_docs.py` — add `--id=<id>` single-doc rebuild flag.
+
+---
+
+### Phase 3.N — TOTP QR Code in HTML Pages *(proposed)*
+
+**Purpose:** Walkthrough docs that set up TOTP-protected services need a scannable
+QR code so the operator can scan-to-add in an authenticator app without typing a
+base32 secret manually.
+
+**New directive:** `@totp-qr[Service Name|TOTP_VAR|account@example.com]`
+- Renders a `<canvas>` QR element linked to an `@credential` field variable.
+- QR generation: inline compact pure-JS QR encoder (~6 KB minified, MIT licensed).
+- Canvas starts blank; rendered when the linked credential field is non-empty.
+- `otpauth://` URI: `otpauth://totp/<issuer>%3A<account>?secret=<BASE32>&issuer=<issuer>&algorithm=SHA1&digits=6&period=30`.
+- Print safety: canvas `background:#fff` unconditionally; `page-break-inside:avoid`.
+
+**Files to create/modify:**
+- `proxmox-bootstrap/md_to_html.py` — add `@totp-qr` directive, inline QR library JS.
+- Tests: `tests/test_md_to_html.py` — verify canvas element and `otpauth://` URI.
+
+---
+
+### Phase 3.O — TOC Tiered Numbering *(proposed)*
+
+**Purpose:** Replace the current flat h2-only Table of Contents with a full-hierarchy
+numbered TOC (h2/h3/h4) with active-section IntersectionObserver highlighting and
+numeric section badges in `<summary>` elements.
+
+**Current state:** TOC is h2-only, flat; no active-link highlighting.
+
+**Design:**
+- `_render_blocks()`: capture h2, h3, h4 into `toc` list (remove `if level == 2:` guard).
+- `render_html()`: build nested `<ul>` with hierarchical counter; JS `bf_assign_toc_numbers()`
+  prepends `<span class="bf-toc-num">1.2.3</span>` per entry.
+- `IntersectionObserver` with `rootMargin: "-10% 0px -80% 0px"` adds `bf-toc-active`
+  class to the visible section's TOC entry.
+- Section number badges: `details[data-sec-num] > summary::before { content: attr(data-sec-num) " "; }`.
+
+**Files to create/modify:**
+- `proxmox-bootstrap/md_to_html.py` — TOC generation rewrite, IntersectionObserver JS, CSS.
+- Tests: h3/h4 in TOC, nested `<ul>` structure.
+
+---
+
+### Phase 3.P — Setup Guide Markdown Migration *(proposed)*
+
+**Purpose:** Migrate `docs/SETUP-GUIDE.html` (hand-authored, ~150KB, no `.md` source)
+to markdown-generated via `md_to_html.py`.
+
+**Steps:**
+1. Audit `SETUP-GUIDE.html` for schema element opportunities: `@field`, `@credential`,
+   `@check`, `@radio`, `@dir`, `@parse`, `@totp-qr`.
+2. Author `docs/SETUP-GUIDE.md` using broodforge schema.
+3. Update `proxmox-bootstrap/doc-manifest.json`: remove `"handAuthored": true`, add
+   `"source": "docs/SETUP-GUIDE.md"`.
+4. Regenerate via `regenerate_docs.py --id=setup-guide`.
+5. Visual equivalence check.
+
+**Dependencies:** Phase 3.N (TOTP QR) should land first if setup guide includes TOTP
+setup steps.
+
+---
+
+### Phase 3.Q — OpenTofu Lifecycle Manager *(proposed)*
+
+**Goal:** Complete the IaC story. `spawn_iac_generator.py` generates OpenTofu configs
+from spawn plans; there is no manager that runs them (plan/apply/drift/destroy).
+
+**Design:**
+- `proxmox-bootstrap/opentofu_manager.py` — lifecycle runner: `plan()`, `apply()`,
+  `show()`, `drift_check()`, `destroy()`
+- State backend: local state in forge working directory OR Forgejo-hosted HTTP backend
+- Phoenix gate: `apply()` requires a BackupManifest snapshot before proceeding
+- Drift detection: scheduled `drift_check()` run; findings surfaced in dashboard
+- Credentials: all secrets via OpenBao provider (after Phase 3.L)
+- `scripts/forge-tofu-plan.sh` and `forge-tofu-apply.sh` wrappers with KeePass gate
+
+**Files to create:** `proxmox-bootstrap/opentofu_manager.py`, `scripts/forge-tofu-plan.sh`,
+`scripts/forge-tofu-apply.sh`
+
+**Dependencies:** Phase 3.L (OpenBao).
+
+---
+
+### Phase 3.R — Ansible Configuration Manager *(proposed)*
+
+**Goal:** Fill the post-boot configuration gap (Packer replacement alongside Cloud-Init + OpenTofu).
+
+**Design:**
+- `proxmox-bootstrap/ansible_manager.py` — playbook registry, dynamic inventory from
+  Headscale peer list + broodforge node state, run execution with subprocess + timeout
+- Integrated into node lifecycle: after `node_planner.py` marks node `active`, Ansible
+  phase triggers automatically
+- Vault/OpenBao integration: Ansible vault passwords retrieved via OpenBao (Phase 3.L)
+- Run logs in broodforge state directory; failures surface in dashboard
+
+**Files to create:** `proxmox-bootstrap/ansible_manager.py`,
+`config/ansible/` (inventory template, site.yml, role definitions),
+`scripts/forge-ansible-run.sh`
+
+**Dependencies:** Phase 3.L (OpenBao), Phase 1.Q (node lifecycle).
+
+---
+
+### Phase 3.S — Forgejo Source Control Integration *(proposed)*
+
+**Goal:** Self-host source of truth on Forgejo instead of GitHub. FluxCD currently
+sources from GitHub — a public dependency for a private-by-default stack.
+
+**Design:**
+- `proxmox-bootstrap/forgejo_manager.py` — provision Forgejo on governance VM or k8s;
+  org/repo/webhook creation; mirror setup for upstream dependencies
+- FluxCD `GitRepository` objects updated to point to Forgejo over Headscale
+- Webhook: Forgejo fires `forge-render-docs.sh` on `.md` push for automatic HTML regen
+- Authentication: OIDC federated through Authentik (Phase 2.A)
+- Robot accounts for FluxCD and CI stored in OpenBao (Phase 3.L)
+- Migration: mirror GitHub → Forgejo; update FluxCD sources; GitHub becomes read-only mirror
+
+**Files to create:** `proxmox-bootstrap/forgejo_manager.py`,
+`config/forgejo/` (Helm values, webhook config), `scripts/forge-init-forgejo.sh`
+
+**Dependencies:** Phase 3.L (OpenBao), Phase 2.A (Authentik).
+
+---
+
+### Phase 3.T — Teleport Access Management *(proposed)*
+
+**Goal:** Privileged access management and session recording (Boundary replacement).
+Headscale handles WireGuard overlay; Teleport handles certificate-based SSH, k8s API
+access, session recording, and privileged access workflows.
+
+**Design:**
+- `proxmox-bootstrap/teleport_manager.py` — Auth/Proxy cluster init; node enrollment;
+  k8s cluster registration; user provisioning via Authentik OIDC
+- Teleport Auth on governance VM; Node agent on each spawned node
+- Session recording: all SSH and k8s `exec` sessions recorded; stored in Restic-backed archive
+- Relationship to Headscale: Headscale = WireGuard overlay (layer 3); Teleport = access
+  control and recording layer on top. Both coexist.
+
+**Files to create:** `proxmox-bootstrap/teleport_manager.py`,
+`scripts/forge-init-teleport.sh`, `config/teleport/`
+
+**Dependencies:** Phase 2.A (Authentik), Phase 1.P (credential hierarchy).
+
+---
+
+### Phase 3.U — OPA/Conftest IaC Policy Validation *(proposed)*
+
+**Goal:** Pre-apply policy validation (Sentinel replacement). Kyverno handles k8s
+admission at runtime; OPA/Conftest validates OpenTofu plans, Helm values, and k8s
+manifests before they are applied.
+
+**Why both:** Kyverno = runtime admission (k8s); OPA/Conftest = pre-apply policy
+(blocks bad OpenTofu plans before they reach the cluster). Complementary layers.
+
+**Design:**
+- `proxmox-bootstrap/opa_manager.py` — Conftest policy bundle management; Rego policy
+  registry; validation against OpenTofu plan JSON output
+- PAP pattern integration: broodforge audit patterns translated to Rego rules
+- Gate: `opentofu_manager.apply()` calls Conftest validation before proceeding
+- Policy sources: stored in Forgejo (Phase 3.S); FluxCD syncs to governance VM
+
+**Files to create:** `proxmox-bootstrap/opa_manager.py`,
+`config/opa/policies/` (Rego files), `scripts/forge-conftest-validate.sh`
+
+**Dependencies:** Phase 3.Q (OpenTofu), Phase 3.S (Forgejo).
+
+---
+
+### Phase 3.V — CoreDNS Configuration Manager *(proposed)*
+
+**Goal:** Custom CoreDNS configuration for split-horizon DNS, Headscale MagicDNS
+integration, and service discovery across the overlay network.
+
+**Current state:** CoreDNS runs as default k8s cluster DNS; no custom config managed
+by broodforge.
+
+**Design:**
+- `proxmox-bootstrap/coredns_manager.py` — manage Corefile patches via ConfigMap;
+  register custom zones; configure forwarding
+- Split-horizon: internal zone (`.broodforge.local`) resolves inside Headscale overlay
+- Headscale MagicDNS: CoreDNS forwards `.ts.net` / Headscale zone queries to Headscale DNS
+- Wildcard ingress: `*.apps.<cluster>` pointing to ingress controller
+- `setup_dnsmasq.py` (governance VM, pre-k8s bootstrap) and `coredns_manager.py`
+  (cluster DNS, runtime) complement each other
+
+**Files to create:** `proxmox-bootstrap/coredns_manager.py`
+
+---
+
+### Phase 3.W — Control Nexus *(Future Epic)*
+
+**Goal:** Federation controller providing multi-cell resource advertisement, allocation,
+cluster discovery, and trust management. Extends `federation_manager.py` into a full
+coordination layer.
+
+**What `federation_manager.py` already does:**
+- PeerCell registration/deregistration, trust bundle sync, probe/health check
+
+**What Control Nexus adds:**
+- Resource advertisement: each cell publishes available compute/storage/capability
+- Resource allocation: workloads scheduled across cells based on advertisements
+- Cluster discovery: new cells auto-discover via Headscale + Forgejo-hosted manifest
+- Infrastructure memory: cell state in distributed log; reconstruction drills target any cell
+- API: REST served by nexus; consumed by `broodforge_dashboard.py` federation panel
+
+**Implementation milestones:**
+1. Resource advertisement protocol
+2. Cluster discovery (Forgejo-hosted manifest)
+3. Resource allocation scheduler
+4. Dashboard federation panel
+
+**Dependencies:** Phase 3.S (Forgejo), Phase 3.L (OpenBao), Phases 3.Q/3.R (OpenTofu/Ansible).
+
+---
+
+## HashiCorp Replacement Coverage Map
+
+| HashiCorp Capability | Replacement | Status | File(s) |
+|---|---|---|---|
+| Terraform | OpenTofu | ⚠ Partial | `spawn_iac_generator.py`; no lifecycle runner → Phase 3.Q |
+| Vault | OpenBao | 🔲 Planned | Phase 3.L |
+| Consul Service Discovery | CoreDNS | ⚠ Partial | `setup_dnsmasq.py`; no custom CoreDNS manager → Phase 3.V |
+| Consul Connect | Linkerd | ✅ Done | `linkerd_manager.py` |
+| Nomad | Kubernetes | ✅ Done | Kubernetes throughout |
+| Packer | Proxmox + Cloud-Init + OpenTofu + Ansible | ⚠ Partial | Image builder exists; Ansible missing → Phase 3.R |
+| Boundary | Headscale + Teleport | ⚠ Partial | `setup_headscale.py` done; Teleport missing → Phase 3.T |
+| Waypoint | FluxCD | ✅ Done | `flux_manager.py` |
+| Sentinel | OPA | ⚠ Partial | `kyverno_manager.py` (k8s); OPA/Conftest for IaC missing → Phase 3.U |
+
+## Canonical Stack Coverage
+
+| Component | Role | Status | Notes |
+|---|---|---|---|
+| Proxmox | Hypervisor | ✅ Core | |
+| OpenTofu | IaC provisioning | ⚠ Partial | Generator exists; lifecycle runner → Phase 3.Q |
+| Ansible | Config management | 🔲 Missing | → Phase 3.R |
+| Cloud-Init | Node initialization | ✅ Done | `generate-user-data.py`, `forge-build-node-iso.sh` |
+| Forgejo | Source control (GitOps) | 🔲 Missing | → Phase 3.S |
+| OpenBao | Secrets broker | 🔲 Planned | → Phase 3.L |
+| KeePassXC | Human root store | ✅ Done | `credential_hierarchy.py`, `forge-lib.sh` |
+| Kubernetes | Orchestration | ✅ Done | Throughout |
+| FluxCD | GitOps | ✅ Done | `flux_manager.py` |
+| Authentik | Identity/SSO | ✅ Done | Phase 2.A |
+| Headscale | Overlay network | ✅ Done | `setup_headscale.py` |
+| Teleport | Privileged access | 🔲 Missing | → Phase 3.T |
+| CoreDNS | Service discovery | ⚠ Partial | Default k8s; no custom config manager → Phase 3.V |
+| Linkerd | Service mesh | ✅ Done | `linkerd_manager.py` |
+| Ceph/Longhorn | Storage | ⚠ Unclear | `storage_manager.py` needs audit (see note below) |
+| Restic | Backup | ✅ Done | `backup_manager.py`, `backup_engine.py` |
+| Prometheus | Metrics | ✅ Done | Phase 2.C |
+| Grafana | Dashboards | ✅ Done | Phase 2.C |
+| OPA | Policy engine | ⚠ Partial | Kyverno for k8s; OPA/Conftest for IaC → Phase 3.U |
+| Control Nexus | Federation controller | 🔲 Future epic | → Phase 3.W |
+
+**Ceph vs Longhorn:** `storage_manager.py` needs audit. Recommended: both coexist at
+different layers — Longhorn for k8s-native PVC storage; Ceph for VM-level block storage
+on Proxmox. If needed, split into `longhorn_manager.py` and `ceph_manager.py`.
+
+## Recommended Phase Sequencing (3.L onward)
+
+```
+3.L OpenBao          ← unlock secrets management first; everything depends on it
+3.M Source Editor    ← doc tooling; independent
+3.N TOTP QR          ← doc tooling; independent
+3.O TOC Numbering    ← doc tooling; independent
+3.P Setup Guide      ← doc migration; after 3.N
+3.Q OpenTofu         ← depends on 3.L for secret injection
+3.R Ansible          ← depends on 3.L for vault passwords
+3.S Forgejo          ← depends on 3.L, 2.A; needed before OPA policy hosting
+3.T Teleport         ← depends on 2.A, 1.P
+3.U OPA/Conftest     ← depends on 3.Q, 3.S
+3.V CoreDNS          ← relatively independent; after basic cluster is stable
+3.W Control Nexus    ← future epic; depends on 3.S, 3.L, 3.Q, 3.R
+```
