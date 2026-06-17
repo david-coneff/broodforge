@@ -15,10 +15,7 @@ When starting a session on broodforge under the Rhizome methodology:
 3. `rhiz-memory/_instance.md` (this file — project identity + startup)
 4. `rhiz-memory/state/SESSION_HANDOFF.md` (current work context and next action)
 
-The Rhizome protocol specs live entirely in `david-coneff/rhizome`. Do not
-read the `pap/` directory in this repo — it is a stale embedded copy of an
-old version of Rhizome and is scheduled for deletion (see §Legacy cleanup
-below).
+The Rhizome protocol specs live entirely in `david-coneff/rhizome`.
 
 ---
 
@@ -45,7 +42,7 @@ Broodforge:
 
 *Scope note*: the SHALL NOT items cover specific-hardware recommendations
 requiring granular product/pricing knowledge. They do not constrain the
-platform’s own resource-provisioning and deployment-strategy decisions for
+platform's own resource-provisioning and deployment-strategy decisions for
 infrastructure it already manages — those are a function of its chartered
 deployment strategy (see decisions.md AD-013, AD-014, AD-032, AD-034).
 
@@ -94,6 +91,10 @@ deployment strategy (see decisions.md AD-013, AD-014, AD-032, AD-034).
 - Autonomous remediation requires explicit opt-in + policy gate
 - KeePass-gated actions require `keepass_unlocked = True`
 - Every machine-readable manifest has a human-readable HTML counterpart (AD-047)
+- **AD-060 (binding on all future development):** No autonomous pathway may read
+  and wield full root credentials against live hypervisors. Two named exceptions:
+  node spawning (Cloud-Init) and phoenix setup (temporary session credential,
+  operator must rotate after session completes).
 
 ---
 
@@ -115,20 +116,3 @@ deployment strategy (see decisions.md AD-013, AD-014, AD-032, AD-034).
 | Dependencies | `pyproject.toml`; `ansible/requirements.yml` |
 | Documentation | `README.md`, `ARCHITECTURE.md`, `docs/` |
 | Oversight | `rhiz-memory/audits/` |
-
----
-
-## Legacy cleanup (pending)
-
-The following directories predate the current architecture and should be
-deleted once their content is confirmed migrated:
-
-| Directory | What it is | Action |
-|-----------|-----------|--------|
-| `pap/` | Full embedded copy of old PAP protocol (rhizome predecessor). Stale — canonical protocol is now `david-coneff/rhizome`. | **Delete** — nothing in this dir belongs in broodforge |
-| `.ai/` | Pre-rhizome AI governance files (bootstrap, state, decisions, audits). Superseded by `rhiz-memory/`. | **Migrate then delete** — `decisions.md` → `rhiz-memory/state/decisions.md`; audit files → `rhiz-memory/audits/`; bootstrap → this file |
-| `.audit/` | Empty placeholder directory | **Delete** |
-
-Until cleanup is complete, treat `.ai/decisions.md` and `.ai/CURRENT_STATE.md`
-as the authoritative state documents — they have not yet been migrated to
-`rhiz-memory/state/`.
