@@ -22,3 +22,6 @@ bf-commit.ps1
 
 # ChatGPT architecture corpus — synthesized into ARCHITECTURE.md/ROADMAP.md; files kept on disk but not tracked
 chatgpt architecture/
+
+# Python cache directories
+doc-gen/__pycache__/
