@@ -27,7 +27,7 @@ try:
 except ImportError:
     def _local_runner(cmd: str) -> str:  # type: ignore[misc]
         import subprocess
-        result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=60)
+        result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=60)  # nosec B602 – cmd is always internally constructed
         return result.stdout
 
 

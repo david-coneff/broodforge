@@ -88,34 +88,7 @@ forge_keepass_gate
 # Resolve services to target
 # ---------------------------------------------------------------------------
 
-# Get the services list for this user from the registry
-mapfile -t _USER_SERVICES < <(
-  python3 "$USER_REG_PY" \
-    --registry "$REGISTRY_JSON" \
-    --list \
-    2>/dev/null \
-  | python3 - <<'PYEOF'
-import json, sys, os
-
-username = os.environ.get("_TAK_USERNAME", "")
-target   = os.environ.get("_TAK_TARGET", "all")
-
-data = json.load(sys.stdin)
-for user in data.get("users", []):
-    if user["username"] == username:
-        svcs = user.get("services", {})
-        if target == "all":
-            for svc, info in svcs.items():
-                if not info.get("key_thrown_away", False):
-                    print(svc)
-        else:
-            if target in svcs and not svcs[target].get("key_thrown_away", False):
-                print(target)
-        break
-PYEOF
-) || true
-
-# Fall back: parse registry JSON directly (simpler, no stdin piping complications)
+# Resolve services to target by reading registry JSON directly
 export _TAK_USERNAME="$USERNAME"
 export _TAK_TARGET="$TARGET_SERVICE"
 

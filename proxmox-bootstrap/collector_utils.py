@@ -20,5 +20,5 @@ RunnerFn = Callable[[str], str]
 def local_runner(cmd: str) -> str:
     """Run a shell command locally and return stdout. Timeout: 30s."""
     import subprocess
-    result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=30)
+    result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=30)  # nosec B602 – cmd is always internally constructed
     return result.stdout

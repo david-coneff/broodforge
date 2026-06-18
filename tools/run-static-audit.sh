@@ -11,7 +11,7 @@
 #   bash tools/run-static-audit.sh --help   # show usage
 #
 # PAP Reasoning Pattern mappings (from pap/modules/PAP-AUDIT/Audit-Reasoning-Patterns.md):
-#   shellcheck errors  → Pattern 10 (Happy Path Only), Pattern 27 (Feedback Vacuum)
+#   SC errors          → Pattern 10 (Happy Path Only), Pattern 27 (Feedback Vacuum)
 #   bandit HIGH        → Pattern 15 (Fail Open), Pattern 36 (Over-Privileged Component)
 #   bandit MEDIUM      → Pattern 17 (Credential Sprawl)
 #   vulture dead code  → Pattern 21 (Orphaned Outputs)

@@ -143,7 +143,7 @@ class LinkerdManager:
             print(f"[dry-run] Would apply {result.stdout.count('kind:')} CRD manifests")
             return 0
         cmd = "linkerd install --crds | kubectl apply -f -"
-        result = subprocess.run(
+        result = subprocess.run(  # nosec B602 – pipe requires shell=True; cmd is a fixed literal
             cmd, shell=True, capture_output=True, text=True, timeout=_SUBPROCESS_TIMEOUT,
         )
         if result.returncode == 0:
@@ -158,7 +158,7 @@ class LinkerdManager:
             print(f"[dry-run] Would run: {linkerd_cmd} | kubectl apply -f -")
             return 0
         cmd = f"{linkerd_cmd} | kubectl apply -f -"
-        result = subprocess.run(
+        result = subprocess.run(  # nosec B602 – pipe requires shell=True; cmd built from fixed literals and ha_mode bool
             cmd, shell=True, capture_output=True, text=True, timeout=_SUBPROCESS_TIMEOUT,
         )
         if result.returncode == 0:
@@ -176,7 +176,7 @@ class LinkerdManager:
             print("[dry-run] Would run: linkerd viz install | kubectl apply -f -")
             return 0
         cmd = "linkerd viz install | kubectl apply -f -"
-        result = subprocess.run(
+        result = subprocess.run(  # nosec B602 – pipe requires shell=True; cmd is a fixed literal
             cmd, shell=True, capture_output=True, text=True, timeout=_SUBPROCESS_TIMEOUT,
         )
         if result.returncode == 0:
