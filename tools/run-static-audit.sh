@@ -224,7 +224,8 @@ echo "[audit] detect-secrets: ${SECRETS_COUNT} potential secret(s) found (exit $
 
 echo "[audit] Running pytest with coverage..."
 cd "${REPO_ROOT}"
-pytest \
+python3 -m pytest \
+    --override-ini="addopts=" \
     --cov=proxmox-bootstrap \
     --cov-report=term-missing \
     --cov-branch \

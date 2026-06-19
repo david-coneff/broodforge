@@ -203,6 +203,7 @@ def generate_forge_sh(manifest: dict) -> str:
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${{BASH_SOURCE[0]}}")" && pwd)"
+# shellcheck disable=SC2034  # FORGE_LOG is consumed by lib/checkpoint.sh (sourced below)
 FORGE_LOG="${{SCRIPT_DIR}}/forge.log"
 
 source "$SCRIPT_DIR/lib/checkpoint.sh"

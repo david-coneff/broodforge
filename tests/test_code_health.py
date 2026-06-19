@@ -583,7 +583,11 @@ class TestCodeHealthCandidatesInContinuousAssessment:
         score = CodeHealthScore(bandit_high_count=1, overall=70)
         dash_result = _dash(score)
         ca_result = code_health_to_remediation_candidates(score)
-        assert dash_result == ca_result
+        # Strip proposed_at before comparing — both calls use datetime.now() so
+        # microseconds differ; the test verifies delegation, not timestamp equality.
+        def _strip_ts(candidates):
+            return [{k: v for k, v in c.items() if k != "proposed_at"} for c in candidates]
+        assert _strip_ts(dash_result) == _strip_ts(ca_result)
 
 
 class TestDynamicHealthCandidatesInContinuousAssessment:

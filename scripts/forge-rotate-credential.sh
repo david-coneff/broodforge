@@ -36,6 +36,7 @@ LIB_SH="${REPO_ROOT}/lib/forge-lib.sh"
 SYNC_SCRIPT="${SCRIPT_DIR}/forge-sync-credentials.sh"
 
 STATE_DIR="${BROODFORGE_STATE_DIR:-/var/lib/broodforge}"
+# shellcheck disable=SC2034  # HIER_CONFIG used by sourced credential-hierarchy helpers
 HIER_CONFIG="${STATE_DIR}/credential-hierarchy.json"
 
 # ---------------------------------------------------------------------------
@@ -132,6 +133,7 @@ _rotate_restic() {
       --new-password-file "$new_pw_file" \
       >/dev/null 2>&1; then
     info "✓ New restic key added (both old and new keys valid)"
+    # shellcheck disable=SC2034  # NEW_KEY_ID reserved for future removal-step verification
     NEW_KEY_ID=$(RESTIC_PASSWORD="$new_pw" restic key list --json 2>/dev/null | \
       python3 -c "import json,sys; keys=json.load(sys.stdin); \
         current=[k for k in keys if k.get('current')]; \
@@ -203,6 +205,7 @@ _rotate_k8s_sa() {
 
 _verify_k8s_sa() {
   local token="$1"
+  # shellcheck disable=SC2034  # api_endpoint reserved for future explicit API-server verification
   local api_endpoint="${2:-}"
 
   step 3 "Verify NEW service account token"

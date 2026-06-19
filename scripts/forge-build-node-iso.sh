@@ -45,6 +45,7 @@ STATE_DIR="${BROODFORGE_STATE_DIR:-/var/lib/broodforge}"
 HATCHERY_URL="${BROODFORGE_HATCHERY_URL:-}"
 HATCHERY_PUBKEY_PATH="${BROODFORGE_HATCHERY_PUBKEY:-/etc/broodforge/hatchery-public.pem}"
 PROXMOX_ISO="${BROODFORGE_PVE_ISO:-}"  # base Proxmox ISO path
+# shellcheck disable=SC2034  # PVE_ROOT_USER passed to child scripts via environment
 PVE_ROOT_USER="${BROODFORGE_PVE_ROOT_USER:-root}"
 PVE_NET_IFACE="${BROODFORGE_PVE_NET_IFACE:-}"
 PVE_TIMEZONE="${BROODFORGE_PVE_TIMEZONE:-UTC}"

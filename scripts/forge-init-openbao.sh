@@ -97,7 +97,7 @@ print(cfg.get('unseal_strategy','shamir'))
     python3 "$BAO_MGR" --config "$CONFIG_FILE" unseal
   else
     SHARDS_FILE="$(mktemp /tmp/bao-shards.XXXXXX.json)"
-    trap "rm -f $SHARDS_FILE" EXIT
+    trap 'rm -f "$SHARDS_FILE"' EXIT
     SHARDS="[]"
     for i in 1 2 3; do
       prompt "Enter unseal shard $i/3 (hidden):"

@@ -216,22 +216,25 @@ class BackupManifest:
         with open(manifest_path, "w") as f:
             json.dump(self.to_dict(), f, indent=2)
 
-        # Post-write checksum verification (F-5)
+        # Compute hash of the payload (without manifest_sha256) for embedding.
         raw = manifest_path.read_bytes()
-        digest = hashlib.sha256(raw).hexdigest()
-        self.manifest_sha256 = digest
+        payload_digest = hashlib.sha256(raw).hexdigest()
+        self.manifest_sha256 = payload_digest
 
-        # Persist the digest both in the manifest and as a sidecar .sha256 file
-        # Update the manifest file to include the computed digest
+        # Re-write the manifest with manifest_sha256 embedded.
         data = json.loads(raw)
-        data["manifest_sha256"] = digest
+        data["manifest_sha256"] = payload_digest
         manifest_path.write_text(json.dumps(data, indent=2))
 
+        # The sidecar must hash the bytes that are actually on disk (the final
+        # file, which now includes manifest_sha256), so load() can verify.
+        final_raw = manifest_path.read_bytes()
+        final_digest = hashlib.sha256(final_raw).hexdigest()
         sha256_path = backup_dir / "manifest.sha256"
-        sha256_path.write_text(f"{digest}  manifest.json\n")
+        sha256_path.write_text(f"{final_digest}  manifest.json\n")
 
         logger.info(
-            "[backup] Manifest written to %s (sha256=%s)", manifest_path, digest[:12] + "…"
+            "[backup] Manifest written to %s (sha256=%s)", manifest_path, final_digest[:12] + "…"
         )
 
     @classmethod

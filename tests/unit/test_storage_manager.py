@@ -25,6 +25,7 @@ def _load_module():
     mod_path = here.parent.parent / "proxmox-bootstrap" / "storage_manager.py"
     spec = importlib.util.spec_from_file_location("storage_manager", mod_path)
     mod = importlib.util.module_from_spec(spec)       # type: ignore[union-attr]
+    sys.modules[spec.name] = mod  # required so @dataclass can resolve cls.__module__
     spec.loader.exec_module(mod)                      # type: ignore[union-attr]
     return mod
 
@@ -314,6 +315,7 @@ class TestCLI:
 
     def test_status_json(self, tmp_path, capsys):
         sm.main(["--state", str(tmp_path), "mark-deployed"])
+        capsys.readouterr()  # flush human-readable output from mark-deployed
         rc = sm.main(["--state", str(tmp_path), "status", "--json"])
         out = capsys.readouterr().out
         assert rc == 0
@@ -323,6 +325,7 @@ class TestCLI:
     def test_list_volumes_json(self, tmp_path, capsys):
         sm.main(["--state", str(tmp_path), "register-volume",
                  "--name", "my-pvc", "--namespace", "default"])
+        capsys.readouterr()  # flush human-readable output from register-volume
         rc = sm.main(["--state", str(tmp_path), "list-volumes", "--json"])
         out = capsys.readouterr().out
         assert rc == 0

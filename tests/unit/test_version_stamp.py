@@ -366,8 +366,8 @@ class TestGenerateStamp:
         (tmp_path / "foo.py").write_text("x=1")
         fixed = datetime(2026, 6, 13, 19, 30, 0, tzinfo=timezone.utc)
         stamp = generate_stamp(tmp_path, now_fn=lambda: fixed, rules=rules)
-        assert stamp.startswith("2026-06-13_19-30-00_")
-        assert len(stamp) == len("2026-06-13_19-30-00_") + 8
+        assert stamp.startswith("2026-06-13_19-30-00_UTC_")
+        assert len(stamp) == len("2026-06-13_19-30-00_UTC_") + 8
 
     def test_shorthash_matches_compute(self, tmp_path, rules):
         (tmp_path / "foo.py").write_text("x=1")
@@ -379,7 +379,7 @@ class TestGenerateStamp:
         (tmp_path / "foo.py").write_text("x=1")
         stamp = generate_stamp(tmp_path, rules=rules)
         parts = stamp.split("_")
-        assert len(parts) == 3 and len(parts[2]) == 8
+        assert len(parts) == 4 and len(parts[3]) == 8
 
 
 # ---------------------------------------------------------------------------
@@ -416,7 +416,7 @@ class TestCLI:
         _make_test_repo(tmp_path)
         main(["--repo-root", str(tmp_path), "--timestamp-only"])
         out = capsys.readouterr().out.strip()
-        assert len(out) == 19 and out[4] == "-" and out[10] == "_"
+        assert len(out) == 23 and out[4] == "-" and out[10] == "_"
 
     def test_list_files(self, tmp_path, capsys):
         _make_test_repo(tmp_path)
@@ -439,7 +439,7 @@ class TestCLI:
         main(["--repo-root", str(tmp_path)])
         out = capsys.readouterr().out.strip()
         parts = out.split("_")
-        assert len(parts) == 3 and len(parts[2]) == 8
+        assert len(parts) == 4 and len(parts[3]) == 8
 
     def test_bad_repo_root_exits(self, tmp_path):
         with pytest.raises(SystemExit) as exc:

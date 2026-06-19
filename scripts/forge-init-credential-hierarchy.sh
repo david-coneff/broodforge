@@ -35,6 +35,7 @@ CHILD_DBS=(
 )
 
 # Scope descriptions (parallel array — same order as CHILD_DBS)
+# shellcheck disable=SC2034  # CHILD_DB_SCOPES is documentation-only; used by deploy scripts that source this
 CHILD_DB_SCOPES=(
   "Autonomous operation credentials: restic repo password, k8s service account tokens, monitoring API keys, Headscale API key"
   "Spawn-phase credentials: Cloud-Init keypairs, spawn-phase node credentials, Headscale pre-auth keys"

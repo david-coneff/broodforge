@@ -341,11 +341,10 @@ class TestBackupIdUsesNowFn(unittest.TestCase):
         dt = datetime(2026, 6, 9, 14, 30, 22, tzinfo=timezone.utc)
         bid = _generate_backup_id(dt)
         parts = bid.split("_")
-        self.assertEqual(len(parts), 4, f"Expected 4 underscore-separated parts, got: {bid}")
+        self.assertEqual(len(parts), 3, f"Expected 3 underscore-separated parts, got: {bid}")
         self.assertEqual(parts[0], "2026-06-09")
-        self.assertEqual(parts[1], "14")
-        self.assertEqual(parts[2], "30")
-        self.assertEqual(len(parts[3]), 7, f"Expected 7-char hash, got: {parts[3]}")
+        self.assertEqual(parts[1], "14-30-22")
+        self.assertEqual(len(parts[2]), 7, f"Expected 7-char hash, got: {parts[2]}")
 
 
 # ---------------------------------------------------------------------------

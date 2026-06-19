@@ -30,6 +30,7 @@ def _import_mm():
         "_migration_manager_ad065", BOOTSTRAP_REPO / "migration_manager.py"
     )
     mod = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = mod  # required so @dataclass can resolve cls.__module__
     spec.loader.exec_module(mod)
     return mod
 

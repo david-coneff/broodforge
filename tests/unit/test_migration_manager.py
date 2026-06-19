@@ -41,6 +41,7 @@ def _import(filename: str, mod_name: str):
         mod_name, BOOTSTRAP_REPO / filename
     )
     mod = importlib.util.module_from_spec(spec)
+    sys.modules[mod_name] = mod  # required so @dataclass can resolve cls.__module__
     spec.loader.exec_module(mod)
     return mod
 
@@ -50,6 +51,7 @@ def _import_migration(filename: str, mod_name: str):
         mod_name, MIGRATIONS_DIR / filename
     )
     mod = importlib.util.module_from_spec(spec)
+    sys.modules[mod_name] = mod  # required so @dataclass can resolve cls.__module__
     spec.loader.exec_module(mod)
     return mod
 

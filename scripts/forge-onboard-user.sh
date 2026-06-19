@@ -262,8 +262,6 @@ done
 # _build_cred_json — emit the credential JSON object to stdout.
 # Passwords stay out of argv/env — this builds JSON inline then pipes it.
 _build_cred_json() {
-  local mode_str
-  [[ $ADD_SERVICE_MODE -eq 1 ]] && mode_str="add-service" || mode_str="onboarding"
 
   python3 - <<'PYEOF'
 import json, os, sys
@@ -332,7 +330,8 @@ elif [[ -n "$OUTPUT_FILE" ]]; then
 
   export _OB_USERNAME="$USERNAME"
   export _OB_DISPLAY_NAME="${DISPLAY_NAME:-$USERNAME}"
-  export _OB_GENERATED_AT="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+  _OB_GENERATED_AT="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+  export _OB_GENERATED_AT
   export _OB_MODE="$_MODE_STR"
   export _OB_SERVICES_JSON="$_SERVICES_JSON"
 
