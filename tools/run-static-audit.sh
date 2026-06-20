@@ -80,7 +80,7 @@ fi
 # ---------------------------------------------------------------------------
 
 echo "[audit] Installing Python static analysis tools..."
-pip install --quiet ruff bandit vulture detect-secrets pytest pytest-cov 2>/dev/null || true
+pip install --quiet ruff bandit vulture detect-secrets pytest pytest-cov jsonschema 2>/dev/null || true
 
 # ---------------------------------------------------------------------------
 # Step 3: Create .audit/ directory

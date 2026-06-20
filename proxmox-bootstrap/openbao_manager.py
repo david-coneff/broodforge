@@ -58,6 +58,7 @@ import os
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from pathlib import Path
 from typing import Any
@@ -174,9 +175,11 @@ def _http(
         headers["X-Vault-Token"] = token
     if namespace:
         headers["X-Vault-Namespace"] = namespace
-    req = urllib.request.Request(url, data=data, headers=headers, method=method)
+    if urllib.parse.urlparse(url).scheme not in ("http", "https"):
+        raise ValueError(f"Unsupported URL scheme for OpenBao endpoint: {url!r}")
+    req = urllib.request.Request(url, data=data, headers=headers, method=method)  # noqa: S310  # nosec B310
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310  # nosec B310
             body = resp.read()
             return json.loads(body) if body else {}
     except urllib.error.HTTPError as exc:

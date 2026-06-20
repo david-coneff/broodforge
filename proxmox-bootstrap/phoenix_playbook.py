@@ -24,6 +24,7 @@ Stdlib only. SSH commands in generated playbooks use the system ssh binary.
 """
 
 import random
+import secrets
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -75,10 +76,15 @@ def generate_phoenix_session_credential(seed: Optional[int] = None) -> str:
     `phoenix_session_credential_section` for the rotation-requirement record
     that travels with it in the generated playbook.
     """
-    rng = random.Random(seed)
-    w1 = _PHOENIX_SESSION_WORDS[rng.randint(0, len(_PHOENIX_SESSION_WORDS) - 1)]
-    w2 = _PHOENIX_SESSION_WORDS[rng.randint(0, len(_PHOENIX_SESSION_WORDS) - 1)]
-    n = rng.randint(1, 9)
+    if seed is not None:
+        rng = random.Random(seed)  # noqa: S311
+        w1 = _PHOENIX_SESSION_WORDS[rng.randint(0, len(_PHOENIX_SESSION_WORDS) - 1)]  # noqa: S311
+        w2 = _PHOENIX_SESSION_WORDS[rng.randint(0, len(_PHOENIX_SESSION_WORDS) - 1)]  # noqa: S311
+        n = rng.randint(1, 9)  # noqa: S311
+    else:
+        w1 = secrets.choice(_PHOENIX_SESSION_WORDS)
+        w2 = secrets.choice(_PHOENIX_SESSION_WORDS)
+        n = secrets.randbelow(9) + 1
     return f"{w1.capitalize()}.phoenix.{w2}.{n}"
 
 

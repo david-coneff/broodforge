@@ -38,8 +38,9 @@ import io
 import json
 import os
 import tarfile
-import urllib.request
 import urllib.error
+import urllib.parse
+import urllib.request
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -534,11 +535,13 @@ def export_to_hatchery(
     Uses urllib (stdlib). The broodling calls this when hatchery connectivity
     was established during the spawn (phase-01 succeeded or WAN mode was used).
     """
+    if urllib.parse.urlparse(hatchery_url).scheme not in ("http", "https"):
+        raise ValueError(f"Unsupported URL scheme for hatchery endpoint: {hatchery_url!r}")
     endpoint = hatchery_url.rstrip("/") + "/api/failure-packages"
     with open(package_path, "rb") as f:
         body = f.read()
 
-    req = urllib.request.Request(
+    req = urllib.request.Request(  # noqa: S310  # nosec B310
         endpoint,
         data=body,
         method="POST",
@@ -549,7 +552,7 @@ def export_to_hatchery(
         },
     )
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310  # nosec B310
             return json.loads(resp.read().decode())
     except urllib.error.HTTPError as e:
         raise urllib.error.URLError(f"Hatchery returned {e.code}: {e.reason}")

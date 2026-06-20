@@ -25,6 +25,7 @@ import json
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Callable, Optional
+from urllib.parse import urlparse
 from urllib.request import urlopen, Request
 from urllib.error import URLError
 
@@ -91,8 +92,10 @@ class ObservabilityDocument:
 def _http_get_json(url: str, timeout: int = 5) -> Optional[dict]:
     """Fetch JSON from a URL. Returns None on any error."""
     try:
-        req = Request(url, headers={"Accept": "application/json"})
-        with urlopen(req, timeout=timeout) as resp:
+        if urlparse(url).scheme not in ("http", "https"):
+            return None
+        req = Request(url, headers={"Accept": "application/json"})  # noqa: S310  # nosec B310
+        with urlopen(req, timeout=timeout) as resp:  # noqa: S310  # nosec B310
             return json.loads(resp.read().decode())
     except (URLError, json.JSONDecodeError, Exception):
         return None
@@ -100,8 +103,10 @@ def _http_get_json(url: str, timeout: int = 5) -> Optional[dict]:
 
 def _is_reachable(url: str, timeout: int = 5) -> bool:
     try:
-        req = Request(url, headers={"Accept": "application/json"})
-        with urlopen(req, timeout=timeout):
+        if urlparse(url).scheme not in ("http", "https"):
+            return False
+        req = Request(url, headers={"Accept": "application/json"})  # noqa: S310  # nosec B310
+        with urlopen(req, timeout=timeout):  # noqa: S310  # nosec B310
             return True
     except Exception:
         return False

@@ -18,6 +18,7 @@ Stdlib only (no pip, no yaml — uses simple YAML parser below).
 """
 
 import re
+import secrets
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -370,11 +371,16 @@ _WORDS = [
 @_deal_post(lambda result: isinstance(result, str) and len(result) >= 8)
 def generate_temp_password(seed: Optional[int] = None) -> str:
     """Generate a readable temporary root password (Capital.word.word.N format)."""
-    import random
-    rng = random.Random(seed)
-    w1  = _WORDS[rng.randint(0, len(_WORDS) - 1)]
-    w2  = _WORDS[rng.randint(0, len(_WORDS) - 1)]
-    n   = rng.randint(1, 9)
+    if seed is not None:
+        import random  # noqa: S311
+        rng = random.Random(seed)  # noqa: S311
+        w1 = _WORDS[rng.randint(0, len(_WORDS) - 1)]  # noqa: S311
+        w2 = _WORDS[rng.randint(0, len(_WORDS) - 1)]  # noqa: S311
+        n  = rng.randint(1, 9)  # noqa: S311
+    else:
+        w1 = secrets.choice(_WORDS)
+        w2 = secrets.choice(_WORDS)
+        n  = secrets.randbelow(9) + 1
     return f"{w1.capitalize()}.to.{w2}.{n}"
 
 

@@ -47,6 +47,7 @@ import hashlib
 import io
 import json
 import random
+import secrets
 import tarfile
 from datetime import datetime, timezone
 from pathlib import Path
@@ -90,10 +91,15 @@ def generate_install_passphrase(seed: Optional[int] = None) -> str:
     same way Cloud-Init replaces the spawn discovery password. `seed` exists
     only for deterministic tests; production callers must never pass one.
     """
-    rng = random.Random(seed)
-    w1 = _PASSPHRASE_WORDS[rng.randint(0, len(_PASSPHRASE_WORDS) - 1)]
-    w2 = _PASSPHRASE_WORDS[rng.randint(0, len(_PASSPHRASE_WORDS) - 1)]
-    n = rng.randint(1, 9)
+    if seed is not None:
+        rng = random.Random(seed)  # noqa: S311
+        w1 = _PASSPHRASE_WORDS[rng.randint(0, len(_PASSPHRASE_WORDS) - 1)]  # noqa: S311
+        w2 = _PASSPHRASE_WORDS[rng.randint(0, len(_PASSPHRASE_WORDS) - 1)]  # noqa: S311
+        n = rng.randint(1, 9)  # noqa: S311
+    else:
+        w1 = secrets.choice(_PASSPHRASE_WORDS)
+        w2 = secrets.choice(_PASSPHRASE_WORDS)
+        n = secrets.randbelow(9) + 1
     return f"{w1.capitalize()}.boot.{w2}.{n}"
 
 
