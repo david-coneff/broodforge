@@ -47,7 +47,7 @@ def main():
     parser.add_argument("--checkpoint",    action="store_true",
                         help="Restore most recent permanent checkpoint")
     parser.add_argument("--component",     help="Restore only this component prefix")
-    parser.add_argument("--target",        default="/tmp/broodforge-restore",
+    parser.add_argument("--target",        default="/tmp/broodforge-restore",  # nosec B108 — user-visible CLI default
                         help="Target directory for restored files")
     parser.add_argument("--list",          action="store_true",
                         help="List available snapshot sets and exit")

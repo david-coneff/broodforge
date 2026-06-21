@@ -462,7 +462,7 @@ def assemble_failure_package(
     hardware_profile_path: Optional[str] = None,
     log_paths:       Optional[list[str]] = None,
     checkpoint_dir:  Optional[str] = None,
-    output_dir:      str = "/tmp",
+    output_dir:      str = "/tmp",  # nosec B108 — caller-supplied output dir, not insecure temp file creation
 ) -> str:
     """
     Assemble a failure package tar.gz in memory and write to output_dir.

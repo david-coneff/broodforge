@@ -45,7 +45,7 @@ except ImportError:
 @dataclass
 class HatcheryReceiverConfig:
     storage_dir:    str  = "/var/lib/broodforge/failure-packages"
-    listen_host:    str  = "0.0.0.0"
+    listen_host:    str  = "0.0.0.0"  # nosec B104 — operator-configurable; WAN exposure warned at startup
     listen_port:    int  = 9321
     max_package_mb: int  = 50
     auth_token:     str  = ""   # if set, require X-Broodforge-Token header on every POST
@@ -337,7 +337,7 @@ def run_receiver_server(config: HatcheryReceiverConfig) -> None:
         )
 
     # WAN exposure warning: if binding 0.0.0.0 and bootstrap-state indicates wan profile
-    if config.listen_host == "0.0.0.0":
+    if config.listen_host == "0.0.0.0":  # nosec B104 — string comparison, not a binding call
         _state_candidates = [
             "/var/lib/broodforge/bootstrap-state.json",
             os.path.join(os.path.dirname(__file__), "bootstrap-state.json"),

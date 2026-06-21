@@ -149,7 +149,7 @@ class DashboardConfig:
     reports_path:  str = DEFAULT_REPORTS
     failures_path: str = DEFAULT_FAILURES
     config_path:   str = DEFAULT_CONFIG
-    listen_host:   str = "0.0.0.0"
+    listen_host:   str = "0.0.0.0"  # nosec B104 — operator-configurable; WAN exposure warned at startup
     listen_port:   int = DEFAULT_PORT
     action_token:  str = ""   # auto-generated on first start if empty
     ssl_cert:      str = ""   # path to PEM fullchain (optional)
@@ -2495,7 +2495,7 @@ def run_server(cfg: DashboardConfig) -> None:
         proto = "http"
 
     # WAN exposure warning: if network_profile is "wan" and listening on all interfaces
-    if cfg.listen_host == "0.0.0.0":
+    if cfg.listen_host == "0.0.0.0":  # nosec B104 — string comparison, not a binding call
         state = _read_json(cfg.state_path) or {}
         nt = state.get("network_topology") or {}
         if nt.get("profile") == "wan":
@@ -2555,7 +2555,7 @@ if __name__ == "__main__":
     ap.add_argument("--reports",  default=DEFAULT_REPORTS, help=f"Path to reports directory (default: {DEFAULT_REPORTS})")
     ap.add_argument("--failures", default=DEFAULT_FAILURES,help=f"Path to failure packages directory (default: {DEFAULT_FAILURES})")
     ap.add_argument("--config",   default=DEFAULT_CONFIG,  help=f"Path to dashboard config JSON (default: {DEFAULT_CONFIG})")
-    ap.add_argument("--host",     default="0.0.0.0",       help="Listen address (default: 0.0.0.0)")
+    ap.add_argument("--host",     default="0.0.0.0",       help="Listen address (default: 0.0.0.0)")  # nosec B104
     ap.add_argument("--port",     type=int, default=DEFAULT_PORT, help=f"Listen port (default: {DEFAULT_PORT})")
     ap.add_argument("--ssl-cert", default="",              help="Path to TLS fullchain PEM (optional; uses /etc/pve/local/pveproxy-ssl.pem if present)")
     ap.add_argument("--ssl-key",  default="",              help="Path to TLS private key PEM")
