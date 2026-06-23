@@ -24,11 +24,9 @@ Stdlib only.
 
 import io
 import zipfile
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 from xml.sax.saxutils import escape as xml_escape
-
 
 # ---------------------------------------------------------------------------
 # ODS XML constants (minimal standalone copy — matches spawn_workbook pattern)
@@ -382,7 +380,7 @@ def _sheet_storage(manifest: dict, hardware_profile: Optional[dict]) -> _SheetBu
     n = len(usable)
     topology = _zfs_topology(n)
 
-    nt = manifest.get("network_topology") or {}
+    manifest.get("network_topology") or {}
 
     s.section("ZFS Pool")
     s.field("Usable Disk Count", str(n))

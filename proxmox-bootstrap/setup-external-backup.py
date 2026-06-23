@@ -39,7 +39,6 @@ Usage:
 
 import importlib.util
 import json
-import os
 import sys
 import tempfile
 from datetime import datetime, timezone
@@ -131,7 +130,7 @@ def setup_encrypted_archive(state: dict, dry_run: bool) -> dict:
     kp_root = state["keepass_config"]["root_path"]
     hostname = state["host_identity"]["hostname"]
     suggested_kp_path = f"{kp_root}/{hostname}/backup-encryption-passphrase"
-    print(f"  The encryption passphrase is stored in KeePass.")
+    print("  The encryption passphrase is stored in KeePass.")
     print(f"  Suggested KeePass path: {suggested_kp_path}")
     passphrase_ref_id = "backup-encryption-passphrase"
 
@@ -208,7 +207,7 @@ def setup_encrypted_archive(state: dict, dry_run: bool) -> dict:
                     if ok:
                         print(f"  Test backup transferred to: {dest}")
                     else:
-                        print(f"  Transfer failed — check destination and credentials")
+                        print("  Transfer failed — check destination and credentials")
             except Exception as e:
                 print(f"  Test backup failed: {e}")
         else:
@@ -268,7 +267,7 @@ def setup_github(state: dict, dry_run: bool) -> dict:
 
     # Deploy key
     pubkey_dir = BOOTSTRAP_REPO / "ssh" / "public-keys"
-    deploy_key_ref = f"github-config-deploy-key"
+    deploy_key_ref = "github-config-deploy-key"
     print()
     print("  The deploy key is the SSH key used to push to GitHub.")
     print("  The PUBLIC key must be added to each GitHub repo:")

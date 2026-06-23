@@ -12,22 +12,16 @@ Covers:
   - empty / minimal state handling
 """
 
-import sys
 import unittest
-from pathlib import Path
-
-REPO_ROOT = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(REPO_ROOT / "proxmox-bootstrap"))
 
 from hatchery_state import (
-    read_hatchery_state,
-    SpawnManifest,
-    next_vmid_block,
-    next_ip_block,
-    suggest_hostname,
     SPAWN_MANIFEST_VERSION,
+    SpawnManifest,
+    next_ip_block,
+    next_vmid_block,
+    read_hatchery_state,
+    suggest_hostname,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

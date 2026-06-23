@@ -5,15 +5,13 @@ Run: py -3 tests/unit/test_bootstrap_service_schemas.py
 """
 
 import json
-import sys
 import unittest
 from copy import deepcopy
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(REPO_ROOT / "data-model"))
 
-from validate import SchemaValidator, detect_schema
+from validate import SchemaValidator
 
 SCHEMA_DIR = REPO_ROOT / "data-model"
 FIXTURES = REPO_ROOT / "tests" / "fixtures" / "bootstrap"

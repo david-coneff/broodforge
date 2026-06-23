@@ -12,18 +12,15 @@ Run: py -3 tests/unit/test_provenance.py
 """
 
 import json
-import sys
 import unittest
 from copy import deepcopy
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(REPO_ROOT / "doc-gen"))
-sys.path.insert(0, str(REPO_ROOT / "doc-gen" / "renderers"))
 
-from provenance import ProvenanceRegistry, build_provenance_registry
-from readiness import _score_provenance_completeness, score_graph, Gap
 import dependencies as dep_mod
+from provenance import ProvenanceRegistry, build_provenance_registry
+from readiness import _score_provenance_completeness, score_graph
 
 FIXTURES_DIR   = REPO_ROOT / "tests" / "fixtures" / "bootstrap"
 BOOTSTRAP_JSON = FIXTURES_DIR / "bootstrap-state.json"

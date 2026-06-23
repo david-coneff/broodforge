@@ -7,12 +7,9 @@ import importlib.util
 import json
 import os
 import sys
-from pathlib import Path
 
 _ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 _PB = os.path.join(_ROOT, "proxmox-bootstrap")
-sys.path.insert(0, _PB)
-sys.path.insert(0, os.path.join(_ROOT, "doc-gen"))
 
 import _recovery_readiness_certificate as _rrc
 from dependencies import build_graph

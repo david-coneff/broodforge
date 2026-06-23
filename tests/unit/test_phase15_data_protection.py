@@ -11,16 +11,12 @@ Covers:
 """
 
 import json
-import sys
 import os
 from datetime import datetime, timezone
 
 _ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-sys.path.insert(0, os.path.join(_ROOT, "proxmox-bootstrap"))
-sys.path.insert(0, os.path.join(_ROOT, "doc-gen"))
 
 import data_protection_collector as _dp
-
 
 # ===========================================================================
 # 15.1 — data-protection-state-schema.json

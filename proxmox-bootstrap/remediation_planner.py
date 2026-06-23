@@ -22,7 +22,6 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Callable, List, Optional
 
-
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
@@ -195,35 +194,35 @@ def _dry_run_regenerate_phoenix(target: str, state: dict) -> str:
 
 def _dry_run_sync_cert_to_k8s(target: str, state: dict) -> str:
     return (
-        f"[dry-run] Would execute: bash sync-cert-to-k8s.sh\n"
-        f"Current TLS certificate would be pushed into k8s TLS secrets in all namespaces.\n"
-        f"No changes made."
+        "[dry-run] Would execute: bash sync-cert-to-k8s.sh\n"
+        "Current TLS certificate would be pushed into k8s TLS secrets in all namespaces.\n"
+        "No changes made."
     )
 
 
 def _dry_run_rotate_join_token(target: str, state: dict) -> str:
     return (
-        f"[dry-run] Would execute: k3s token rotate\n"
-        f"New k3s join token would be generated and stored in bootstrap-state.json.\n"
-        f"Old token would be invalidated — any pending spawn packages would need regeneration.\n"
-        f"Requires KeePass gate.\n"
-        f"No changes made."
+        "[dry-run] Would execute: k3s token rotate\n"
+        "New k3s join token would be generated and stored in bootstrap-state.json.\n"
+        "Old token would be invalidated — any pending spawn packages would need regeneration.\n"
+        "Requires KeePass gate.\n"
+        "No changes made."
     )
 
 
 def _dry_run_restart_assessment_timer(target: str, state: dict) -> str:
     return (
-        f"[dry-run] Would execute: systemctl enable --now broodforge-operational.timer\n"
-        f"Operational assessment timer would be started/re-enabled.\n"
-        f"No changes made."
+        "[dry-run] Would execute: systemctl enable --now broodforge-operational.timer\n"
+        "Operational assessment timer would be started/re-enabled.\n"
+        "No changes made."
     )
 
 
 def _dry_run_schedule_drill(target: str, state: dict) -> str:
     return (
-        f"[dry-run] Would append a drill reminder entry to bootstrap-state.json reconstruction_drills.\n"
-        f"Next drill due date would be set to 90 days from now.\n"
-        f"No changes made."
+        "[dry-run] Would append a drill reminder entry to bootstrap-state.json reconstruction_drills.\n"
+        "Next drill due date would be set to 90 days from now.\n"
+        "No changes made."
     )
 
 

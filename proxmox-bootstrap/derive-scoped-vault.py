@@ -37,10 +37,15 @@ _HERE = Path(__file__).parent
 sys.path.insert(0, str(_HERE))
 
 from _vault_hierarchy import (
-    load_role_scope_registry, load_secret_registry,
-    build_derived_vault_plan, render_derive_vault_commands, describe_vault_plan,
-    generate_vm_account_template, generate_proxmox_account_commands, plan_to_dict,
     GOD_MODE_TIER,
+    build_derived_vault_plan,
+    describe_vault_plan,
+    generate_proxmox_account_commands,
+    generate_vm_account_template,
+    load_role_scope_registry,
+    load_secret_registry,
+    plan_to_dict,
+    render_derive_vault_commands,
 )
 
 try:
@@ -156,11 +161,11 @@ def main() -> None:
     print("  IMPORTANT — single-use, shown-once derived-vault passphrase:")
     print(f"    {plan.passphrase}")
     print(f"  (source: {plan.passphrase_source})")
-    print(f"  Note this down now — it will not be recoverable from the plan files later.")
-    print(f"  Store it ONLY at this path inside the PARENT (canonical) vault:")
+    print("  Note this down now — it will not be recoverable from the plan files later.")
+    print("  Store it ONLY at this path inside the PARENT (canonical) vault:")
     print(f"    {plan.parent_record_path}")
-    print(f"  That parent-vault record is the entire 'vault of vaults' recovery path —")
-    print(f"  see the HTML twin for the authorization-model and revocation design notes.")
+    print("  That parent-vault record is the entire 'vault of vaults' recovery path —")
+    print("  see the HTML twin for the authorization-model and revocation design notes.")
     print("=" * 64)
     print()
 

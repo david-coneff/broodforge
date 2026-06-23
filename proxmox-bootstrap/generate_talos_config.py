@@ -248,7 +248,7 @@ def _nameserver(state: dict) -> str:
 def build_cluster_spec(k3s: dict, state: dict) -> TalosClusterSpec:
     """Build a TalosClusterSpec from k3s-cluster.yaml and bootstrap-state.json."""
     cluster_name = k3s.get("cluster_name", "homelab-k3s")
-    hi = state.get("host_identity", {}) or {}
+    state.get("host_identity", {}) or {}
     gateway = _gateway(state)
     nameserver = _nameserver(state)
 
@@ -629,12 +629,12 @@ def write_readme(spec: TalosClusterSpec, output_dir: str, used_talosctl: bool) -
             "1. Install `talosctl` (see docs/TALOS-ALTERNATIVE.md for install command).",
             "2. Generate cluster secrets:",
             "",
-            f"   ```",
+            "   ```",
             f"   talosctl gen config {spec.cluster_name} {spec.cluster_endpoint} \\",
-            f"     --output-dir talos-configs/ \\",
-            f"     --output-types controlplane,worker,talosconfig \\",
-            f"     --force",
-            f"   ```",
+            "     --output-dir talos-configs/ \\",
+            "     --output-types controlplane,worker,talosconfig \\",
+            "     --force",
+            "   ```",
             "",
             "3. Apply per-node patches (run from hatchery):",
             "",

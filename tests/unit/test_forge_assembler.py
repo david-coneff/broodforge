@@ -4,19 +4,12 @@ test_forge_assembler.py — Tests for Phase 1.F.1/1.F.2:
   forge_scripts.py           — forge phase script generators
 """
 
-import io
 import json
-import os
-import sys
 import tarfile
 from pathlib import Path
 
-_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-sys.path.insert(0, os.path.join(_ROOT, "proxmox-bootstrap"))
-
 import assemble_forge_package as _afp
 import forge_scripts as _fs
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

@@ -27,12 +27,10 @@ Values marked [INPUT] require operator knowledge and cannot be discovered.
 
 import importlib.util
 import json
-import os
-import shutil
 import socket
 import subprocess
 import sys
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 
 
@@ -74,7 +72,6 @@ def discover_timezone() -> str | None:
     if tz_file.exists():
         return tz_file.read_text().strip()
     # Windows fallback
-    import time
     return None
 
 
@@ -121,7 +118,7 @@ def discover_proxmox_storage() -> dict:
         parts = line.split()
         if len(parts) < 2:
             continue
-        name, stype = parts[0], parts[1] if len(parts) > 1 else ""
+        _name, _stype = parts[0], parts[1] if len(parts) > 1 else ""
         # pvesm status doesn't show content types; use pvesm list with content filter
         # Just record the storage names and let user pick
     # Simpler: try common defaults

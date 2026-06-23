@@ -9,7 +9,6 @@ These tests ensure shellcheck runs automatically in CI/the test suite.
 """
 import json
 import subprocess
-import sys
 from pathlib import Path
 
 import pytest
@@ -74,7 +73,6 @@ def test_shellcheck_generated_forge_script(tmp_path):
     """
     # Try to import forge_scripts and generate a sample
     try:
-        sys.path.insert(0, str(PROXMOX_BOOTSTRAP))
         from forge_scripts import generate_forge_sh  # type: ignore
         manifest = {
             "cell_id": "test-cell",

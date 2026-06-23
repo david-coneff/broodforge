@@ -56,8 +56,8 @@ except ImportError:  # pragma: no cover
     def _deal_post(_c):  return lambda f: f  # type: ignore
 
 try:
-    import sys as _sys
     import os as _os
+    import sys as _sys
     _sys.path.insert(0, _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "..", "lib"))
     from passphrase import generate_master_password_suggestion
     _HAS_PASSPHRASE = True
@@ -471,8 +471,8 @@ def render_derive_vault_commands(plan: DerivedVaultPlan) -> list[str]:
         f"echo '[derive-scoped-vault] {plan.role} vault created at {derived_q} "
         f"with {len(plan.entries)} entries.'",
         "",
-        f"# Vault-of-vaults recordkeeping — record this vault's passphrase in the",
-        f"# parent (canonical) vault so a higher-tier holder can always recover it.",
+        "# Vault-of-vaults recordkeeping — record this vault's passphrase in the",
+        "# parent (canonical) vault so a higher-tier holder can always recover it.",
         f"printf '%s\\n' \"$KEEPASS_MASTER_PASSWORD\" | "
         f"keepassxc-cli mkdir --password - {parent_q} "
         f"'/{'/'.join(plan.parent_record_path.split('/')[:-1])}' 2>/dev/null || true",
@@ -522,11 +522,11 @@ def describe_vault_plan(plan: DerivedVaultPlan) -> str:
     lines += [
         "",
         f"Operator steps required ({n_secrets} entries to populate manually):",
-        f"  1. Run: render_derive_vault_commands() to get the keepassxc-cli",
-        f"     command sequence (or use derive-scoped-vault.py --run).",
+        "  1. Run: render_derive_vault_commands() to get the keepassxc-cli",
+        "     command sequence (or use derive-scoped-vault.py --run).",
         f"  2. Execute each command — creates {plan.db_path}",
         f"     with {n_secrets} entries copied from the canonical vault.",
-        f"  3. Record the passphrase above in the parent vault at:",
+        "  3. Record the passphrase above in the parent vault at:",
         f"     {plan.parent_record_path}",
         f"  4. Distribute {plan.db_path} to the holder(s): "
         + (", ".join(plan.holders) if plan.holders else "(none declared)"),
@@ -638,7 +638,7 @@ def generate_proxmox_account_commands(
 
     cmds = [
         f"# Phase 1.K — Proxmox account template for role '{scope.role}' (tier: {scope.tier})",
-        f"# Operator-run commands — broodforge does not call the Proxmox API directly.",
+        "# Operator-run commands — broodforge does not call the Proxmox API directly.",
         f"pveum user add {shlex.quote(user_id)} --comment {shlex.quote(scope.description or scope.role)}",
         f"pveum aclmod {shlex.quote(acl_path)} -user {shlex.quote(user_id)} -role {shlex.quote(pve_role)}",
         f"# Generate this account's API token from its scoped vault at: {vault_path}",

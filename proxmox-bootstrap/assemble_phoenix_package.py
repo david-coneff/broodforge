@@ -31,8 +31,11 @@ from typing import Optional
 
 try:
     from phoenix_scripts import (
-        generate_wave_script, generate_run_all_sh,
         PHOENIX_KEEPASS_GATE_SH as _PHOENIX_KEEPASS_GATE_SH,
+    )
+    from phoenix_scripts import (
+        generate_run_all_sh,
+        generate_wave_script,
     )
     _HAS_SCRIPTS = True
     _HAS_KEEPASS_GATE = True
@@ -165,7 +168,7 @@ def assemble_phoenix_package(
 
         # Optional KeePass database
         if kdbx_path and Path(kdbx_path).exists():
-            cell_id = playbook.get("cell_id") or "cell"
+            playbook.get("cell_id") or "cell"
             _add_file(f"kdbx/{Path(kdbx_path).name}", Path(kdbx_path))
 
     return pkg_path
@@ -196,7 +199,7 @@ def _load_version_from(version_py: Path) -> str:
     except FileNotFoundError:
         pass
     except Exception as exc:
-        _warnings.warn(f"Cannot load SCHEMA_VERSION from {version_py}: {exc}")
+        _warnings.warn(f"Cannot load SCHEMA_VERSION from {version_py}: {exc}", stacklevel=2)
     return _DEFAULT
 
 
@@ -392,7 +395,7 @@ if __name__ == "__main__":
         else:
             _output = _state_dir / "phoenix" / f"{_ts}.tar.gz"
 
-        print(f"[pack] Assembling phoenix recovery package ...", file=sys.stderr)
+        print("[pack] Assembling phoenix recovery package ...", file=sys.stderr)
         print(f"[pack]   state-dir : {_state_dir}", file=sys.stderr)
         print(f"[pack]   output    : {_output}", file=sys.stderr)
 

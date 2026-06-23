@@ -25,7 +25,6 @@ Prerequisite: readiness_validator.py must pass (not RED)
 
 import importlib.util
 import json
-import os
 import sys
 from pathlib import Path
 
@@ -89,7 +88,7 @@ def generate_flux_bootstrap(
         None,
     )
     k3s_server_ip = k3s_server_vm["ip"] if k3s_server_vm else "UNRESOLVED"
-    k3s_server_name = k3s_server_vm["name"] if k3s_server_vm else "k3s-server-01"
+    k3s_server_vm["name"] if k3s_server_vm else "k3s-server-01"
 
     ha_enabled = cluster_plan.get("ha", {}).get("enabled", False)
     cluster_name = f"{cell_id}-k3s"

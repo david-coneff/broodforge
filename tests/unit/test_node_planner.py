@@ -23,31 +23,20 @@ Test coverage:
 from __future__ import annotations
 
 import json
-import os
-import sys
-import tempfile
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
 # ── Import path ──────────────────────────────────────────────────────────────
-_REPO_ROOT = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(_REPO_ROOT / "proxmox-bootstrap"))
-
 from node_planner import (
     CodenameGenerator,
     NodeAllocationPlan,
     NodePlanner,
-    _compute_key_fingerprint,
     _empty_node_entry,
-    _find_node,
     generate_join_pin,
-    VALID_ROLES,
-    VALID_STATES,
 )
-
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 

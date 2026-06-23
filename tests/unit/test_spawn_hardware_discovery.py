@@ -15,20 +15,22 @@ Covers:
 """
 
 import json
-import sys
 import unittest
-from pathlib import Path
-
-REPO_ROOT = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(REPO_ROOT / "proxmox-bootstrap"))
 
 from spawn_hardware_discovery import (
-    DiskInfo, NicInfo, HardwareProfile,
-    _parse_lsblk, _parse_ip_link, _parse_meminfo, _parse_cpu_model, _parse_nproc,
-    discover_hardware, zfs_topology_for_profile,
-    hardware_profile_to_dict, dict_to_hardware_profile,
+    DiskInfo,
+    HardwareProfile,
+    NicInfo,
+    _parse_cpu_model,
+    _parse_ip_link,
+    _parse_lsblk,
+    _parse_meminfo,
+    _parse_nproc,
+    dict_to_hardware_profile,
+    discover_hardware,
+    hardware_profile_to_dict,
+    zfs_topology_for_profile,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

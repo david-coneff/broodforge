@@ -6,31 +6,23 @@ Real objects only; no mocks. Uses temporary directories for state isolation.
 
 from __future__ import annotations
 
-import json
-import tempfile
-from datetime import datetime, timezone, timedelta
-from pathlib import Path
+from datetime import datetime, timedelta, timezone
 
 import pytest
-
-import sys, os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../proxmox-bootstrap"))
-
 from cert_manager import (
-    CertRecord,
-    CertManagerState,
-    CertManager,
-    CertManagerError,
-    cert_expiry_status,
-    generate_values_yaml,
-    generate_cluster_issuer_yaml,
-    load_state,
-    save_state,
     EXPIRY_CRITICAL_DAYS,
     EXPIRY_WARNING_DAYS,
+    CertManager,
+    CertManagerError,
+    CertManagerState,
+    CertRecord,
     _days_until_expiry,
+    cert_expiry_status,
+    generate_cluster_issuer_yaml,
+    generate_values_yaml,
+    load_state,
+    save_state,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers

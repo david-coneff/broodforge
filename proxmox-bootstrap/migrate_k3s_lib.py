@@ -19,7 +19,6 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Callable, Optional
 
-
 RunnerFn = Callable[[str], str]
 
 try:

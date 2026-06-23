@@ -10,16 +10,12 @@ Covers:
 """
 
 import json
-import sys
 import os
 
 _ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-sys.path.insert(0, os.path.join(_ROOT, "proxmox-bootstrap"))
-sys.path.insert(0, os.path.join(_ROOT, "doc-gen"))
 
-import cluster_state_collector  as _cs
-import storage_state_collector   as _ss
-
+import cluster_state_collector as _cs
+import storage_state_collector as _ss
 
 # ===========================================================================
 # 14.1 — cluster-state-schema.json

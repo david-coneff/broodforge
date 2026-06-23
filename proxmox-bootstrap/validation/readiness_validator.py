@@ -67,13 +67,13 @@ def check_plan_exists(plans_dir: Path, filename: str) -> tuple[str, str]:
 def check_capacity(validation_dir: Path) -> tuple[str, str]:
     data, err = _load_json_safe(validation_dir / "capacity-check.json")
     if data is None:
-        return "YELLOW", f"capacity-check.json not found — run: python3 validation/capacity_validator.py"
+        return "YELLOW", "capacity-check.json not found — run: python3 validation/capacity_validator.py"
     overall = data.get("overall", "UNKNOWN")
     reds = data.get("red_count", 0)
     if overall == "RED":
         return "RED", f"Capacity check FAILED ({reds} RED check(s)) — resolve before generating"
     if overall == "YELLOW":
-        return "YELLOW", f"Capacity check has warnings — review before generating"
+        return "YELLOW", "Capacity check has warnings — review before generating"
     return "GREEN", "Capacity check PASSED"
 
 
@@ -217,7 +217,7 @@ def run_readiness(plans_dir: Path, validation_dir: Path) -> dict:
 
 
 def _now_utc() -> str:
-    from datetime import datetime, timezone, timedelta
+    from datetime import datetime, timedelta, timezone
     utc = datetime.now(timezone.utc)
     local = utc + timedelta(hours=int(os.environ.get("LOCAL_TZ_OFFSET", "0")))
     tz_name = os.environ.get("LOCAL_TZ_NAME", "UTC")

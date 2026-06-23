@@ -32,7 +32,6 @@ import json
 import os
 import shlex
 import subprocess
-import sys
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Callable, Dict, List, Optional
@@ -41,16 +40,13 @@ from remediation_planner import (
     ALLOWED_ACTION_TYPES,
     RemediationProposal,
     dry_run_proposal,
-    _KEEPASS_GATED,
 )
 from remediation_queue import (
     RemediationQueue,
-    approve_proposal,
     mark_executing,
     mark_failed,
     mark_resolved,
 )
-
 
 # ---------------------------------------------------------------------------
 # Data types
@@ -118,7 +114,6 @@ def build_failure_package(
     state:           dict = None,
     now_fn:          Optional[Callable] = None,
 ) -> RemediationFailurePackage:
-    from datetime import datetime, timezone
     return RemediationFailurePackage(
         proposal_id=proposal.proposal_id,
         action_type=proposal.action_type,
@@ -362,7 +357,7 @@ def _exec_schedule_drill(
     now_fn:   Optional[Callable] = None,
 ) -> tuple[bool, str, List[ExecutionStep]]:
     steps = []
-    from datetime import datetime, timezone, timedelta
+    from datetime import timedelta
     now_str = now_fn() if now_fn else datetime.now(timezone.utc).isoformat()
     now_dt = datetime.fromisoformat(now_str.replace("Z", "+00:00"))
     due_at = (now_dt + timedelta(days=90)).isoformat()

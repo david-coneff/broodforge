@@ -26,7 +26,6 @@ Stdlib only.
 """
 
 import json
-import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, List, Optional
@@ -111,7 +110,7 @@ def validate_forge_hardware(hardware_profile: dict) -> list[ForgeValidationFindi
     cpu_cores = hardware_profile.get("cpu_cores") or 0
     disks     = hardware_profile.get("disks") or []
     nics      = hardware_profile.get("nics") or []
-    derived   = hardware_profile.get("derived") or {}
+    hardware_profile.get("derived") or {}
 
     # ------------------------------------------------------------------
     # RAM

@@ -9,7 +9,6 @@ Run: py -3 tests/unit/test_backup.py
 
 import importlib.util
 import json
-import sys
 import tempfile
 import unittest
 from datetime import datetime, timezone
@@ -177,7 +176,6 @@ class TestArchiveFilename(unittest.TestCase):
     def test_filesystem_safe_characters_only(self):
         fn = self._fn()
         # Only alphanumeric, hyphens, underscores, dots should appear
-        import re
         self.assertRegex(fn, r"^[a-zA-Z0-9\-_\.]+$")
 
 
@@ -363,7 +361,7 @@ class TestArchivePruning(unittest.TestCase):
             self.bk.prune_archives(d, "cell-a", keep_count=2)
             remaining = self.bk.list_archives(d, "cell-a")
             timestamps = [a["timestamp_str"] for a in remaining]
-            all_archives_before = self.bk.list_archives(d, "cell-a")
+            self.bk.list_archives(d, "cell-a")
             # Remaining should be sorted newest first
             self.assertEqual(timestamps, sorted(timestamps, reverse=True))
 
@@ -383,9 +381,9 @@ class TestArchivePruning(unittest.TestCase):
 
 class TestExternalBackupSchema(unittest.TestCase):
     def setUp(self):
-        sys.path.insert(0, str(REPO_ROOT / "data-model"))
-        from validate import SchemaValidator
         import json
+
+        from validate import SchemaValidator
         with open(REPO_ROOT / "data-model" / "bootstrap-state-schema.json") as f:
             self.schema = json.load(f)
         self.v = SchemaValidator(self.schema)

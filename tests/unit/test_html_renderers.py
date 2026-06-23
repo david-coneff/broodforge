@@ -18,21 +18,15 @@ Universal checkbox behavior:
   - These properties verified in CSS and JS of every HTML document
 """
 
-import sys
 import os
-import json
 
 _ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-sys.path.insert(0, os.path.join(_ROOT, "doc-gen", "renderers"))
-sys.path.insert(0, os.path.join(_ROOT, "doc-gen"))
-sys.path.insert(0, os.path.join(_ROOT, "proxmox-bootstrap"))
 
 import html_base as _hb
-from html_recovery_runbook import build_recovery_runbook_html
-from html_bootstrap import build_bootstrap_workbook_html, build_bootstrap_runbook_html
+from html_bootstrap import build_bootstrap_runbook_html, build_bootstrap_workbook_html
 from html_operational_report import build_operational_report_html
+from html_recovery_runbook import build_recovery_runbook_html
 from html_spawn_workbook import build_spawn_workbook_html
-
 
 # ---------------------------------------------------------------------------
 # Minimal stubs for graph/readiness
@@ -613,8 +607,8 @@ class TestHtmlSpawnWorkbook:
 
 class TestHtmlRecoveryWorkbook:
     def _build(self):
-        from html_recovery_workbook import build_recovery_workbook_html
         from dependencies import build_graph
+        from html_recovery_workbook import build_recovery_workbook_html
         from readiness import score_graph
         _hb.reset_checkbox_counter()
         m = _manifest()

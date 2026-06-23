@@ -39,7 +39,7 @@ def _first_stamp(path: Path) -> str:
 
 class TestMetaDocSync(unittest.TestCase):
     def test_doc_pairs_exist(self):
-        for md_path, html_path, label in DOC_PAIRS:
+        for md_path, html_path, _label in DOC_PAIRS:
             self.assertTrue(md_path.exists(), f"Missing: {md_path}")
             self.assertTrue(html_path.exists(), f"Missing: {html_path}")
 

@@ -12,9 +12,15 @@ Stdlib only.
 """
 
 from html_base import (
-    html_page, h, p, pre, code, dl, table, divider,
-    callout, section, score_badge,
-    checkbox_list, reset_checkbox_counter,
+    callout,
+    checkbox_list,
+    divider,
+    dl,
+    html_page,
+    p,
+    pre,
+    reset_checkbox_counter,
+    section,
 )
 
 

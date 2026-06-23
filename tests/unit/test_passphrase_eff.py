@@ -9,14 +9,10 @@ Covers:
   - investigation finding: keepassxc-cli does not support diceware format
 """
 
-import sys
-import os
 
-_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-sys.path.insert(0, os.path.join(_ROOT, "lib"))
 
-import passphrase_eff as _eff
 import passphrase as _pw
+import passphrase_eff as _eff
 
 
 class TestEffPassphrase:
@@ -150,7 +146,6 @@ class TestMasterPasswordSuggestionEff:
         assert source == "eff"
 
     def test_eff_words_from_wordlist(self):
-        sys.path.insert(0, os.path.join(_ROOT, "lib"))
         from passphrase_eff import _EFF_WORDS
         pw, source = _pw.generate_master_password_suggestion(style="eff")
         for word in pw.split("-"):

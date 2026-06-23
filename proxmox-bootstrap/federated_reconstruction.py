@@ -32,7 +32,6 @@ Stdlib only.
 from dataclasses import dataclass, field
 from typing import Any, Callable, Optional
 
-
 # ---------------------------------------------------------------------------
 # 23.1 — Recovery Coordinator Selection
 # ---------------------------------------------------------------------------
@@ -160,8 +159,8 @@ def build_phoenix_package_manifest(
     now_fn:           Callable[[], str] | None = None,
 ) -> PhoenixPackageManifest:
     """Build a PhoenixPackageManifest from a recovery relationship."""
-    from datetime import datetime, timezone
     import hashlib
+    from datetime import datetime, timezone
     now  = (now_fn or (lambda: datetime.now(timezone.utc).isoformat()))()
     pid  = hashlib.sha256(f"{subject_cell}:{coordinator_cell}:{now}".encode()).hexdigest()[:12]
 
@@ -287,8 +286,8 @@ def build_federated_plan(
       5. Service verification
       6. Trust re-registration (subject re-enters federation)
     """
-    from datetime import datetime, timezone
     import hashlib
+    from datetime import datetime, timezone
     now  = (now_fn or (lambda: datetime.now(timezone.utc).isoformat()))()
     pid  = hashlib.sha256(f"fed:{subject_cell}:{coordinator.cell_id}:{now}".encode()).hexdigest()[:12]
 
@@ -301,7 +300,7 @@ def build_federated_plan(
                        steps=[
                            f"On {coord}: generate temporary headscale auth key for {subj}",
                            f"On {coord}: generate temporary KeePass gate token",
-                           f"Verify federation-state.json shows trust active",
+                           "Verify federation-state.json shows trust active",
                        ],
                        estimated_minutes=5),
         FederatedPhase(1, "Bootstrap State Retrieval", coord,
@@ -309,7 +308,7 @@ def build_federated_plan(
                        steps=[
                            f"On {coord}: locate latest bootstrap-state.json for {subj}",
                            f"On {coord}: decrypt and verify backup integrity",
-                           f"Transfer bootstrap-state.json to reconstruction host",
+                           "Transfer bootstrap-state.json to reconstruction host",
                        ],
                        prerequisites=["Trust Establishment"],
                        estimated_minutes=10),
@@ -393,9 +392,9 @@ def plan_trust_establishment(
         f"2. On {coordinator_cell}: confirm trust relationship for {subject_cell} is active",
         f"3. On {coordinator_cell}: headscale preauthkeys create --expiration 1h --user broodforge",
         f"4. On {coordinator_cell}: generate temporary KeePass read-only token",
-        f"5. Securely transfer tokens to reconstruction host",
-        f"6. Update federation-state.json: trust verified_at = now",
-        f"7. Run Tier 3 assessment to confirm trust score GREEN",
+        "5. Securely transfer tokens to reconstruction host",
+        "6. Update federation-state.json: trust verified_at = now",
+        "7. Run Tier 3 assessment to confirm trust score GREEN",
     ]
     return steps
 

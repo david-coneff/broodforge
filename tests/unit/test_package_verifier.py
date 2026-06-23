@@ -20,8 +20,6 @@ import importlib.util
 import json
 from pathlib import Path
 
-import pytest
-
 REPO_ROOT = Path(__file__).parent.parent.parent
 BOOTSTRAP_REPO = REPO_ROOT / "proxmox-bootstrap"
 
@@ -320,7 +318,7 @@ def test_stamp_state_creates_descriptor(tmp_path: Path):
     from datetime import datetime, timezone
     fixed_now = datetime(2026, 6, 9, 12, 0, 0, tzinfo=timezone.utc)
 
-    result = pv.stamp_state_descriptor(
+    pv.stamp_state_descriptor(
         state_dir, descriptor_path, now_fn=lambda: fixed_now
     )
 

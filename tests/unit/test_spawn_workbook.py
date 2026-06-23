@@ -9,14 +9,11 @@ Covers functional content assertions (hostname, cell_id, services,
 storage topology, network info, VM info, k3s info) plus HTML structure.
 """
 
-import sys
 import importlib.util
 import unittest
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(REPO_ROOT / "proxmox-bootstrap"))
-sys.path.insert(0, str(REPO_ROOT / "doc-gen" / "renderers"))
 
 # Load html_spawn_workbook via importlib (avoids sys.path ordering issues)
 _spec = importlib.util.spec_from_file_location(

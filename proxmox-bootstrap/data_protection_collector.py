@@ -21,11 +21,10 @@ Stdlib only.
 
 import json
 from dataclasses import dataclass, field
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from typing import Any, Callable, Optional
 
-from collector_utils import local_runner, RunnerFn  # noqa: F401
-
+from collector_utils import RunnerFn, local_runner  # noqa: F401
 
 # ---------------------------------------------------------------------------
 # Dataclasses

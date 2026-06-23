@@ -13,11 +13,7 @@ Covers:
 """
 
 import os
-import sys
 import tempfile
-
-_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-sys.path.insert(0, os.path.join(_ROOT, "proxmox-bootstrap"))
 
 import security_analyzer as _sa
 
@@ -364,7 +360,6 @@ class TestSecurityReportHtml:
 class TestReadinessSecurityPosture:
 
     def test_no_scan_gives_yellow(self):
-        sys.path.insert(0, os.path.join(_ROOT, "doc-gen"))
         import readiness as _r
         manifest = {"cell_id": "test"}  # no security_scan key
         gaps = _r._score_security_posture(manifest)
@@ -372,7 +367,6 @@ class TestReadinessSecurityPosture:
         assert any("no_security_scan" in g.gap_type for g in gaps)
 
     def test_red_findings_give_red(self):
-        sys.path.insert(0, os.path.join(_ROOT, "doc-gen"))
         import readiness as _r
         manifest = {
             "security_scan": {
@@ -386,7 +380,6 @@ class TestReadinessSecurityPosture:
         assert any(g.severity == "RED" for g in gaps)
 
     def test_orange_findings_give_orange(self):
-        sys.path.insert(0, os.path.join(_ROOT, "doc-gen"))
         import readiness as _r
         manifest = {
             "security_scan": {
@@ -400,7 +393,6 @@ class TestReadinessSecurityPosture:
         assert any(g.severity == "ORANGE" for g in gaps)
 
     def test_yellow_only_findings_give_yellow(self):
-        sys.path.insert(0, os.path.join(_ROOT, "doc-gen"))
         import readiness as _r
         manifest = {
             "security_scan": {
@@ -414,7 +406,6 @@ class TestReadinessSecurityPosture:
         assert any(g.severity == "YELLOW" for g in gaps)
 
     def test_clean_scan_gives_no_gaps(self):
-        sys.path.insert(0, os.path.join(_ROOT, "doc-gen"))
         import readiness as _r
         manifest = {
             "security_scan": {
@@ -470,7 +461,7 @@ class TestDashboardSecurity:
         assert sec["red_count"] == 0
 
     def test_dashboard_html_includes_security_section(self):
-        from broodforge_dashboard import generate_dashboard_html, DashboardConfig
+        from broodforge_dashboard import DashboardConfig, generate_dashboard_html
         state = self._state_with_scan()
         cfg = DashboardConfig()
         sec = {
@@ -483,7 +474,7 @@ class TestDashboardSecurity:
         assert "Security Posture" in html
 
     def test_dashboard_html_shows_no_scan_tip(self):
-        from broodforge_dashboard import generate_dashboard_html, DashboardConfig
+        from broodforge_dashboard import DashboardConfig, generate_dashboard_html
         state = {"cell_id": "test"}
         cfg = DashboardConfig()
         html = generate_dashboard_html(state, {}, [], [], {}, cfg, security={"has_scan": False})
@@ -558,6 +549,7 @@ class TestWriteSecurityScanResult:
 
     def test_preserves_existing_state_fields(self, tmp_path):
         import json
+
         from security_analyzer import write_security_scan_result
         state_path = str(tmp_path / "state.json")
         with open(state_path, "w") as f:
@@ -571,6 +563,7 @@ class TestWriteSecurityScanResult:
 
     def test_findings_serialized(self, tmp_path):
         import json
+
         from security_analyzer import write_security_scan_result
         state_path = str(tmp_path / "state.json")
         write_security_scan_result(state_path, self._report(red=1))
@@ -583,6 +576,7 @@ class TestWriteSecurityScanResult:
 
     def test_green_scan_posture(self, tmp_path):
         import json
+
         from security_analyzer import write_security_scan_result
         state_path = str(tmp_path / "state.json")
         write_security_scan_result(state_path, self._report())
@@ -599,7 +593,8 @@ class TestWatch:
     def test_watch_emits_finding_for_new_content(self, tmp_path):
         import threading
         import time
-        from security_analyzer import watch, SecurityFinding
+
+        from security_analyzer import SecurityFinding, watch
 
         log = tmp_path / "service.log"
         log.write_text("")
@@ -628,6 +623,7 @@ class TestWatch:
     def test_watch_no_emit_for_non_matching(self, tmp_path):
         import threading
         import time
+
         from security_analyzer import watch
 
         log = tmp_path / "clean.log"
@@ -635,7 +631,8 @@ class TestWatch:
 
         findings = []
         stop = threading.Event()
-        cb = lambda f: findings.append(f)
+        def cb(f):
+            return findings.append(f)
 
         t = threading.Thread(target=watch, args=([str(log)], cb, stop), kwargs={"poll_interval": 0.05})
         t.daemon = True
@@ -653,6 +650,7 @@ class TestWatch:
     def test_watch_stops_on_event(self, tmp_path):
         import threading
         import time
+
         from security_analyzer import watch
 
         log = tmp_path / "noop.log"
@@ -671,6 +669,7 @@ class TestWatch:
     def test_watch_handles_missing_file(self, tmp_path):
         import threading
         import time
+
         from security_analyzer import watch
 
         stop = threading.Event()

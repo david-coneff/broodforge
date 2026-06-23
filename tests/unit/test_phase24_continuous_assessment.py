@@ -11,11 +11,7 @@ Covers:
   24.7  CertExpiryAlert, scan_cert_expiry()
 """
 
-import sys
-import os
 
-_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-sys.path.insert(0, os.path.join(_ROOT, "proxmox-bootstrap"))
 
 import continuous_assessment as _ca
 
@@ -146,7 +142,7 @@ class TestDeploymentEventHook:
 
 class TestStalenessAlerting:
     def _state_docs(self, age_offset_hours: float = 0) -> dict:
-        from datetime import datetime, timezone, timedelta
+        from datetime import datetime, timedelta, timezone
         t = datetime(2026, 6, 1, 12, 0, 0, tzinfo=timezone.utc) - timedelta(hours=age_offset_hours)
         ts = t.isoformat()
         return {
@@ -594,8 +590,6 @@ class TestRunContinuousAssessment:
 
 class TestCandidateToProposal:
     def test_issue_id_is_source(self):
-        import sys, os
-        sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "proxmox-bootstrap"))
         p = _ca._candidate_to_proposal(
             _fake_candidate("assess_code_health/bandit", "HIGH"),
             "pve01-cell",

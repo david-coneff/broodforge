@@ -35,7 +35,6 @@ Design constraints:
 
 import argparse
 import json
-import os
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -573,7 +572,7 @@ def main(argv=None):
 
     updated_state, summary = merge_into_state(state, provenance, templates, base_images)
 
-    print(f"[collect-tier2] Merge summary:")
+    print("[collect-tier2] Merge summary:")
     print(f"  provenance_records: +{summary['provenance_records_added']} "
           f"({summary['provenance_records_total']} total)")
     print(f"  templates:          +{summary['templates_added']} "

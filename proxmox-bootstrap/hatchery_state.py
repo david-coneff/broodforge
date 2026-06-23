@@ -21,11 +21,9 @@ Stdlib only.
 """
 
 import ipaddress
-import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Optional
-
 
 # ---------------------------------------------------------------------------
 # Spawn manifest schema version
@@ -271,8 +269,8 @@ def next_ip_block(
     cidr = cidr or manifest.raw.get("reserved", {}).get("management_cidr", "192.168.1.0/24")
     try:
         net = ipaddress.ip_network(cidr, strict=False)
-    except ValueError:
-        raise ValueError(f"Invalid CIDR: {cidr}")
+    except ValueError as e:
+        raise ValueError(f"Invalid CIDR: {cidr}") from e
 
     reserved = manifest.reserved_ips
     result   = []

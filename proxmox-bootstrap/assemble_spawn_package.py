@@ -38,9 +38,9 @@ operator explicitly chose to include it at package generation time.
 Stdlib only.
 """
 
+import io
 import json
 import tarfile
-import io
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
@@ -58,24 +58,24 @@ except ImportError:
     _HAS_PKG_MANIFEST = False
 
 try:
+    from spawn_iac_generator import (
+        generate_ansible_inventory,
+        generate_ansible_k3s_vars,
+        generate_cloudinit_network_config,
+        generate_cloudinit_user_data,
+        generate_tfvars,
+    )
     from spawn_scripts import (
-        generate_spawn_sh,
-        generate_tailscale_join_sh,
-        generate_phase_00_preflight,
         generate_phase_00_host,
+        generate_phase_00_preflight,
         generate_phase_01_proxmox,
         generate_phase_02_vms,
         generate_phase_03_cloudinit,
         generate_phase_04_k3s,
         generate_phase_05_ha,
         generate_phase_06_verify,
-    )
-    from spawn_iac_generator import (
-        generate_tfvars,
-        generate_cloudinit_user_data,
-        generate_cloudinit_network_config,
-        generate_ansible_inventory,
-        generate_ansible_k3s_vars,
+        generate_spawn_sh,
+        generate_tailscale_join_sh,
     )
     _HAS_SPAWN_GEN = True
 except ImportError:

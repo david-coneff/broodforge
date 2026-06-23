@@ -6,14 +6,6 @@ Covers:
   - local_runner() callable signature
   - Collector modules import from collector_utils (not define own _local_runner)
 """
-import os
-import sys
-
-_ROOT = os.path.join(os.path.dirname(__file__), "..", "..")
-_PB   = os.path.join(_ROOT, "proxmox-bootstrap")
-if _PB not in sys.path:
-    sys.path.insert(0, _PB)
-
 import collector_utils as _cu
 
 

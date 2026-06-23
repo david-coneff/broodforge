@@ -42,10 +42,10 @@ import os
 import subprocess
 import sys
 import warnings
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Callable, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -534,7 +534,7 @@ class BackupManager:
                 print(f"[restore] WARNING: vm_snapshots recorded as 'all' — restore vzdump '{vzdump_result}' manually on each VM")
                 continue
             print(f"[restore] VM {vmid_str} vzdump result: {vzdump_result}")
-            print(f"[restore] Restore with: qmrestore <vzdump-file> <vmid>")
+            print("[restore] Restore with: qmrestore <vzdump-file> <vmid>")
 
         # Restore broodforge state
         pkg_path = manifest.broodforge.get("phoenix_package_path")

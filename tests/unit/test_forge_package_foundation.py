@@ -6,13 +6,10 @@ test_forge_package_foundation.py — Tests for Phase 1.F foundation pieces:
 """
 
 import json
-import sys
 import os
 
 # Allow importing from proxmox-bootstrap and lib
 _ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-sys.path.insert(0, os.path.join(_ROOT, "proxmox-bootstrap"))
-sys.path.insert(0, os.path.join(_ROOT, "lib"))
 
 
 # ===========================================================================
@@ -35,7 +32,7 @@ class TestPassphraseFormat:
         import random
         # Use a seeded RNG so the test is deterministic — no flakiness
         rng = random.Random(42)
-        for i in range(50):
+        for _i in range(50):
             p = _pw.generate_passphrase(rng=rng)
             assert _pw._MIN_LEN <= len(p) <= _pw._MAX_LEN, f"Length out of range: {p!r}"
 
@@ -72,7 +69,6 @@ class TestPassphraseFormat:
             assert len(words) >= 2, f"Too few words: {p!r}"
 
     def test_no_shell_special_chars(self):
-        import string
         special = set("$`\\\"'!&|;<>()*?{}[]~")
         for _ in range(30):
             p = self._gen()
@@ -423,7 +419,7 @@ class TestForgeManifestSchema:
         s = self._schema()
         try:
             jsonschema.validate(m, s)
-            assert False, "Should have raised"
+            raise AssertionError("Should have raised")
         except jsonschema.ValidationError:
             pass
 
@@ -437,7 +433,7 @@ class TestForgeManifestSchema:
         s = self._schema()
         try:
             jsonschema.validate(m, s)
-            assert False, "Should have raised"
+            raise AssertionError("Should have raised")
         except jsonschema.ValidationError:
             pass
 
@@ -478,7 +474,7 @@ class TestForgeManifestSchema:
         s = self._schema()
         try:
             jsonschema.validate(m, s)
-            assert False, "Should have raised"
+            raise AssertionError("Should have raised")
         except jsonschema.ValidationError:
             pass
 

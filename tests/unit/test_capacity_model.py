@@ -12,24 +12,20 @@ Covers:
 """
 
 import json
-import sys
 import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(REPO_ROOT / "doc-gen"))
-sys.path.insert(0, str(REPO_ROOT / "proxmox-bootstrap"))
 
 from capacity_collector import (
+    DEFAULT_THRESHOLDS,
+    check_restoration_headroom,
     collect_capacity_snapshot,
     compute_trend,
-    check_restoration_headroom,
     merge_capacity_model,
-    DEFAULT_THRESHOLDS,
 )
 from readiness import _score_capacity_model
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

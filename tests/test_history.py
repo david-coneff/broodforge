@@ -1,18 +1,11 @@
 """Tests for Phase 3: SQLite history layer, diff engine, and CLI history commands."""
 
 import json
-import sys
-import tempfile
 from pathlib import Path
 
-import pytest
-
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
+from engine.cli import build_parser, cmd_diff, cmd_history, cmd_store
 from engine.db import HistoryDB, _compute_changes
-from engine.diff import diff_assessments, format_diff, Change
-from engine.cli import build_parser, cmd_store, cmd_history, cmd_diff
-
+from engine.diff import Change, diff_assessments, format_diff
 
 # ---------------------------------------------------------------------------
 # Fixtures

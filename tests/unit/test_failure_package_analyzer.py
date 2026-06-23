@@ -16,16 +16,11 @@ Covers:
 import io
 import json
 import os
-import sys
 import tarfile
 import tempfile
 
-_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-sys.path.insert(0, os.path.join(_ROOT, "proxmox-bootstrap"))
-
 import failure_package_analyzer as _fpa
 import hatchery_receiver as _hr
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -192,7 +187,7 @@ class TestAnalyzeFailurePackage:
     def test_no_report_raises(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             path = os.path.join(tmpdir, "empty.tar.gz")
-            with tarfile.open(path, "w:gz") as tar:
+            with tarfile.open(path, "w:gz"):
                 pass  # empty archive
             import pytest
             with pytest.raises(ValueError):
@@ -445,7 +440,6 @@ class TestHatcheryReceiverConfigAuth:
     def test_auth_token_in_server_handler(self):
         """Handler must reject requests when token is configured but not provided."""
         import io
-        from http.server import BaseHTTPRequestHandler
         from unittest.mock import MagicMock
 
         cfg = _hr.HatcheryReceiverConfig(auth_token="test-token")
@@ -476,8 +470,8 @@ class TestHatcheryReceiverConfigAuth:
     def test_auth_token_accepted_with_correct_header(self):
         """Handler must accept requests when correct token is provided."""
         import io
-        from unittest.mock import MagicMock
         import tempfile
+        from unittest.mock import MagicMock
 
         with tempfile.TemporaryDirectory() as tmpdir:
             cfg = _hr.HatcheryReceiverConfig(auth_token="correct-token", storage_dir=tmpdir)

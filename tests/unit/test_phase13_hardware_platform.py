@@ -10,16 +10,12 @@ Covers:
 """
 
 import json
-import sys
 import os
 
 _ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-sys.path.insert(0, os.path.join(_ROOT, "proxmox-bootstrap"))
-sys.path.insert(0, os.path.join(_ROOT, "doc-gen"))
 
 import hardware_state_collector as _hw
-import platform_state_collector  as _ps
-
+import platform_state_collector as _ps
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -139,7 +135,7 @@ class TestHardwareStateSchema:
         }
         try:
             jsonschema.validate(doc, s)
-            assert False, "Should have raised"
+            raise AssertionError("Should have raised")
         except jsonschema.ValidationError:
             pass
 
@@ -454,8 +450,6 @@ class TestPlatformStateDocument:
 # 13.7 — readiness scoring
 # ===========================================================================
 
-import sys
-sys.path.insert(0, os.path.join(_ROOT, "doc-gen"))
 from readiness import _score_hardware_state_completeness, _score_platform_state_completeness
 
 

@@ -46,7 +46,6 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-
 # Packages installed on every VM regardless of role
 BASE_PACKAGES = [
     "python3",

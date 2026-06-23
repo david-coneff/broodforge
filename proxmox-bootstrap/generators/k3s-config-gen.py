@@ -28,7 +28,6 @@ Prerequisite: readiness_validator.py must pass (not RED)
 
 import importlib.util
 import json
-import os
 import sys
 from pathlib import Path
 

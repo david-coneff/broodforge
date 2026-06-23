@@ -24,7 +24,6 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Optional
 
-
 # ---------------------------------------------------------------------------
 # Mode constants
 # ---------------------------------------------------------------------------
@@ -142,9 +141,9 @@ def step1_run_guided_setup(
 
     from guided_setup import (
         GuidedSetupSession,
-        set_value,
         run_ip_selective_suggestions,
         session_to_overrides,
+        set_value,
     )
 
     gs = GuidedSetupSession(
@@ -189,7 +188,7 @@ def step2_set_identity(
     that dependent suggestions (FQDN, headscale_url, cell_id) are revised.
     Updates session.setup_overrides after recording.
     """
-    from guided_setup import set_value, session_to_overrides, suggest
+    from guided_setup import session_to_overrides, set_value, suggest
 
     gs = session.guided_session
 
@@ -257,7 +256,7 @@ def step3_set_network_profile(
 
     # If guided session active, record network-related choices
     if session.guided_session is not None:
-        from guided_setup import set_value, session_to_overrides, suggest
+        from guided_setup import session_to_overrides, set_value
         gs = session.guided_session
 
         # Record headscale URL for WAN profile
@@ -293,7 +292,7 @@ def record_manual_field(
     if session.guided_session is None:
         return []
 
-    from guided_setup import set_value, session_to_overrides
+    from guided_setup import session_to_overrides, set_value
     conflicts = set_value(field_path, value, session.guided_session, source="manual")
     session.warnings.extend(conflicts)
     session.setup_overrides = session_to_overrides(session.guided_session)
@@ -388,7 +387,7 @@ def build_forge_manifest(
     # Gather network topology from manifest or defaults
     m  = session.manifest
     nt = m.get("network_topology") or {}
-    hi = m.get("host_identity") or {}
+    m.get("host_identity") or {}
 
     mgmt_cidr = nt.get("management_cidr") or "192.168.1.0/24"
     gateway   = nt.get("gateway") or "192.168.1.1"

@@ -13,24 +13,20 @@ Covers:
 """
 
 import json
-import sys
 import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(REPO_ROOT / "doc-gen"))
-sys.path.insert(0, str(REPO_ROOT / "doc-gen" / "renderers"))
 
 from external_dependencies import (
+    CERT_EXPIRY_ORANGE_DAYS,
+    CERT_EXPIRY_RED_DAYS,
+    CERT_EXPIRY_YELLOW_DAYS,
     ExternalDependencyRegistry,
     build_external_dependency_registry,
-    CERT_EXPIRY_RED_DAYS,
-    CERT_EXPIRY_ORANGE_DAYS,
-    CERT_EXPIRY_YELLOW_DAYS,
 )
 from readiness import _score_external_dependency_state
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -315,8 +311,8 @@ class TestRecoveryRunbookAppendixG(unittest.TestCase):
 
     def _build_minimal_runbook(self, manifest_extras=None):
         """Build a recovery runbook HTML string with given manifest additions."""
-        from html_recovery_runbook import build_recovery_runbook_html
         from dependencies import build_graph
+        from html_recovery_runbook import build_recovery_runbook_html
         from readiness import score_graph
 
         manifest = {

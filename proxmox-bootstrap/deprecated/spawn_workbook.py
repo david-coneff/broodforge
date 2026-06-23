@@ -25,11 +25,9 @@ Stdlib only.
 
 import io
 import zipfile
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 from xml.sax.saxutils import escape as xml_escape
-
 
 # ---------------------------------------------------------------------------
 # ODS XML constants (minimal standalone copy — no doc-gen dependency)

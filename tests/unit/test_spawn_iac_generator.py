@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 """Tests for Phase 12.E.5 — Spawn IaC and config generator."""
 
-import sys, unittest
+import unittest
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(REPO_ROOT / "proxmox-bootstrap"))
-
 from spawn_iac_generator import (
-    generate_tfvars, generate_cloudinit_user_data,
-    generate_cloudinit_network_config, generate_ansible_inventory,
-    generate_ansible_k3s_vars, write_all_artifacts,
+    generate_ansible_inventory,
+    generate_ansible_k3s_vars,
+    generate_cloudinit_network_config,
+    generate_cloudinit_user_data,
+    generate_tfvars,
+    write_all_artifacts,
 )
 
 PLAN = {
@@ -112,7 +112,7 @@ class TestGenerateAnsibleK3sVars(unittest.TestCase):
 
 class TestWriteAllArtifacts(unittest.TestCase):
     def test_writes_files(self):
-        import tempfile, os
+        import tempfile
         with tempfile.TemporaryDirectory() as tmp:
             written = write_all_artifacts(PLAN, Path(tmp))
             self.assertIn("tfvars", written)

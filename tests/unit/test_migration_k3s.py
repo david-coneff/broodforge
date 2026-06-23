@@ -14,19 +14,12 @@ from __future__ import annotations
 
 import json
 import os
-import sys
-import tempfile
 
 _ROOT = os.path.join(os.path.dirname(__file__), "..", "..")
 _PB   = os.path.join(_ROOT, "proxmox-bootstrap")
 _DM   = os.path.join(_ROOT, "data-model")
 
-for p in (_PB, _DM):
-    if p not in sys.path:
-        sys.path.insert(0, p)
-
 import migrate_k3s_lib as _lib
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -362,7 +355,8 @@ class TestMakeMigrationId:
 # migrate_to_talos — integration (dry-run and mocked paths)
 # ===========================================================================
 
-import importlib.util, types
+import importlib.util
+
 
 def _load_migrate_talos():
     spec = importlib.util.spec_from_file_location(

@@ -13,13 +13,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 _ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-sys.path.insert(0, os.path.join(_ROOT, "proxmox-bootstrap"))
 
 _ANSWER_FILE_CLI = Path(_ROOT) / "proxmox-bootstrap" / "generate-answer-file.py"
 
 import _image_builder as _ib
 import html_package_manifest as _hpm
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

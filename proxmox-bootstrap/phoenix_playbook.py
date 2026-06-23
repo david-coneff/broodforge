@@ -28,7 +28,6 @@ import secrets
 from datetime import datetime, timezone
 from typing import Optional
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -303,7 +302,7 @@ class PhoenixPlaybookGenerator:
                 bports = bridge.get("ports") or []
                 bip    = bridge.get("ip")
                 bgw    = bridge.get("gateway")
-                bvlan  = bridge.get("vlan_aware", False)
+                bridge.get("vlan_aware", False)
 
                 cmds = [f"ip link show {bname}"]
                 if bip:
@@ -378,12 +377,12 @@ class PhoenixPlaybookGenerator:
                     "id": "1.2",
                     "action": f"Import or recreate ZFS pool '{pool_name}'",
                     "commands": [
-                        f"# Try importing existing pool first (if disks survived):",
+                        "# Try importing existing pool first (if disks survived):",
                         f"zpool import {pool_name}",
-                        f"",
-                        f"# If import fails — recreate from replacement disks:",
+                        "",
+                        "# If import fails — recreate from replacement disks:",
                         f"# Topology: {topology}   Disks: {' '.join(disks)}",
-                        f"# WARNING: This destroys any data on listed disks",
+                        "# WARNING: This destroys any data on listed disks",
                         f"# zpool create {pool_name} {topology} {' '.join(disks)}",
                     ],
                     "validation": [
@@ -399,9 +398,9 @@ class PhoenixPlaybookGenerator:
                     "action": "Register pool as Proxmox datastore",
                     "commands": [
                         f"pvesm add zfspool local-zfs --pool {pool_name} --sparse 1",
-                        f"pvesm status  # Verify local-zfs is active",
+                        "pvesm status  # Verify local-zfs is active",
                     ],
-                    "validation": [f"pvesm status | grep local-zfs"],
+                    "validation": ["pvesm status | grep local-zfs"],
                     "method": "CONFIGURE",
                     "on_failure": "abort",
                     "secret_refs": [],
@@ -430,8 +429,8 @@ class PhoenixPlaybookGenerator:
                     "action": f"Set hostname to '{hostname}'",
                     "commands": [
                         f"hostnamectl set-hostname {hostname}",
-                        f"# Update /etc/hosts:",
-                        f"# 127.0.0.1   localhost",
+                        "# Update /etc/hosts:",
+                        "# 127.0.0.1   localhost",
                         f"# {host_ip or '[HOST_IP]'}   {hostname}.internal {hostname}",
                     ],
                     "validation": [
@@ -548,19 +547,19 @@ class PhoenixPlaybookGenerator:
                 "id": "2.5.1",
                 "action": f"Rebuild Ubuntu VM template (VMID {tmpl_id})",
                 "commands": [
-                    f"# Download Ubuntu base ISO if not present:",
+                    "# Download Ubuntu base ISO if not present:",
                     f"ls {iso_storage.replace(':','/')}/{iso_name} 2>/dev/null ||",
                     f"  wget -P /var/lib/vz/template/iso/ {iso_url}",
-                    f"",
-                    f"# Create a new VM from the ISO:",
+                    "",
+                    "# Create a new VM from the ISO:",
                     f"qm create {tmpl_id} --name ubuntu-2204-base --memory 2048 --cores 2",
                     f"  --scsi0 local-zfs:32 --ide2 {iso_storage}/{iso_name},media=cdrom",
-                    f"  --boot order=ide2 --ostype l26 --serial0 socket --vga serial0",
-                    f"",
-                    f"# Install OS via console, then install qemu-guest-agent:",
-                    f"# apt install -y qemu-guest-agent cloud-init && shutdown -h now",
-                    f"",
-                    f"# Convert to template:",
+                    "  --boot order=ide2 --ostype l26 --serial0 socket --vga serial0",
+                    "",
+                    "# Install OS via console, then install qemu-guest-agent:",
+                    "# apt install -y qemu-guest-agent cloud-init && shutdown -h now",
+                    "",
+                    "# Convert to template:",
                     f"qm template {tmpl_id}",
                 ],
                 "validation": [
@@ -587,18 +586,18 @@ class PhoenixPlaybookGenerator:
                 "id": "2.5.2",
                 "action": f"Rebuild Talos Linux VM template (VMID {talos_id})",
                 "commands": [
-                    f"# Run the Talos template builder (handles ISO download + VM creation):",
-                    f"bash proxmox-bootstrap/build-talos-template.sh \\",
+                    "# Run the Talos template builder (handles ISO download + VM creation):",
+                    "bash proxmox-bootstrap/build-talos-template.sh \\",
                     f"  --storage {iso_storage.split(':')[0]} \\",
                     f"  --vmid {talos_id}",
-                    f"",
-                    f"# The script prints manual steps to complete template creation.",
-                    f"# Follow the printed instructions, then verify:",
+                    "",
+                    "# The script prints manual steps to complete template creation.",
+                    "# Follow the printed instructions, then verify:",
                 ],
                 "validation": [
                     f"qm list | grep {talos_id}  # Expected: template listed",
                     f"qm config {talos_id} | grep template  # Expected: template: 1",
-                    f"ls talos-configs/controlplane.yaml  # Talos machine configs must exist",
+                    "ls talos-configs/controlplane.yaml  # Talos machine configs must exist",
                 ],
                 "method": "RECREATE",
                 "on_failure": "human",
@@ -689,23 +688,23 @@ class PhoenixPlaybookGenerator:
                                 f"# VM: {vm_name}  VMID: {vmid}  IP: {vm_ip}",
                                 f"# Method: RECREATE (stateless Talos node — tofu_workspace={tofu_ws})",
                                 f"# Template: {tmpl_name}  Machine config: {talos_cfg}",
-                                f"",
-                                f"# Apply OpenTofu to create the VM:",
+                                "",
+                                "# Apply OpenTofu to create the VM:",
                                 f"tofu -chdir={tofu_ws}/ apply -target=proxmox_vm_qemu.{vm_name} -auto-approve",
-                                f"",
-                                f"# Apply Talos machine config (boots from talos-1x-base template):",
+                                "",
+                                "# Apply Talos machine config (boots from talos-1x-base template):",
                                 f"talosctl apply-config --insecure --nodes {vm_ip} \\",
-                                f"  --file talos-configs/controlplane.yaml \\",
+                                "  --file talos-configs/controlplane.yaml \\",
                                 f"  --patch @{talos_cfg}",
-                                f"",
-                                f"# Wait for Talos to be ready:",
+                                "",
+                                "# Wait for Talos to be ready:",
                                 f"talosctl --nodes {vm_ip} --talosconfig talos-configs/talosconfig \\",
-                                f"  health --wait-timeout 5m",
+                                "  health --wait-timeout 5m",
                             ],
                             "validation": [
                                 f"qm status {vmid}  # Expected: status running",
                                 f"talosctl --nodes {vm_ip} --talosconfig talos-configs/talosconfig \\",
-                                f"  get members  # Expected: node listed",
+                                "  get members  # Expected: node listed",
                             ],
                             "method": "RECREATE",
                             "on_failure": "human",
@@ -720,14 +719,14 @@ class PhoenixPlaybookGenerator:
                                 f"# VM: {vm_name}  VMID: {vmid}  IP: {vm_ip}",
                                 f"# Method: RECREATE (stateless — tofu_workspace={tofu_ws})",
                                 f"# Template: {tmpl_name}  Ansible commit: {ans_c}",
-                                f"",
-                                f"# Apply OpenTofu to create the VM:",
+                                "",
+                                "# Apply OpenTofu to create the VM:",
                                 f"tofu -chdir={tofu_ws}/ apply -target=proxmox_vm_qemu.{vm_name} -auto-approve",
-                                f"",
-                                f"# Wait for Cloud-Init to complete first boot:",
+                                "",
+                                "# Wait for Cloud-Init to complete first boot:",
                                 f"sleep 30 && ssh ubuntu@{vm_ip} 'sudo cloud-init status --wait'",
-                                f"",
-                                f"# Configure via Ansible:",
+                                "",
+                                "# Configure via Ansible:",
                                 f"ansible-playbook -i inventory/ site.yml --limit {vm_name}",
                             ],
                             "validation": [
@@ -757,10 +756,10 @@ class PhoenixPlaybookGenerator:
                         restore_validation = [
                             f"qm status {vmid}  # Expected: status running",
                             f"talosctl --nodes {vm_ip} --talosconfig talos-configs/talosconfig \\",
-                            f"  get members  # Expected: node listed",
+                            "  get members  # Expected: node listed",
                         ]
                         restore_note = (
-                            f"# NOTE: Talos node — no SSH access. Use talosctl for post-restore ops."
+                            "# NOTE: Talos node — no SSH access. Use talosctl for post-restore ops."
                         )
                     else:
                         restore_validation = [
@@ -776,7 +775,7 @@ class PhoenixPlaybookGenerator:
                     if restore_note:
                         commands.append(restore_note)
                     commands += [
-                        f"# Locate most recent PBS backup:",
+                        "# Locate most recent PBS backup:",
                         f"qmrestore /path/to/backup/{vmid}-latest.vma.zst {vmid} --storage local-zfs",
                         f"qm start {vmid}",
                     ]

@@ -163,7 +163,7 @@ def generate_ssh_keypair(
 def keepass_create_group(cli: str, db_path: str, group_path: str, db_password: str) -> bool:
     """Create a KeePass group (mkdir-like). Silently ignores if already exists."""
     try:
-        result = subprocess.run(
+        subprocess.run(
             [cli, "mkdir", "--no-password", "-q", db_path, group_path],
             input=db_password, capture_output=True, text=True, timeout=10,
         )
@@ -230,7 +230,7 @@ def keepass_add_ssh_key(
         cmd_attach = [cli, "attachment-import", db_path, entry_path,
                       "private_key.pem", tmp_path]
         stdin_attach = f"{db_password}\n"
-        r2 = subprocess.run(cmd_attach, input=stdin_attach, capture_output=True,
+        subprocess.run(cmd_attach, input=stdin_attach, capture_output=True,
                             text=True, timeout=15)
         return r1.returncode == 0  # r2 may fail on older keepassxc — that's ok
     except Exception:
@@ -314,7 +314,7 @@ def run_wizard(
                 print()
                 try:
                     raw = input(
-                        f"  KeePass database [Enter to use suggested, or type path]: "
+                        "  KeePass database [Enter to use suggested, or type path]: "
                     ).strip()
                 except (EOFError, KeyboardInterrupt):
                     print("\n  Aborted.")
@@ -379,14 +379,14 @@ def run_wizard(
     kp_path = kp_paths[secret_id]
     print(f"\n  [{secret_id}]")
     print(f"    KeePass path: {kp_path}")
-    print(f"    Action:       Generate via Proxmox UI → Datacenter → API Tokens")
-    print(f"                  Store result at KeePass path above")
-    print(f"    (Proxmox API tokens cannot be generated externally)")
+    print("    Action:       Generate via Proxmox UI → Datacenter → API Tokens")
+    print("                  Store result at KeePass path above")
+    print("    (Proxmox API tokens cannot be generated externally)")
 
     # ── Per-VM secrets ───────────────────────────────────────────────────────
     for vm in vms:
         name = vm["name"]
-        vmid = vm["vmid"]
+        vm["vmid"]
 
         # Initial OS user password
         pw_id = f"vm-{name}-password"
@@ -436,7 +436,7 @@ def run_wizard(
                     # runs with exec >> forge.log 2>&1, which would capture stdout).
                     # Same pattern as print_totp_setup_to_tty() in keepass_mfa.py.
                     import sys as _sys
-                    _key_header = f"    Private key:  (shown below — copy to KeePass before closing terminal)"
+                    _key_header = "    Private key:  (shown below — copy to KeePass before closing terminal)"
                     try:
                         with open("/dev/tty", "w") as _tty:
                             print(_key_header, file=_tty)
@@ -447,11 +447,11 @@ def run_wizard(
                         print(file=_sys.stderr)
                         print(private_pem, file=_sys.stderr)
             else:
-                print(f"    Status:       ssh-keygen failed — generate manually")
+                print("    Status:       ssh-keygen failed — generate manually")
         else:
-            print(f"    Status:       ssh-keygen not found — generate manually with:")
+            print("    Status:       ssh-keygen not found — generate manually with:")
             print(f"                  ssh-keygen -t ed25519 -C '{name}-deploy-key@{hostname}' -f {name}_key")
-            print(f"                  Store private key in KeePass at path above")
+            print("                  Store private key in KeePass at path above")
             print(f"                  Copy public key to: ssh/public-keys/{name}.pub")
 
     # ── Update bootstrap-state.json secret registry ──────────────────────────

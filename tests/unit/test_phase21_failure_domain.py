@@ -11,14 +11,9 @@ Covers:
         analyze_failure_domain(), FailureDomainReport
 """
 
-import sys
-import os
 
-_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-sys.path.insert(0, os.path.join(_ROOT, "proxmox-bootstrap"))
 
 import failure_domain as _fd
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -263,7 +258,7 @@ class TestBuildFailureDomainGraph:
 
     def test_vm_depends_on_host(self):
         nodes   = _fd.build_failure_domain_graph(_manifest())
-        node_map = {n.node_id: n for n in nodes}
+        {n.node_id: n for n in nodes}
         vm_nodes = [n for n in nodes if n.level == _fd.LEVEL_VM]
         for vm in vm_nodes:
             # At least one dependency should be the physical host
@@ -294,7 +289,6 @@ class TestAnalyzeFailureDomain:
 
     def test_circular_dep_report(self):
         # Add self-referencing nodes
-        from copy import deepcopy
         import failure_domain as fd2
         nodes = [
             fd2.FailureDomainNode("a", fd2.LEVEL_VM, "A", "c", recovers_via=["b"]),

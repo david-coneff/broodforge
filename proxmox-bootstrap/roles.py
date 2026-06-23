@@ -34,8 +34,6 @@ Importable by init-bootstrap-state.py and other tooling.
 
 import json
 import sys
-from pathlib import Path
-
 
 # ---------------------------------------------------------------------------
 # Role definitions
@@ -413,7 +411,7 @@ def generate_vm_stub_from_descriptor(
     role_ids = descriptor["component_roles"]
 
     # Primary role for snippet naming (lowest wave in the combined set)
-    primary_role_id = sorted(role_ids, key=lambda r: ROLES[r]["wave"])[0]
+    sorted(role_ids, key=lambda r: ROLES[r]["wave"])[0]
     snippet_base = "snippets"
 
     # For combined VMs: vendor-data only if operations (or legacy infra-bootstrap) is one of the roles
@@ -691,7 +689,7 @@ def main() -> None:
         return
     if "--generate" in args:
         idx = args.index("--generate")
-        hostname = args[idx + 1] if idx + 1 < len(args) else "pve01"
+        args[idx + 1] if idx + 1 < len(args) else "pve01"
         base = int(args[idx + 2]) if idx + 2 < len(args) else 100
         stubs = []
         for rid in REQUIRED_ROLES:

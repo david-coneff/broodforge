@@ -12,15 +12,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
-
-import sys
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / "proxmox-bootstrap"))
 from version_stamp import (
     HashRules,
     _parse_schema_builtin,
     _rules_from_schema,
-    _load_schema,
-    _schema_path,
     _should_include,
     compute_codebase_hash,
     generate_stamp,
@@ -61,7 +56,6 @@ def _make_schema_file(repo_root: Path) -> None:
     """Write the minimal schema into the expected location."""
     schema_dir = repo_root / "proxmox-bootstrap"
     schema_dir.mkdir(exist_ok=True)
-    import yaml  # may raise ImportError — but tests using this fixture need yaml or the builtin parser
     schema_path = schema_dir / "version-hash-schema.yaml"
     # Write as a simple YAML that the builtin parser can also handle
     lines = [

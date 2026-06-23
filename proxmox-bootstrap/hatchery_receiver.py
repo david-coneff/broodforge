@@ -21,18 +21,17 @@ import os
 import secrets
 import sys
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, HTTPServer
-from pathlib import Path
 from typing import Optional
 
-from failure_package_analyzer import analyze_failure_package, FailureDiagnosis
+from failure_package_analyzer import FailureDiagnosis, analyze_failure_package
 
 # Ensure co-located modules are importable when invoked from a different cwd
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 try:
-    from update_state_after_spawn import update_state_after_spawn, build_spawn_result
+    from update_state_after_spawn import build_spawn_result, update_state_after_spawn
     _HAS_STATE_UPDATER = True
 except ImportError:
     _HAS_STATE_UPDATER = False

@@ -89,17 +89,17 @@ def main() -> None:
     profile  = (manifest.get("network_topology") or {}).get("profile", "unknown")
 
     print(f"\n{'=' * 64}")
-    print(f"  Forge Package Assembled")
+    print("  Forge Package Assembled")
     print(f"{'=' * 64}")
     print(f"  Package:  {pkg}")
     print(f"  SHA-256:  {hashlib.sha256(pkg.read_bytes()).hexdigest()}")
     print(f"  Cell:     {cell_id}")
     print(f"  Host:     {hostname}")
     print(f"  Profile:  {profile}")
-    print(f"\n  Next steps:")
+    print("\n  Next steps:")
     print(f"    1. Copy {pkg.name} to the bare-metal Proxmox host")
     print(f"    2. Extract: tar -xzf {pkg.name}")
-    print(f"    3. Run:     bash forge.sh")
+    print("    3. Run:     bash forge.sh")
     print()
 
 

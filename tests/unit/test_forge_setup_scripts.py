@@ -7,18 +7,13 @@ test_forge_setup_scripts.py — Tests for Phase 1.F setup script generators:
   1.F.8d  setup_tls.py           — TLS certificate automation
 """
 
-import sys
-import os
 
-_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-sys.path.insert(0, os.path.join(_ROOT, "proxmox-bootstrap"))
 
-import setup_dnsmasq  as _dns
-import setup_headscale as _hs
-import setup_ddns      as _ddns
-import setup_tls       as _tls
 import forge_keepass_init as _kp
-
+import setup_ddns as _ddns
+import setup_dnsmasq as _dns
+import setup_headscale as _hs
+import setup_tls as _tls
 
 # ===========================================================================
 # 1.F.8b — setup_dnsmasq

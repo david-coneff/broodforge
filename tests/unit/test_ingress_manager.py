@@ -1,16 +1,11 @@
 """Unit tests for ingress_manager.py — Phase 2.F."""
-import json
 import os
-import sys
 import tempfile
 from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
 
 import pytest
-
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../proxmox-bootstrap"))
 from ingress_manager import (
-    IngressDeployment,
     IngressManager,
     IngressRoute,
     IngressState,

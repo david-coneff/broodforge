@@ -30,8 +30,7 @@ Stdlib only.
 
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Any, Callable, Optional
-
+from typing import Callable, Optional
 
 # ---------------------------------------------------------------------------
 # Standard capability IDs
@@ -198,7 +197,7 @@ def derive_capabilities_from_state(
 
     # Forgejo (from VMs or service contracts)
     if any("forgejo" in n for n in vm_names | sc_names):
-        fqdn = hi.get("fqdn")
+        hi.get("fqdn")
         caps.append(CapabilityEntry(
             id=CAP_FORGEJO,
             category="gitops",

@@ -8,7 +8,6 @@ Run: py -3 tests/unit/test_metadata.py
 """
 
 import re
-import sys
 import unittest
 from pathlib import Path
 
@@ -488,7 +487,7 @@ class TestValidatorScript(unittest.TestCase):
     """Test that the validator script itself is importable and structured correctly."""
 
     def setUp(self):
-        sys.path.insert(0, str(BOOTSTRAP_DIR))
+        pass
 
     def test_validator_has_required_keys_dict(self):
         import importlib.util

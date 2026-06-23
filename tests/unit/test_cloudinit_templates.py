@@ -12,7 +12,6 @@ Run: py -3 tests/unit/test_cloudinit_templates.py
 """
 
 import json
-import sys
 import unittest
 from pathlib import Path
 
@@ -100,7 +99,7 @@ def _extract_ip_from_network_config(text: str) -> str | None:
     if HAS_YAML:
         data = yaml.safe_load(text) or {}
         ethernets = data.get("ethernets", {})
-        for iface, cfg in ethernets.items():
+        for _iface, cfg in ethernets.items():
             addrs = cfg.get("addresses", [])
             if addrs:
                 return addrs[0].split("/")[0]
@@ -433,7 +432,7 @@ class TestUserDataGeneratorConsistency(unittest.TestCase):
         search_domain = self.network_topo.get("search_domain", "")
         if not search_domain:
             self.skipTest("No search_domain in network_topology")
-        for name, vm in self.vm_map.items():
+        for name, _vm in self.vm_map.items():
             text, _ = self._load_user_data(name)
             expected_fqdn = f"fqdn: {name}.{search_domain}"
             self.assertIn(expected_fqdn, text,

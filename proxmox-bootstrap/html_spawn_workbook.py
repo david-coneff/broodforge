@@ -12,9 +12,16 @@ Stdlib only.
 """
 
 from html_base import (
-    html_page, h, p, pre, code, dl, table, divider,
-    callout, section, score_badge,
-    checkbox_list, reset_checkbox_counter,
+    checkbox_list,
+    divider,
+    dl,
+    h,
+    html_page,
+    p,
+    pre,
+    reset_checkbox_counter,
+    section,
+    table,
 )
 
 
@@ -84,7 +91,7 @@ def _section_discovery(hw: dict) -> str:
 
 def _section_host_bootstrap(plan: dict) -> str:
     hostname = plan.get("hostname") or "?"
-    nt = plan.get("network_config") or {}
+    plan.get("network_config") or {}
     zfs = plan.get("zfs_config") or {}
 
     items = [

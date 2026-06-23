@@ -9,7 +9,6 @@ Run: py -3 tests/unit/test_container_schema.py
 
 import importlib.util
 import json
-import sys
 import unittest
 from copy import deepcopy
 from datetime import datetime, timezone
@@ -20,7 +19,6 @@ BOOTSTRAP_REPO = REPO_ROOT / "proxmox-bootstrap"
 FIXTURES = REPO_ROOT / "tests" / "fixtures" / "bootstrap"
 SCHEMA_DIR = REPO_ROOT / "data-model"
 
-sys.path.insert(0, str(SCHEMA_DIR))
 from validate import SchemaValidator
 
 
@@ -352,7 +350,6 @@ class TestVolumeArchiveFilename(unittest.TestCase):
         self.assertNotIn(" ", fn)
 
     def test_filesystem_safe(self):
-        import re
         fn = self._fn()
         self.assertRegex(fn, r"^[a-zA-Z0-9\-_\.]+$")
 
@@ -484,7 +481,6 @@ class TestAllArchiveNamesConsistent(unittest.TestCase):
                              msg=f"Hash should be hex in {fn!r}")
 
     def test_all_filesystem_safe(self):
-        import re
         fns = [
             self.bk.archive_filename("cell-a", dt=self.dt),
             self.bk.volume_archive_filename("cell-a", "vm1", "app", "data", dt=self.dt),

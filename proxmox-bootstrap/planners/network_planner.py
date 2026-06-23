@@ -133,7 +133,7 @@ def check_dns_servers(discovered: dict, declared_ns: list) -> tuple[str, str]:
 def check_nic_interface(discovered: dict, declared_iface: str) -> tuple[str, str]:
     if not declared_iface or "POPULATE" in declared_iface:
         return "YELLOW", "VM NIC interface not declared — update network-topology.yaml"
-    nics = [n["name"] for n in discovered.get("physical_nics", [])]
+    [n["name"] for n in discovered.get("physical_nics", [])]
     # ens18 is the interface name INSIDE VMs, not on the host — we can't verify
     # directly. Check if the Proxmox host has VirtIO-style interface naming.
     if declared_iface.startswith("ens") or declared_iface.startswith("eth"):
@@ -242,7 +242,7 @@ def plan_network(network: dict, topology_meta: dict) -> dict:
 
 
 def _now_utc() -> str:
-    from datetime import datetime, timezone, timedelta
+    from datetime import datetime, timedelta, timezone
     utc = datetime.now(timezone.utc)
     local = utc + timedelta(hours=int(os.environ.get("LOCAL_TZ_OFFSET", "0")))
     tz_name = os.environ.get("LOCAL_TZ_NAME", "UTC")

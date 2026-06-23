@@ -10,13 +10,9 @@ network info, validation phases — plus HTML structure.
 
 import importlib.util
 import os
-import sys
 import unittest
-from pathlib import Path
 
 _ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-sys.path.insert(0, os.path.join(_ROOT, "proxmox-bootstrap"))
-sys.path.insert(0, os.path.join(_ROOT, "doc-gen", "renderers"))
 
 # Load html_forge_workbook via importlib
 _spec = importlib.util.spec_from_file_location(
@@ -28,7 +24,6 @@ _spec.loader.exec_module(_hfw)
 build_forge_workbook_html = _hfw.build_forge_workbook_html
 
 from forge_validator import ForgeValidationFinding
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

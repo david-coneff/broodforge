@@ -14,14 +14,11 @@ Covers:
 """
 
 import json
-import sys
 import os
 
 _ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-sys.path.insert(0, os.path.join(_ROOT, "proxmox-bootstrap"))
 
 import federation_state as _fs
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

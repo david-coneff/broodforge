@@ -27,8 +27,6 @@ Stdlib only.
 """
 
 from dataclasses import dataclass, field
-from typing import Any, Callable, Optional
-
 
 # ---------------------------------------------------------------------------
 # Failure domain taxonomy (21.1)
@@ -245,7 +243,7 @@ def detect_spofs(nodes: list[FailureDomainNode]) -> list[SpofFinding]:
       - AND no recovers_via alternatives declared
       - AND at least one other node depends on it
     """
-    node_map = {n.node_id: n for n in nodes}
+    {n.node_id: n for n in nodes}
     # Which nodes are depended upon?
     depended_on: set[str] = set()
     for node in nodes:

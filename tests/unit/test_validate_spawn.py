@@ -20,18 +20,17 @@ Covers:
   - Clean proposal → no findings
 """
 
-import sys
 import unittest
-from pathlib import Path
 
-REPO_ROOT = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(REPO_ROOT / "proxmox-bootstrap"))
-
-from hatchery_state import read_hatchery_state, SpawnManifest
+from hatchery_state import SpawnManifest, read_hatchery_state
 from validate_spawn import (
-    SpawnProposal, SpawnFinding,
-    validate_spawn, is_valid, summarise,
-    SEVERITY_RED, SEVERITY_YELLOW,
+    SEVERITY_RED,
+    SEVERITY_YELLOW,
+    SpawnFinding,
+    SpawnProposal,
+    is_valid,
+    summarise,
+    validate_spawn,
 )
 
 # ---------------------------------------------------------------------------

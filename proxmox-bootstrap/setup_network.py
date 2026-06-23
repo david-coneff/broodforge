@@ -24,8 +24,7 @@ Stdlib only.
 import ipaddress
 import re
 from dataclasses import dataclass, field
-from typing import Any, Callable, Optional
-
+from typing import Any, Optional
 
 # ---------------------------------------------------------------------------
 # Profile constants
@@ -531,8 +530,8 @@ def generate_dnsmasq_config(
     For WAN profile: LAN clients get LAN IPs (split-horizon); external via registrar.
     """
     profile = network_topology.get("profile", PROFILE_LAN)
-    cidr    = network_topology.get("management_cidr", "192.168.1.0/24")
-    gw      = network_topology.get("gateway", "192.168.1.1")
+    network_topology.get("management_cidr", "192.168.1.0/24")
+    network_topology.get("gateway", "192.168.1.1")
     domain  = network_topology.get("search_domain") or \
               (network_topology.get("wan_config") or {}).get("domain", "internal")
     listen  = None
@@ -566,8 +565,8 @@ def generate_dnsmasq_config(
     lines += [
         "",
         "# Upstream resolvers (for external names):",
-        f"server=8.8.8.8",
-        f"server=1.1.1.1",
+        "server=8.8.8.8",
+        "server=1.1.1.1",
         "",
         "# Performance:",
         "cache-size=500",
@@ -581,8 +580,8 @@ def generate_dnsmasq_config(
             lines += [
                 "",
                 f"# Split-horizon: {wan_domain} resolves to LAN IPs for local clients.",
-                f"# External clients resolve via your DNS registrar/DDNS → WAN IP.",
-                f"# No extra config needed here — the address= lines above handle LAN resolution.",
+                "# External clients resolve via your DNS registrar/DDNS → WAN IP.",
+                "# No extra config needed here — the address= lines above handle LAN resolution.",
             ]
 
     return "\n".join(lines) + "\n"

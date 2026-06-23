@@ -27,7 +27,6 @@ import re
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
-
 # ---------------------------------------------------------------------------
 # Setting groups
 # ---------------------------------------------------------------------------
@@ -212,7 +211,7 @@ def suggest(field_path: str, session: GuidedSetupSession) -> Any:
     chosen_hostname = session.get_value("host_identity.hostname")
     chosen_domain = session.get_value("host_identity.domain")
     chosen_pool = session.get_value("storage.pool_name")
-    chosen_vmid_start = session.get_value("vms.vmid_start")
+    session.get_value("vms.vmid_start")
 
     # ── Network ─────────────────────────────────────────────────────────────
 
@@ -302,7 +301,7 @@ def suggest(field_path: str, session: GuidedSetupSession) -> Any:
 
     if field_path == "vms.default_ram_gb":
         mem_total = _get_manifest_val(m, "memory.total_gb") or 32
-        n_vms = max(len(_get_manifest_val(m, "vms") or []), 3)
+        max(len(_get_manifest_val(m, "vms") or []), 3)
         # Suggest ~25% of host RAM per VM, floor at 2 GB
         per_vm = max(int(mem_total * 0.25), 2)
         return per_vm
@@ -447,9 +446,9 @@ def check_conflicts(field_path: str, value: Any, session: GuidedSetupSession) ->
         except (TypeError, ValueError):
             return [f"VMID must be an integer, got {value!r}"]
         if start < 100:
-            warnings.append(f"VMIDs below 100 are reserved by Proxmox (suggested ≥ 100)")
+            warnings.append("VMIDs below 100 are reserved by Proxmox (suggested ≥ 100)")
         if start >= 9000:
-            warnings.append(f"VMIDs 9000+ are reserved for templates")
+            warnings.append("VMIDs 9000+ are reserved for templates")
         # Check against existing declared VMs
         vms = session.manifest.get("vms") or []
         existing_ids = {int(v["vmid"]) for v in vms if v.get("vmid")}

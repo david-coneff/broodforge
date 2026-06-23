@@ -42,11 +42,9 @@ Stdlib only.
 """
 
 import hashlib
-import json
 from dataclasses import dataclass, field
-from datetime import datetime, timezone, timedelta
-from typing import Any, Callable, Optional
-
+from datetime import datetime, timezone
+from typing import Callable, Optional
 
 # ---------------------------------------------------------------------------
 # Trust relationship type constants

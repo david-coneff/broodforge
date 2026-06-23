@@ -26,16 +26,23 @@ Provides:
 Stdlib only.
 """
 
-from html_base import (
-    html_page, h, p, pre, code, dl, table, divider,
-    callout, section, score_badge,
-    checkbox_list, reset_checkbox_counter,
-)
 from federation_state import (
-    FederationState, FederationReadinessReport, CellFederationScore,
-    TrustRelationship, RecoveryRelationship, CellRegistryEntry,
+    FederationReadinessReport,
+    FederationState,
     score_federation_readiness,
-    TRUST_PEER, TRUST_RECOVERY, TRUST_BACKUP_PROVIDER, TRUST_READ_ONLY,
+)
+from html_base import (
+    callout,
+    checkbox_list,
+    divider,
+    dl,
+    html_page,
+    p,
+    pre,
+    reset_checkbox_counter,
+    score_badge,
+    section,
+    table,
 )
 
 
@@ -367,11 +374,11 @@ def build_command_reference_html(
 
     # Proxmox commands
     pve_cmds = [
-        f"# Proxmox cluster status",
-        f"pvecm status",
-        f"qm list",
+        "# Proxmox cluster status",
+        "pvecm status",
+        "qm list",
         f"pvesh get /nodes/{hostname}/tasks --limit 20",
-        f"zpool list && zfs list",
+        "zpool list && zfs list",
     ]
     body += section("Proxmox Host Commands", pre("\n".join(pve_cmds)), open_=True)
 
@@ -437,7 +444,7 @@ def build_validation_sheet_html(
     title    = f"Validation Sheet — {title_suffix}"
 
     body = ""
-    body += p(f"Post-operation validation checklist. Check each item as confirmed.")
+    body += p("Post-operation validation checklist. Check each item as confirmed.")
     body += divider()
     body += checkbox_list(checklist, id_prefix="valid")
 

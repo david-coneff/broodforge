@@ -8,15 +8,11 @@ Covers:
 """
 
 import json
-import sys
 import os
 
 _ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-sys.path.insert(0, os.path.join(_ROOT, "proxmox-bootstrap"))
-sys.path.insert(0, os.path.join(_ROOT, "doc-gen"))
 
 import observability_collector as _obs
-
 
 # ===========================================================================
 # 16.1 — observability-state-schema.json

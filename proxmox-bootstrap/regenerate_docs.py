@@ -29,7 +29,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-
 REPO_ROOT = Path(__file__).parent.parent.resolve()
 MANIFEST_PATH = Path(__file__).parent / "doc-manifest.json"
 GENERATOR = Path(__file__).parent / "md_to_html.py"

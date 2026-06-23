@@ -1,14 +1,15 @@
 """Unit tests for flux_manager.py — Phase 2.G."""
-import json, os, sys, tempfile
+import os
+import tempfile
 from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
-import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../proxmox-bootstrap"))
-from flux_manager import FluxDeployment, FluxManager, FluxState, GitSource, Kustomization
+import pytest
+from flux_manager import FluxManager, FluxState, GitSource, Kustomization
 
 FIXED_TS = datetime(2026, 6, 10, 12, 0, 0, tzinfo=timezone.utc)
-_now = lambda: FIXED_TS
+def _now():
+    return FIXED_TS
 
 @pytest.fixture
 def td():

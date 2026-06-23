@@ -26,7 +26,6 @@ import webbrowser
 from datetime import datetime, timezone
 from pathlib import Path
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -104,7 +103,7 @@ def _section_header(state: dict) -> list[str]:
 
 def _section_host(state: dict) -> list[str]:
     hi = state.get("host_identity") or {}
-    nt = state.get("network_topology") or {}
+    state.get("network_topology") or {}
 
     lines = [_section("Host Identity")]
     lines.append(_table_header("Field", "Value"))
@@ -468,11 +467,9 @@ def main():
 
     if args.format == "json":
         content    = json.dumps(to_import_json(state), indent=2)
-        out_suffix = ".json"
         out_path   = Path(args.output or "setup-manifest.json")
     else:
         content    = build_markdown(state)
-        out_suffix = ".md"
         out_path   = Path(args.output or "setup-manifest.md")
 
     out_path.write_text(content, encoding="utf-8")

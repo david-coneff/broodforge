@@ -13,9 +13,6 @@ cleanly but does nothing — it is a no-op so the test suite can import it.
 """
 
 import sys
-import os
-
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "doc-gen"))
 
 try:
     import atheris

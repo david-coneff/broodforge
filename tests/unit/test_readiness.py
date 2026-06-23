@@ -4,22 +4,20 @@ Tests for doc-gen/readiness.py — scoring model, cascade, SPOFs, blockers.
 Run: python3 tests/unit/test_readiness.py
 """
 
-import sys
 import json
 import unittest
 from pathlib import Path
-from copy import deepcopy
 
 REPO = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(REPO / "doc-gen"))
 
-from readiness import (
-    BackupInventory, score_component, score_graph,
-    ReadinessReport, ComponentReadiness, worst, BACKUP_AGE_THRESHOLDS,
-    _score_migration_health,
-)
 import dependencies as dep_mod
-
+from readiness import (
+    BackupInventory,
+    _score_migration_health,
+    score_component,
+    score_graph,
+    worst,
+)
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -247,7 +245,7 @@ class TestScoreComponentRed(unittest.TestCase):
 class TestScoreGraph(unittest.TestCase):
     def _build_two_node_graph(self, provider_score_data, consumer_score_data):
         """Build a minimal graph: consumer depends on provider."""
-        from dependencies import DependencyGraph, Node, Edge, RestoreWave
+        from dependencies import DependencyGraph, Edge, Node, RestoreWave
 
         provider = Node(id="vm:provider", type="vm", label="Provider VM",
                         metadata={"vmid": 100})
@@ -298,7 +296,7 @@ class TestScoreGraph(unittest.TestCase):
 
     def test_spof_detection(self):
         """Node with ≥2 VM dependents is a SPOF."""
-        from dependencies import DependencyGraph, Node, Edge, RestoreWave
+        from dependencies import DependencyGraph, Edge, Node
         shared = Node(id="zfs:rpool", type="storage", label="rpool", metadata={})
         vm1    = Node(id="vm:a", type="vm", label="VM A", metadata={"vmid": 100})
         vm2    = Node(id="vm:b", type="vm", label="VM B", metadata={"vmid": 101})
@@ -319,7 +317,7 @@ class TestScoreGraph(unittest.TestCase):
 
     def test_overall_score_is_worst(self):
         """overall_score = worst of all component scores."""
-        from dependencies import DependencyGraph, Node, RestoreWave
+        from dependencies import DependencyGraph, Node
         g = DependencyGraph(
             nodes=[
                 Node(id="vm:a", type="vm", label="VM A", metadata={"vmid": 200}),
@@ -460,7 +458,7 @@ if __name__ == "__main__":
 # ===========================================================================
 
 try:
-    from hypothesis import given, settings, assume
+    from hypothesis import assume, given, settings
     from hypothesis import strategies as st
     _HAS_HYPOTHESIS = True
 except ImportError:

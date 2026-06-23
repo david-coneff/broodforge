@@ -8,26 +8,20 @@ orchestration, clock injection, and error handling.
 from __future__ import annotations
 
 import json
-import os
-import sys
 import tempfile
 import unittest
 from datetime import datetime, timezone
 from pathlib import Path
-from unittest.mock import patch, MagicMock, call
+from unittest.mock import MagicMock, patch
 
 # Ensure proxmox-bootstrap is importable
-_REPO_ROOT = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(_REPO_ROOT / "proxmox-bootstrap"))
-
 from backup_manager import (
-    BackupScope,
-    BackupManifest,
-    BackupScopeInferrer,
     BackupManager,
+    BackupManifest,
+    BackupScope,
+    BackupScopeInferrer,
     _generate_backup_id,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers

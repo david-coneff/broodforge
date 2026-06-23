@@ -15,27 +15,19 @@ Covers:
   - session_to_overrides(): serializes only manual choices
 """
 
-import sys
 import unittest
-from pathlib import Path
-
-REPO_ROOT = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(REPO_ROOT / "proxmox-bootstrap"))
 
 from guided_setup import (
-    SETTING_GROUPS,
-    MODES,
     IP_SELECTIVE_FIELDS,
+    SETTING_GROUPS,
     GuidedSetupSession,
-    Choice,
-    suggest,
-    set_value,
     check_conflicts,
-    run_ip_selective_suggestions,
     group_selector_rows,
+    run_ip_selective_suggestions,
     session_to_overrides,
+    set_value,
+    suggest,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

@@ -14,15 +14,10 @@ Covers:
   - forge_keepass_init: mfa_method field + MFA entries + command emission
 """
 
-import sys
-import os
 
-_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-sys.path.insert(0, os.path.join(_ROOT, "proxmox-bootstrap"))
 
-import keepass_mfa as _mfa
 import forge_keepass_init as _ki
-
+import keepass_mfa as _mfa
 
 # ===========================================================================
 # TOTP secret generation

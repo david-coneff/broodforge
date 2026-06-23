@@ -1,20 +1,14 @@
 """Tests for Phase 2 parsers (hardware, storage, network, proxmox)."""
 
-import sys
-from pathlib import Path
 
-import pytest
 
-sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Import parsers to trigger @register_parser decorators
 import engine.modules  # noqa: F401
-
 from engine.modules.hardware_parser import parse_hardware
-from engine.modules.storage_parser import parse_storage
 from engine.modules.network_parser import parse_network
 from engine.modules.proxmox_parser import parse_proxmox
-
+from engine.modules.storage_parser import parse_storage
 
 # ===========================================================================
 # Hardware parser

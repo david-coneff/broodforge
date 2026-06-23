@@ -19,31 +19,23 @@ Covers:
 """
 
 import json
-import sys
 import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(REPO_ROOT / "doc-gen"))
-sys.path.insert(0, str(REPO_ROOT / "doc-gen" / "renderers"))
-sys.path.insert(0, str(REPO_ROOT / "proxmox-bootstrap"))
 
 from backup_engine import (
-    BackupNaming,
     BackupEngine,
+    BackupNaming,
     RcloneRunner,
     ResticRunner,
     RestoreEngine,
-    SpaceProbe,
     SpaceInfo,
+    SpaceProbe,
     generate_backup_passphrase,
-    _ts,
-    _hash8,
-    _uuid8,
 )
 from readiness import _score_backup_config_completeness
-
 
 # ---------------------------------------------------------------------------
 # Fixtures and helpers
@@ -444,7 +436,8 @@ class TestBackupEngineSecrets(unittest.TestCase):
     def test_secrets_backup_success(self):
         engine, calls = self._make_engine(rclone_ok=True)
         # Need a real-ish path; mock will succeed regardless
-        import tempfile, os
+        import os
+        import tempfile
         with tempfile.NamedTemporaryFile(suffix=".kdbx", delete=False) as f:
             f.write(b"fake kdbx content")
             tmp = f.name
@@ -458,7 +451,8 @@ class TestBackupEngineSecrets(unittest.TestCase):
 
     def test_secrets_backup_failure_reported(self):
         engine, calls = self._make_engine(rclone_ok=False)
-        import tempfile, os
+        import os
+        import tempfile
         with tempfile.NamedTemporaryFile(suffix=".kdbx", delete=False) as f:
             f.write(b"fake")
             tmp = f.name
@@ -471,7 +465,8 @@ class TestBackupEngineSecrets(unittest.TestCase):
 
     def test_secrets_backup_result_has_layer(self):
         engine, _ = self._make_engine()
-        import tempfile, os
+        import os
+        import tempfile
         with tempfile.NamedTemporaryFile(suffix=".kdbx", delete=False) as f:
             f.write(b"x")
             tmp = f.name
@@ -483,7 +478,8 @@ class TestBackupEngineSecrets(unittest.TestCase):
 
     def test_secrets_backup_snapshot_set_id_format(self):
         engine, _ = self._make_engine()
-        import tempfile, os
+        import os
+        import tempfile
         with tempfile.NamedTemporaryFile(suffix=".kdbx", delete=False) as f:
             f.write(b"x")
             tmp = f.name
@@ -497,7 +493,8 @@ class TestBackupEngineSecrets(unittest.TestCase):
         bc = _minimal_backup_config()
         bc["layers"]["secrets"]["destinations"] = []
         engine = BackupEngine(cell_id=CELL_ID, backup_config=bc, now_fn=_now_fixed)
-        import tempfile, os
+        import os
+        import tempfile
         with tempfile.NamedTemporaryFile(suffix=".kdbx", delete=False) as f:
             f.write(b"x")
             tmp = f.name
@@ -794,8 +791,8 @@ class TestScoreBackupConfigCompleteness(unittest.TestCase):
 class TestRunbookAppendixH(unittest.TestCase):
 
     def _build_html(self, bc=None):
-        from html_recovery_runbook import build_recovery_runbook_html
         from dependencies import build_graph
+        from html_recovery_runbook import build_recovery_runbook_html
         from readiness import score_graph
 
         manifest = {

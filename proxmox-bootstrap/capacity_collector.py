@@ -14,7 +14,6 @@ by collect_tier2.py (cpu, memory, storage, vms sections).
 from datetime import datetime, timezone
 from typing import Optional
 
-
 # ---------------------------------------------------------------------------
 # Default thresholds
 # ---------------------------------------------------------------------------

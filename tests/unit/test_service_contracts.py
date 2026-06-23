@@ -10,23 +10,15 @@ Covers:
   - check_service_contract_coverage (Tier 2 collector coverage reader)
 """
 
-import sys
 import unittest
-from pathlib import Path
 
-REPO_ROOT = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(REPO_ROOT / "doc-gen"))
-sys.path.insert(0, str(REPO_ROOT / "doc-gen" / "renderers"))
-sys.path.insert(0, str(REPO_ROOT / "proxmox-bootstrap"))
-
+from collect_tier2 import check_service_contract_coverage
+from dependencies import build_graph
 from service_contracts import (
     ServiceContractRegistry,
     ServiceContractValidator,
     build_service_contract_registry,
 )
-from dependencies import build_graph, _add_service_edges_from_contracts, DependencyGraph, Edge
-from collect_tier2 import check_service_contract_coverage
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

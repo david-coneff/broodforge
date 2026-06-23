@@ -136,17 +136,17 @@ def main() -> None:
     hostname = (manifest.get("host_identity") or {}).get("hostname", "unknown")
 
     print(f"{'!' * 64}", file=sys.stderr)
-    print(f"  !! SINGLE-USE INSTALL PASSPHRASE — RECORD THIS NOW !!", file=sys.stderr)
+    print("  !! SINGLE-USE INSTALL PASSPHRASE — RECORD THIS NOW !!", file=sys.stderr)
     print(f"{'!' * 64}", file=sys.stderr)
-    print(f"", file=sys.stderr)
+    print("", file=sys.stderr)
     print(f"    {passphrase}", file=sys.stderr)
-    print(f"", file=sys.stderr)
+    print("", file=sys.stderr)
     print(f"  Cell:    {cell_id}  |  Host: {hostname}", file=sys.stderr)
-    print(f"  This passphrase is the answer.toml root-password. It will NOT be", file=sys.stderr)
-    print(f"  stored anywhere by broodforge. Write it down before using the file.", file=sys.stderr)
-    print(f"  It is replaced by a KeePass-managed credential during forge phase-03.", file=sys.stderr)
+    print("  This passphrase is the answer.toml root-password. It will NOT be", file=sys.stderr)
+    print("  stored anywhere by broodforge. Write it down before using the file.", file=sys.stderr)
+    print("  It is replaced by a KeePass-managed credential during forge phase-03.", file=sys.stderr)
     print(f"{'!' * 64}", file=sys.stderr)
-    print(f"", file=sys.stderr)
+    print("", file=sys.stderr)
 
 
 if __name__ == "__main__":

@@ -26,7 +26,6 @@ Stdlib only. No terminal I/O in this module — I/O is handled by phoenix-planne
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
-
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
@@ -159,7 +158,7 @@ def step1_run_identity_overrides(
     if mode == "autonomous" or not overrides:
         return session
 
-    from guided_setup import GuidedSetupSession, set_value, session_to_overrides
+    from guided_setup import GuidedSetupSession, set_value
 
     gs = GuidedSetupSession(mode=mode, manifest=manifest)
     session.guided_session = gs

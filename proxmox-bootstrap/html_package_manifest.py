@@ -27,7 +27,6 @@ from datetime import datetime, timezone
 from html import escape as _e
 from typing import Optional
 
-
 # ---------------------------------------------------------------------------
 # Shared CSS (same dark theme as dashboard and setup guide)
 # ---------------------------------------------------------------------------
@@ -513,7 +512,7 @@ def build_phoenix_manifest_html(
         if scope == "partial":
             deferred = playbook.get("deferred_services") or []
             if deferred:
-                body += f"<h3>Deferred Services (will not be restored in this run)</h3>"
+                body += "<h3>Deferred Services (will not be restored in this run)</h3>"
                 body += _table(["Service"], [[_e(s)] for s in deferred])
         body += "</div>"
 

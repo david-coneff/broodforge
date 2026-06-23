@@ -13,24 +13,20 @@ Covers:
 """
 
 import json
-import sys
 import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(REPO_ROOT / "doc-gen"))
-sys.path.insert(0, str(REPO_ROOT / "proxmox-bootstrap"))
 
+from readiness import _score_reconstruction_drill
 from reconstruction_drill import (
     DrillRecord,
-    start_drill,
-    save_drill_record,
-    get_last_drill,
     generate_drill_report,
+    get_last_drill,
+    save_drill_record,
+    start_drill,
 )
-from readiness import _score_reconstruction_drill
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

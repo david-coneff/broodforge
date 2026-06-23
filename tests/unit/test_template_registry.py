@@ -11,17 +11,14 @@ Run: py -3 tests/unit/test_template_registry.py
 """
 
 import json
-import sys
 import unittest
 from copy import deepcopy
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(REPO_ROOT / "doc-gen"))
-sys.path.insert(0, str(REPO_ROOT / "doc-gen" / "renderers"))
 
-from template_registry import TemplateRegistry, build_template_registry
 from readiness import _score_template_registry_completeness, score_graph
+from template_registry import TemplateRegistry, build_template_registry
 
 FIXTURES_DIR   = REPO_ROOT / "tests" / "fixtures" / "bootstrap"
 BOOTSTRAP_JSON = FIXTURES_DIR / "bootstrap-state.json"
@@ -337,7 +334,6 @@ class TestTemplateCompletenessScoring(unittest.TestCase):
     def test_overall_score_worsened_by_template_gap(self):
         """An otherwise GREEN graph worsens to ORANGE when template registry missing."""
         from dependencies import DependencyGraph, Node, RestoreWave
-        from readiness import BackupInventory
         # Minimal graph with no backup data (will be YELLOW already); confirm ORANGE added
         node = Node(id="host:pve01", type="host", label="PVE01", metadata={})
         graph = DependencyGraph(nodes=[node], edges=[],
@@ -384,7 +380,6 @@ class TestRunbookTemplateAppendix(unittest.TestCase):
     def _render(self, manifest):
         from html_recovery_runbook import build_recovery_runbook_html
         from timestamps import now_utc_iso
-        import dependencies as dep_mod
         graph = self._single_vm_graph()
         readiness = score_graph(graph, manifest)
         meta = {"generated_at": now_utc_iso(), "tier": 1, "template_version": "recovery-v1.0"}

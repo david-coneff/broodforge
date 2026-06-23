@@ -27,7 +27,6 @@ import subprocess
 from dataclasses import dataclass, field
 from typing import Callable, Optional
 
-
 # ---------------------------------------------------------------------------
 # Data types
 # ---------------------------------------------------------------------------

@@ -30,16 +30,15 @@ _HERE = Path(__file__).parent
 sys.path.insert(0, str(_HERE))
 
 from phoenix_guided_setup import (
+    RESTORATION_SCOPE_FULL,
+    RESTORATION_SCOPE_PARTIAL,
     PhoenixGuidedSetupSession,
-    RESTORATION_SCOPE_FULL, RESTORATION_SCOPE_PARTIAL,
-    PHOENIX_IDENTITY_FIELDS,
+    apply_overrides_to_playbook,
     restoration_wave_options,
     step0_set_restoration_scope,
     step1_run_identity_overrides,
-    apply_overrides_to_playbook,
 )
 from phoenix_playbook import build_phoenix_playbook
-
 
 # ---------------------------------------------------------------------------
 # I/O helpers
@@ -210,11 +209,11 @@ def main():
     node_name = (playbook.get("target_node") or {}).get("hostname", "unknown")
 
     print(f"\n{'=' * 64}")
-    print(f"  Broodforge Phoenix Planner")
+    print("  Broodforge Phoenix Planner")
     print(f"  Cell: {cell_id}  |  Node: {node_name}")
     print(f"{'=' * 64}")
-    print(f"\n  This planner customises a phoenix playbook before generating")
-    print(f"  a phoenix package for a failed node.")
+    print("\n  This planner customises a phoenix playbook before generating")
+    print("  a phoenix package for a failed node.")
 
     session = PhoenixGuidedSetupSession()
 
@@ -239,7 +238,7 @@ def main():
         print(f"\n  Warnings ({len(session.warnings)}):")
         for w in session.warnings:
             print(f"    ⚠  {w}")
-    print(f"\n  Next steps:")
+    print("\n  Next steps:")
     print(f"    1. Review {out}")
     print(f"    2. Run: python3 assemble-phoenix-package.py --playbook {out}")
     print()

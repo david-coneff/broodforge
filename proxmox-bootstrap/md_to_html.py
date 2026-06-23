@@ -35,7 +35,6 @@ import argparse
 import html
 import json
 import re
-import sys
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
@@ -2728,7 +2727,7 @@ def _render_blocks(md: str, tpl_vars: dict, collapsible: bool = False):
                         f'data-var="{html.escape(var_name)}" '
 + (f'data-validate="{_detect_validate(label, var_name)}" ' if _detect_validate(label, var_name) else '')
                         + f'value="{html.escape(var_default)}" placeholder="{html.escape(var_default)}">'
-                        + f'</div>'
+                        + '</div>'
                     )
                 else:
                     out.append(
@@ -3111,12 +3110,12 @@ def _build_toc_html(toc_entries: list) -> str:
 
     def _h4_li(e):
         hid, title, _, num = e
-        return (f'<li><a href="#{hid}" data-bf-toc="1">' 
+        return (f'<li><a href="#{hid}" data-bf-toc="1">'
                 f'<span class="bf-toc-num">{num}</span>\u00a0{html.escape(title)}</a></li>')
 
     def _h3_li(h3e, h4s):
         hid, title, _, num = h3e
-        lnk = (f'<a href="#{hid}" data-bf-toc="1">' 
+        lnk = (f'<a href="#{hid}" data-bf-toc="1">'
                f'<span class="bf-toc-num">{num}</span>\u00a0{html.escape(title)}</a>')
         if h4s:
             return f'<li>{lnk}<ul class="bf-toc-l3">{"".join(_h4_li(e) for e in h4s)}</ul></li>'
@@ -3124,12 +3123,12 @@ def _build_toc_html(toc_entries: list) -> str:
 
     def _h2_li(h2e, h3s):
         hid, title, _, num = h2e
-        lnk = (f'<a href="#{hid}" data-bf-toc="1">' 
+        lnk = (f'<a href="#{hid}" data-bf-toc="1">'
                f'<span class="bf-toc-num">{num}</span>\u00a0{html.escape(title)}</a>')
         if h3s:
             inner = "".join(_h3_li(e, c) for e, c in h3s)
-            return (f'<li><details class="bf-toc-section" open>' 
-                    f'<summary>{lnk}</summary>' 
+            return (f'<li><details class="bf-toc-section" open>'
+                    f'<summary>{lnk}</summary>'
                     f'<ul class="bf-toc-l2">{inner}</ul></details></li>')
         return f'<li>{lnk}</li>'
 

@@ -22,28 +22,24 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import MagicMock, patch, call
-
-REPO_ROOT = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(REPO_ROOT / "proxmox-bootstrap"))
+from unittest.mock import MagicMock, patch
 
 from collect_tier2 import (
-    parse_qm_list,
-    parse_qm_config,
-    _iso_to_base_image_name,
-    _infer_template_name,
-    _extract_iso_name,
-    merge_into_state,
-    _merge_list_by_key,
-    collect_templates,
-    collect_provenance_records,
-    load_state,
-    save_state,
     SSHClient,
+    _extract_iso_name,
+    _infer_template_name,
+    _iso_to_base_image_name,
+    _merge_list_by_key,
     build_arg_parser,
+    collect_provenance_records,
+    collect_templates,
+    load_state,
     main,
+    merge_into_state,
+    parse_qm_config,
+    parse_qm_list,
+    save_state,
 )
-
 
 # ===========================================================================
 # Fixtures — raw qm output strings

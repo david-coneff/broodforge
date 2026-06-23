@@ -13,27 +13,27 @@ Run: py -3 tests/unit/test_registries.py
 
 import importlib.util
 import json
-import sys
 import unittest
-from pathlib import Path
 from copy import deepcopy
+from pathlib import Path
 
 _HAS_YAML = importlib.util.find_spec("yaml") is not None
 
 
 REPO_ROOT = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(REPO_ROOT / "doc-gen"))
-sys.path.insert(0, str(REPO_ROOT / "doc-gen" / "renderers"))
 
-from registries import (
-    SecretRegistry, DnsRegistry,
-    build_registries,
-    load_secret_registry_from_yaml, load_dns_registry_from_yaml,
-)
-from readiness import (
-    _score_registry_completeness, score_graph, worst, Gap, ReadinessReport,
-)
 import dependencies as dep_mod
+from readiness import (
+    _score_registry_completeness,
+    score_graph,
+)
+from registries import (
+    DnsRegistry,
+    SecretRegistry,
+    build_registries,
+    load_dns_registry_from_yaml,
+    load_secret_registry_from_yaml,
+)
 
 BOOTSTRAP_DIR  = REPO_ROOT / "proxmox-bootstrap"
 FIXTURES_DIR   = REPO_ROOT / "tests" / "fixtures" / "bootstrap"
@@ -791,7 +791,8 @@ class TestFixtureIntegration(unittest.TestCase):
         }
 
         # Inject backup_config so no MISSING_BACKUP_CONFIG gap fires
-        from datetime import datetime, timezone as _tz
+        from datetime import datetime
+        from datetime import timezone as _tz
         _now = datetime.now(_tz.utc).isoformat()
         manifest["backup_config"] = {
             "layers": {

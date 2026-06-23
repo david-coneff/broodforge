@@ -107,17 +107,17 @@ def main() -> None:
     mode     = (plan.get("disposition") or {}).get("execution_mode", "unknown")
 
     print(f"\n{'=' * 64}")
-    print(f"  Spawn Package Assembled")
+    print("  Spawn Package Assembled")
     print(f"{'=' * 64}")
     print(f"  Package:  {pkg}")
     print(f"  SHA-256:  {hashlib.sha256(pkg.read_bytes()).hexdigest()}")
     print(f"  Cell:     {cell_id}")
     print(f"  Broodling:{hostname}")
     print(f"  Mode:     {mode}")
-    print(f"\n  Next steps:")
+    print("\n  Next steps:")
     print(f"    1. Copy {pkg.name} to {hostname}")
     print(f"    2. Extract: tar -xzf {pkg.name}")
-    print(f"    3. Run:     bash spawn.sh")
+    print("    3. Run:     bash spawn.sh")
     print()
 
 

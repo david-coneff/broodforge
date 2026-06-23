@@ -30,9 +30,8 @@ import os
 import re
 import subprocess
 import sys
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
-
 
 # ---------------------------------------------------------------------------
 # Subprocess helper
@@ -92,7 +91,7 @@ def collect_hardware() -> dict:
         cpu["sockets"] = len(physical_ids) or 1
         cores = re.findall(r"^cpu cores\s*:\s*(\d+)$", cpuinfo, re.MULTILINE)
         cpu["cores_per_socket"] = int(cores[0]) if cores else None
-        siblings = re.findall(r"^siblings\s*:\s*(\d+)$", cpuinfo, re.MULTILINE)
+        re.findall(r"^siblings\s*:\s*(\d+)$", cpuinfo, re.MULTILINE)
         total_threads = len(re.findall(r"^processor\s*:\s*\d+$", cpuinfo, re.MULTILINE))
         cpu["total_threads"] = total_threads
         if cpu["cores_per_socket"] and total_threads and cpu["sockets"]:

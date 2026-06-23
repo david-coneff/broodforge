@@ -35,7 +35,6 @@ Stdlib only.
 from dataclasses import dataclass
 from typing import Optional
 
-
 # ---------------------------------------------------------------------------
 # Provider constants
 # ---------------------------------------------------------------------------
@@ -195,7 +194,7 @@ def _certbot_commands(config: TlsConfig) -> list[str]:
     email_flag = f"--email {config.acme_email}" if config.acme_email else "--register-unsafely-without-email"
     return [
         "apt-get install -y certbot python3-certbot-dns-cloudflare",
-        f"install -d -m 700 /etc/broodforge",
+        "install -d -m 700 /etc/broodforge",
         f"# Write Cloudflare credentials (token from KeePass at {config.cloudflare_token_keepass_path})",
         f"cat > {creds_file} << 'CREDS'",
         "dns_cloudflare_api_token = $CLOUDFLARE_API_TOKEN",
@@ -209,7 +208,7 @@ def _certbot_commands(config: TlsConfig) -> list[str]:
             f"{email_flag} --agree-tos --non-interactive"
         ),
         # Deploy to stable path
-        f"install -d -m 750 /etc/broodforge/ssl",
+        "install -d -m 750 /etc/broodforge/ssl",
         f"cp /etc/letsencrypt/live/{config.fqdn}/fullchain.pem {config.cert_path}",
         f"cp /etc/letsencrypt/live/{config.fqdn}/privkey.pem {config.key_path}",
         # Reload Headscale after cert placement
@@ -227,7 +226,7 @@ def _acme_sh_commands(config: TlsConfig) -> list[str]:
         "export DuckDNS_Token=$DUCKDNS_TOKEN",
         f"/root/.acme.sh/acme.sh --issue --dns dns_duckdns -d {dom} -d '*.{dom}' "
         f"--server letsencrypt --dnssleep 60",
-        f"install -d -m 750 /etc/broodforge/ssl",
+        "install -d -m 750 /etc/broodforge/ssl",
         f"/root/.acme.sh/acme.sh --install-cert -d {dom} "
         f"--cert-file {config.cert_path} --key-file {config.key_path} "
         f"--reloadcmd 'systemctl reload-or-restart headscale && /usr/local/bin/sync-cert-to-k8s.sh'",
@@ -238,7 +237,7 @@ def _acme_sh_commands(config: TlsConfig) -> list[str]:
 def _self_signed_commands(config: TlsConfig) -> list[str]:
     """Self-signed certificate generation (fallback)."""
     return [
-        f"install -d -m 750 /etc/broodforge/ssl",
+        "install -d -m 750 /etc/broodforge/ssl",
         (
             f"openssl req -x509 -newkey rsa:4096 -keyout {config.key_path} "
             f"-out {config.cert_path} -days 365 -nodes "

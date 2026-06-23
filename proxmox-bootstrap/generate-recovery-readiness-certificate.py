@@ -106,7 +106,7 @@ def main() -> None:
     drill = certificate.get("latest_drill") or {}
 
     print(f"\n{'=' * 64}")
-    print(f"  Recovery-Readiness Conformance Certificate Built")
+    print("  Recovery-Readiness Conformance Certificate Built")
     print(f"{'=' * 64}")
     print(f"  Certificate: {json_path}")
     print(f"  HTML twin:   {html_path}")

@@ -33,9 +33,8 @@ Stdlib only.
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Callable, Optional
-
 
 # ---------------------------------------------------------------------------
 # 25.1 — Drill Scheduling
@@ -78,7 +77,6 @@ def plan_next_drill(
 
     Returns: {due: bool, overdue_days: int, next_drill_at: str, urgency: str}
     """
-    from datetime import datetime, timezone, timedelta
     now_str = (now_fn or (lambda: datetime.now(timezone.utc).isoformat()))()
     now     = datetime.fromisoformat(now_str.replace("Z", "+00:00"))
 
@@ -268,7 +266,6 @@ class RemediationTracker:
         self._items.append(item)
 
     def resolve(self, item_id: str, resolution: str, *, now_fn: Optional[Callable] = None) -> bool:
-        from datetime import datetime, timezone
         now = (now_fn or (lambda: datetime.now(timezone.utc).isoformat()))()
         for item in self._items:
             if item.item_id == item_id:
@@ -332,7 +329,6 @@ def plan_federation_drill(
     Steps model the full federated reconstruction sequence in tabletop or live mode.
     """
     import hashlib
-    from datetime import datetime, timezone
     now  = (now_fn or (lambda: datetime.now(timezone.utc).isoformat()))()
     sid  = hashlib.sha256(f"drill:{subject_cell_id}:{now}".encode()).hexdigest()[:10]
 

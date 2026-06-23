@@ -10,11 +10,7 @@ Covers:
   22.6  build_multilevel_report() — assemble from state docs
 """
 
-import sys
-import os
 
-_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-sys.path.insert(0, os.path.join(_ROOT, "proxmox-bootstrap"))
 
 import multilevel_readiness as _mr
 

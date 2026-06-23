@@ -39,7 +39,7 @@ from pathlib import Path
 _HERE = Path(__file__).parent
 sys.path.insert(0, str(_HERE))
 
-from _recovery_accounts import build_recovery_account_plan, DEFAULT_ACCOUNT_NAME, DEFAULT_MENU_SCRIPT_PATH
+from _recovery_accounts import DEFAULT_ACCOUNT_NAME, DEFAULT_MENU_SCRIPT_PATH, build_recovery_account_plan
 
 try:
     from _vault_hierarchy import load_secret_registry
@@ -129,11 +129,11 @@ def main() -> None:
     print("  MANUAL INSTALLATION STEPS (operator/phase-03 — broodforge does NOT")
     print("  install, enable, or run any of this on a live hypervisor):")
     print("-" * 72)
-    print(f"  1. Create the account:")
+    print("  1. Create the account:")
     print(f"       useradd -r -m -s /usr/sbin/nologin {plan['account']['name']}")
-    print(f"  2. Install the menu script (root-owned, executable):")
+    print("  2. Install the menu script (root-owned, executable):")
     print(f"       install -o root -g root -m 0755 {menu_path.name} {plan['account']['menu_script_path']}")
-    print(f"  3. Install the authorized_keys entry:")
+    print("  3. Install the authorized_keys entry:")
     print(f"       mkdir -p ~{plan['account']['name']}/.ssh")
     print(f"       cat {keys_path.name} >> ~{plan['account']['name']}/.ssh/authorized_keys")
     print(f"       chown -R {plan['account']['name']}:{plan['account']['name']} ~{plan['account']['name']}/.ssh")

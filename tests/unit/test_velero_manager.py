@@ -1,17 +1,22 @@
 """Unit tests for velero_manager.py — Phase 2.H."""
-import json, os, sys, tempfile
+import json
+import os
+import tempfile
 from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
-import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../proxmox-bootstrap"))
+import pytest
 from velero_manager import (
-    BackupRecord, BackupSchedule, BackupStorageLocation,
-    VeleroDeployment, VeleroManager, VeleroState,
+    BackupRecord,
+    BackupSchedule,
+    BackupStorageLocation,
+    VeleroManager,
+    VeleroState,
 )
 
 FIXED_TS = datetime(2026, 6, 10, 12, 0, 0, tzinfo=timezone.utc)
-_now = lambda: FIXED_TS
+def _now():
+    return FIXED_TS
 
 @pytest.fixture
 def td():

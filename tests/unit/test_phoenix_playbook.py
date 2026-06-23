@@ -13,21 +13,16 @@ Covers:
 """
 
 import json
-import sys
 import unittest
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(REPO_ROOT / "doc-gen"))
-sys.path.insert(0, str(REPO_ROOT / "proxmox-bootstrap"))
 
 from phoenix_playbook import (
-    PhoenixPlaybookGenerator,
-    build_phoenix_playbook,
     _zfs_topology_from_disk_count,
+    build_phoenix_playbook,
 )
 from readiness import _score_phoenix_playbook_existence
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -633,7 +628,6 @@ class TestGenerateRunAllSh(unittest.TestCase):
 
     def test_run_all_waves_sorted(self):
         # Wave references should appear in ascending wave number order
-        from phoenix_scripts import generate_run_all_sh
         script = self.gen(self.playbook)
         idx_0  = script.find("phase-0-")
         idx_1  = script.find("phase-1-")
@@ -649,7 +643,7 @@ class TestGenerateRunAllSh(unittest.TestCase):
 class TestValidatePlaybook(unittest.TestCase):
 
     def setUp(self):
-        from phoenix_validator import validate_playbook, is_valid, summarise_findings
+        from phoenix_validator import is_valid, summarise_findings, validate_playbook
         self.validate = validate_playbook
         self.is_valid = is_valid
         self.summarise = summarise_findings

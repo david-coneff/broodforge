@@ -15,23 +15,18 @@ Covers:
 """
 
 import json
-import sys
 import unittest
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(REPO_ROOT / "doc-gen"))
-sys.path.insert(0, str(REPO_ROOT / "doc-gen" / "renderers"))
-sys.path.insert(0, str(REPO_ROOT / "proxmox-bootstrap"))
 
 from network_topology_collector import (
-    parse_interfaces_file,
     collect_observed_bridges,
     compare_topology,
     merge_observed_topology,
+    parse_interfaces_file,
 )
 from readiness import _score_network_topology_completeness
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -429,8 +424,8 @@ class TestScoreNetworkTopologyCompleteness(unittest.TestCase):
 class TestRunbookWave0(unittest.TestCase):
 
     def _build_html(self, ntd=None):
-        from html_recovery_runbook import build_recovery_runbook_html
         from dependencies import build_graph
+        from html_recovery_runbook import build_recovery_runbook_html
         from readiness import score_graph
 
         manifest = {

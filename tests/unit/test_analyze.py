@@ -7,15 +7,12 @@ Run: python3 tests/unit/test_analyze.py
 """
 
 import json
-import sys
-import unittest
 import shutil
 import tempfile
+import unittest
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(REPO_ROOT / "assessment" / "tier1"))
-sys.path.insert(0, str(REPO_ROOT / "data-model"))
 
 from analyze import build_manifest
 from validate import validate_file

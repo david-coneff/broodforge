@@ -10,29 +10,25 @@ write, verifying that the state store is mutated on disk exactly as expected.
 from __future__ import annotations
 
 import json
-import sys
-import textwrap
 import tempfile
-from datetime import datetime, timezone
+import textwrap
 from pathlib import Path
 
 import pytest
 
 # Ensure the proxmox-bootstrap package is importable regardless of cwd.
 _REPO_ROOT = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(_REPO_ROOT / "proxmox-bootstrap"))
 
 from migration_manager import (  # noqa: E402
-    SchemaVersion,
-    MigrationRecord,
     HISTORY_FILENAME,
     STATE_FILENAME,
+    MigrationRecord,
+    SchemaVersion,
+    append_migration_log,
     discover_migrations,
     read_schema_version,
     run_migrations,
-    append_migration_log,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers

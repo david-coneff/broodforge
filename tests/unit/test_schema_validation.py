@@ -8,16 +8,14 @@ Run: python3 -m pytest tests/unit/test_schema_validation.py -v
 """
 
 import json
-import sys
 import unittest
-from pathlib import Path
 from copy import deepcopy
+from pathlib import Path
 
 # Allow running from repo root or tests/unit/
 REPO_ROOT = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(REPO_ROOT / "data-model"))
 
-from validate import SchemaValidator, validate_file, detect_schema
+from validate import SchemaValidator, detect_schema, validate_file
 
 SCHEMA_DIR = REPO_ROOT / "data-model"
 FIXTURES = REPO_ROOT / "tests" / "fixtures"

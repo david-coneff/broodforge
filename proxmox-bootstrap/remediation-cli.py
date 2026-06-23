@@ -23,44 +23,32 @@ import argparse
 import json
 import os
 import sys
-from datetime import datetime, timezone, timedelta
-from typing import Optional
+from datetime import datetime, timedelta, timezone
 
 _ROOT = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, _ROOT)
 
-from remediation_planner import (
-    dict_to_proposal,
-    proposal_to_dict,
-    ALLOWED_ACTION_TYPES,
+from remediation_policy import (
+    _AUTONOMOUS_EXPIRY_DAYS,
+    _DEFAULT_AUTONOMOUS_TYPES,
+    AUTONOMOUS_CEREMONY_PROMPT,
+    disable_autonomous,
+    enable_autonomous,
+    is_autonomous_active,
+    load_policy,
+    policy_to_dict,
+    save_policy,
 )
 from remediation_queue import (
-    load_queue,
-    save_queue,
     approve_proposal,
-    reject_proposal,
     batch_approve,
-    get_pending,
     get_history,
-    get_active,
+    get_pending,
+    load_queue,
     queue_summary,
+    reject_proposal,
+    save_queue,
 )
-from remediation_executor import (
-    RemediationExecutor,
-)
-from remediation_policy import (
-    load_policy,
-    save_policy,
-    policy_to_dict,
-    dict_to_policy,
-    enable_autonomous,
-    disable_autonomous,
-    is_autonomous_active,
-    AUTONOMOUS_CEREMONY_PROMPT,
-    _DEFAULT_AUTONOMOUS_TYPES,
-    _AUTONOMOUS_EXPIRY_DAYS,
-)
-
 
 # ---------------------------------------------------------------------------
 # State I/O helpers
@@ -80,7 +68,8 @@ def _save_state(state_path: str, state: dict) -> None:
 
 
 def _operator_id() -> str:
-    import getpass, socket
+    import getpass
+    import socket
     user = getpass.getuser() if hasattr(os, "getlogin") else os.environ.get("USER", "unknown")
     host = socket.gethostname()
     return f"{user}@{host}"
@@ -123,7 +112,7 @@ def _print_proposal(p, verbose: bool = False) -> None:
         print(f"           Status: {_status_color(p.status)}")
         print(f"           Reversibility: {p.reversibility}")
         print(f"           KeePass gated: {p.keepass_gated}")
-        print(f"           Dry-run:")
+        print("           Dry-run:")
         for line in p.dry_run_output.splitlines():
             print(f"             {line}")
     print()
@@ -280,7 +269,7 @@ def cmd_status(args, state: dict) -> int:
         print(f"  Max severity: {policy.autonomous_max_severity}")
         print(f"  Action types: {', '.join(sorted(policy.autonomous_action_types))}")
     else:
-        print(f"  Status:  GATED (per-action approval required)")
+        print("  Status:  GATED (per-action approval required)")
     print()
 
     print(f"{_BOLD}Policy:{_RESET}")
@@ -346,11 +335,11 @@ def cmd_enable_autonomous(args, state: dict, state_path: str) -> int:
     updated = save_policy(policy, state)
     _save_state(state_path, updated)
 
-    print(f"\n[ok] Autonomous mode enabled.")
+    print("\n[ok] Autonomous mode enabled.")
     print(f"  Enabled by: {am.enabled_by}")
     print(f"  Enabled at: {am.enabled_at[:19]}")
     print(f"  Expires at: {am.expires_at[:19] if am.expires_at else 'no expiry'}")
-    print(f"  Scope recorded in bootstrap-state.json remediation_policy.autonomous.scope")
+    print("  Scope recorded in bootstrap-state.json remediation_policy.autonomous.scope")
     return 0
 
 
@@ -370,7 +359,7 @@ def cmd_disable_autonomous(args, state: dict, state_path: str) -> int:
     updated = save_policy(policy, state)
     _save_state(state_path, updated)
 
-    print(f"[remediation] Autonomous mode disabled.")
+    print("[remediation] Autonomous mode disabled.")
     if active:
         print(f"[remediation] Proposals in queue: {len(active)} now require per-action approval.")
     print(f"[remediation] Disable recorded: {policy.autonomous.disabled_at[:19] if policy.autonomous.disabled_at else '?'} by {operator}")

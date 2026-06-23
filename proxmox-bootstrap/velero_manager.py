@@ -15,9 +15,9 @@ from __future__ import annotations
 import json
 import os
 import subprocess
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
-from typing import Any, Callable, Optional
+from typing import Callable, Optional
 
 _SUBPROCESS_TIMEOUT = 300  # seconds
 

@@ -10,15 +10,10 @@ Covers:
         build_drill_summary_html()
 """
 
-import sys
-import os
 
-_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-sys.path.insert(0, os.path.join(_ROOT, "proxmox-bootstrap"))
 
-import reconstruction_validation as _rv
 import federation_state as _fs
-
+import reconstruction_validation as _rv
 
 # ---------------------------------------------------------------------------
 # Fixtures

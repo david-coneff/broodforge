@@ -261,7 +261,8 @@ def generate_stamp(
 ) -> str:
     """Return a full version stamp: ``YYYY-MM-DD_HH-MM-SS_<tz>_<shorthash>``."""
     if now_fn is None:
-        now_fn = lambda: datetime.now(timezone.utc)
+        def now_fn():
+            return datetime.now(timezone.utc)
     now = now_fn()
     ts = now.strftime("%Y-%m-%d_%H-%M-%S")
     tz = _tz_label(now)

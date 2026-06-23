@@ -16,13 +16,11 @@ Stdlib only.
 """
 
 import json
-import re
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Callable, Optional
 
-from collector_utils import local_runner, RunnerFn  # noqa: F401
-
+from collector_utils import RunnerFn, local_runner  # noqa: F401
 
 # ---------------------------------------------------------------------------
 # Dataclasses
@@ -107,7 +105,7 @@ def _parse_zpool_list_json(output: str) -> list[ZfsPool]:
         props = pool_data.get("properties") or {}
 
         def _prop(key: str) -> Optional[str]:
-            v = (props.get(key) or {}).get("value")
+            v = (props.get(key) or {}).get("value")  # noqa: B023
             return str(v) if v is not None and str(v) != "-" else None
 
         state     = _prop("state")

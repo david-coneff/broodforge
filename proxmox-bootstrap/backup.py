@@ -37,12 +37,10 @@ import hashlib
 import os
 import shutil
 import subprocess
-import sys
 import tarfile
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
-
 
 # ---------------------------------------------------------------------------
 # Archive filename generation
@@ -336,7 +334,7 @@ def create_cell_backup(
 
     # Collect source paths
     sources: list[tuple[str, Path]] = []
-    for label, rel_path in BACKUP_CONTENTS.items():
+    for _label, rel_path in BACKUP_CONTENTS.items():
         src = bootstrap_repo / rel_path
         if src.exists():
             sources.append((rel_path, src))

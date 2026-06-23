@@ -150,7 +150,7 @@ def main() -> None:
     new_state = _authorize(state, args.bundle, args.operator, _now_iso)
 
     print(f"\n{'=' * 72}")
-    print(f"  Spawn-Media Join Authorization Recorded")
+    print("  Spawn-Media Join Authorization Recorded")
     print(f"{'=' * 72}")
     print(f"  Bundle:    {args.bundle}")
     print(f"  Operator:  {args.operator}")

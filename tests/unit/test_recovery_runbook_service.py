@@ -19,13 +19,7 @@ NOTE: ODT renderer (recovery_runbook.py) is deprecated. All tests use
       build_recovery_runbook_html() from html_recovery_runbook.py.
 """
 
-import sys
 import unittest
-from pathlib import Path
-
-REPO_ROOT = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(REPO_ROOT / "doc-gen"))
-sys.path.insert(0, str(REPO_ROOT / "doc-gen" / "renderers"))
 
 from html_recovery_runbook import (
     _get_contract,
@@ -33,7 +27,6 @@ from html_recovery_runbook import (
     _service_restart_cmds,
     build_recovery_runbook_html,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

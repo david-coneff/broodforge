@@ -13,23 +13,19 @@ Covers:
 """
 
 import json
-import sys
 import unittest
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(REPO_ROOT / "doc-gen"))
-sys.path.insert(0, str(REPO_ROOT / "doc-gen" / "renderers"))
 
 from service_state_collector import (
-    collect_service_state,
-    _build_services,
-    _build_dns_registrations,
     _build_backup_assignments,
+    _build_dns_registrations,
+    _build_services,
     _normalise_status,
     _primary_interface,
+    collect_service_state,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -322,9 +318,8 @@ class TestPrimaryInterface(unittest.TestCase):
 class TestScoreServiceContractCompleteness(unittest.TestCase):
 
     def setUp(self):
-        sys.path.insert(0, str(REPO_ROOT / "doc-gen"))
-        from readiness import _score_service_contract_completeness
         from dependencies import build_graph
+        from readiness import _score_service_contract_completeness
         self._scorer = _score_service_contract_completeness
         self._build_graph = build_graph
 

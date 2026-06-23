@@ -22,7 +22,6 @@ import json
 import logging
 import os
 import subprocess
-import sys
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -469,6 +468,7 @@ _WORDS = [
 ]
 
 import random as _random
+
 
 def generate_backup_passphrase() -> str:
     """

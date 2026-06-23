@@ -35,10 +35,7 @@ Provides:
 Stdlib only.
 """
 
-import os
 from pathlib import Path
-from typing import Any, Optional
-
 
 # ---------------------------------------------------------------------------
 # Shared library content (embedded in the package)

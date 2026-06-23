@@ -1,14 +1,15 @@
 """Unit tests for linkerd_manager.py — Phase 2.I."""
-import json, os, sys, tempfile
+import os
+import tempfile
 from datetime import datetime, timezone
-from unittest.mock import MagicMock, call, patch
-import pytest
+from unittest.mock import MagicMock, patch
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../proxmox-bootstrap"))
+import pytest
 from linkerd_manager import LinkerdDeployment, LinkerdManager, LinkerdState, MeshedNamespace
 
 FIXED_TS = datetime(2026, 6, 10, 12, 0, 0, tzinfo=timezone.utc)
-_now = lambda: FIXED_TS
+def _now():
+    return FIXED_TS
 
 @pytest.fixture
 def td():

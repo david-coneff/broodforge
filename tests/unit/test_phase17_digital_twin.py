@@ -12,17 +12,12 @@ Covers:
 """
 
 import json
-import sys
 import os
-import time
 
 _ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-sys.path.insert(0, os.path.join(_ROOT, "proxmox-bootstrap"))
-sys.path.insert(0, os.path.join(_ROOT, "doc-gen"))
 
-import twin_state_writer       as _tw
 import twin_consistency_checker as _tcc
-
+import twin_state_writer as _tw
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -256,7 +251,7 @@ class TestStalenessManifest:
     def test_staleness_json_written(self, tmp_path):
         w = self._writer(tmp_path)
         w.write_state("hardware", _state_doc("hardware"))
-        manifest = w.update_staleness()
+        w.update_staleness()
         assert w.paths.staleness_path.exists()
 
     def test_read_staleness_after_write(self, tmp_path):

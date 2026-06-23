@@ -11,15 +11,10 @@ Covers:
   23.7  FederatedReconstructionPlan properties (total_estimated_minutes)
 """
 
-import sys
-import os
 
-_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-sys.path.insert(0, os.path.join(_ROOT, "proxmox-bootstrap"))
 
 import federated_reconstruction as _fr
 import federation_state as _fs
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

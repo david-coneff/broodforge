@@ -1,26 +1,19 @@
 """
 Tests for service_password_compat.py — Phase 1.F.8 credential format compatibility.
 """
-import sys
 import tempfile
 import unittest
 from pathlib import Path
 
-ROOT = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(ROOT / "proxmox-bootstrap"))
-
 from service_password_compat import (
+    CREDENTIAL_COMPAT_SH,
+    FORMAT_ALPHANUMERIC,
     detect_credential_failure,
     load_service_password_formats,
-    service_requires_alphanumeric,
     record_service_restriction,
     regenerate_credential_alphanumeric,
-    FORMAT_DEFAULT,
-    FORMAT_ALPHANUMERIC,
-    CREDENTIAL_COMPAT_SH,
-    CompatFinding,
+    service_requires_alphanumeric,
 )
-
 
 _CATALOG_YAML = """\
 services:

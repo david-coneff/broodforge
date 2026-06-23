@@ -7,29 +7,23 @@ All HTTP calls are mocked — no network access required.
 from __future__ import annotations
 
 import base64
+import contextlib
 import io
 import json
-import sys
-import contextlib
-import tempfile
 import urllib.error
-from pathlib import Path
-from unittest.mock import MagicMock, patch, call
+from unittest.mock import patch
 
 import pytest
 
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
+from engine.cli import build_parser, cmd_push
 from engine.repo import (
-    detect_remote,
-    load_token,
-    push_files,
     PushResult,
     _api_base,
     _owner_repo,
+    detect_remote,
+    load_token,
+    push_files,
 )
-from engine.cli import build_parser, cmd_push
-
 
 # ===========================================================================
 # detect_remote
@@ -263,7 +257,7 @@ class TestPushFiles:
                 dest_prefix="assessments/",
             )
         # The PUT URL should include the prefix
-        put_urls = [u for u in captured_urls if "PUT" not in u]
+        [u for u in captured_urls if "PUT" not in u]
         assert any("assessments/report.md" in u for u in captured_urls)
 
     def test_http_error_recorded(self, tmp_path):

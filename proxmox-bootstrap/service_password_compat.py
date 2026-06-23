@@ -23,11 +23,11 @@ Stdlib only.
 """
 
 import re
+import secrets
 import sys
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
-
 
 # ---------------------------------------------------------------------------
 # Credential formats
@@ -119,7 +119,7 @@ def load_service_password_formats(catalog_path: str) -> dict[str, str]:
         stripped = line.strip()
         # Match "- name: svc" or "name: svc"
         if re.match(r"^-?\s*name\s*:", stripped):
-            current_name = re.split(r"name\s*:", stripped, 1)[1].strip()
+            current_name = re.split(r"name\s*:", stripped, maxsplit=1)[1].strip()
         elif stripped.startswith("password_format:") and current_name:
             fmt = stripped.split(":", 1)[1].strip()
             if fmt in (FORMAT_DEFAULT, FORMAT_ALPHANUMERIC):
@@ -156,12 +156,12 @@ def record_service_restriction(
     in_service  = False
     found       = False
 
-    for i, line in enumerate(lines):
+    for _i, line in enumerate(lines):
         stripped = line.strip()
 
         # Detect start of target service block ("  - name: svc_name")
         if re.match(r"^-?\s*name\s*:", stripped):
-            block_name = re.split(r"name\s*:", stripped, 1)[1].strip()
+            block_name = re.split(r"name\s*:", stripped, maxsplit=1)[1].strip()
             if block_name == service_name:
                 in_service = True
             else:
@@ -318,7 +318,8 @@ record_service_restriction('${service_name}')
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    import argparse, json
+    import argparse
+    import json
 
     ap = argparse.ArgumentParser(description="Service password compatibility tool")
     sub = ap.add_subparsers(dest="cmd")

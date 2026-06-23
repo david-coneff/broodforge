@@ -11,20 +11,13 @@ NOTE: The ODS workbook (workbook.py) is deprecated. Tests now use
 html_bootstrap.py — the active output format.
 """
 
-import sys
 import unittest
-from pathlib import Path
-
-REPO_ROOT = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(REPO_ROOT / "doc-gen"))
-sys.path.insert(0, str(REPO_ROOT / "doc-gen" / "renderers"))
 
 from html_bootstrap import (
+    build_bootstrap_workbook_html,
     registry_ip_for_bootstrap_vm,
     registry_iso_path,
-    build_bootstrap_workbook_html,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

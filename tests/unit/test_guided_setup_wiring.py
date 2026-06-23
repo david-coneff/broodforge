@@ -16,38 +16,32 @@ Tests for Phase 1.G.5-6 — Guided Setup Wiring.
   - build_phoenix_guided_session(): convenience factory
 """
 
-import copy
-import sys
 import unittest
-from pathlib import Path
 
-REPO_ROOT = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(REPO_ROOT / "proxmox-bootstrap"))
-
-# ── Spawn wiring imports ────────────────────────────────────────────────────
-from spawn_planner import (
-    SpawnPlannerSession,
-    ServiceCatalog,
-    step_guided_setup,
-    build_spawn_plan,
-    EXEC_AUTONOMOUS,
-    NET_LAN,
-)
 from hatchery_state import read_hatchery_state
 
 # ── Phoenix guided setup imports ────────────────────────────────────────────
 from phoenix_guided_setup import (
-    PhoenixGuidedSetupSession,
+    PHOENIX_IDENTITY_FIELDS,
     RESTORATION_SCOPE_FULL,
     RESTORATION_SCOPE_PARTIAL,
-    PHOENIX_IDENTITY_FIELDS,
+    PhoenixGuidedSetupSession,
+    apply_overrides_to_playbook,
+    build_phoenix_guided_session,
     restoration_wave_options,
     step0_set_restoration_scope,
     step1_run_identity_overrides,
-    apply_overrides_to_playbook,
-    build_phoenix_guided_session,
 )
 
+# ── Spawn wiring imports ────────────────────────────────────────────────────
+from spawn_planner import (
+    EXEC_AUTONOMOUS,
+    NET_LAN,
+    ServiceCatalog,
+    SpawnPlannerSession,
+    build_spawn_plan,
+    step_guided_setup,
+)
 
 # ---------------------------------------------------------------------------
 # Fixtures

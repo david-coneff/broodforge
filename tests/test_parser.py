@@ -1,11 +1,8 @@
 """Tests for the parser module."""
 
-import sys
-from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from engine.parser import parse_raw_audit, register_parser, _deep_merge
+from engine.parser import _deep_merge, parse_raw_audit, register_parser
 
 
 def test_deep_merge_simple():

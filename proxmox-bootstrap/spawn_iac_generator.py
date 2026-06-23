@@ -15,12 +15,9 @@ write_all_artifacts() is the convenience function that writes everything.
 Stdlib only.
 """
 
-import os
 import shlex
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
-
 
 # ---------------------------------------------------------------------------
 # Spawn plan accessors
@@ -70,12 +67,12 @@ def generate_tfvars(plan: dict) -> str:
 
     lines = [
         _header(plan, f"spawn-{hostname}.auto.tfvars"),
-        f'# Proxmox connection (uses hatchery credentials from KeePass)',
+        '# Proxmox connection (uses hatchery credentials from KeePass)',
         f'proxmox_api_url      = "https://{hatchery_fqdn}:8006/api2/json"',
         f'proxmox_target_node  = "{hostname}"',
-        f'',
+        '',
         f'# VM declarations for broodling {hostname}',
-        f'vms = {{',
+        'vms = {',
     ]
 
     for vm in vms:
@@ -105,8 +102,8 @@ def generate_tfvars(plan: dict) -> str:
             f'    network_bridge = "{vm_bridge}"',
             f'    ip_config     = "ip={ip}/24,gw={gw}"',
             f'    ci_user       = "{ci_user}"',
-            f'    agent_enabled = true',
-            f'  }}',
+            '    agent_enabled = true',
+            '  }',
         ]
 
     lines += ['}', '']
@@ -199,12 +196,12 @@ def generate_ansible_inventory(plan: dict) -> str:
     lines = [
         _header(plan, f"inventory/spawn-{hostname}.ini"),
         f"# Broodling: {hostname}.{domain}",
-        f"# Append this file to your existing Ansible inventory",
-        f"",
-        f"[proxmox_broodlings]",
+        "# Append this file to your existing Ansible inventory",
+        "",
+        "[proxmox_broodlings]",
         f"{hostname} ansible_host={plan.get('lan_ip', '')} "
         f"ansible_user=root",
-        f"",
+        "",
     ]
 
     # Group VMs by role
@@ -234,7 +231,7 @@ def generate_ansible_inventory(plan: dict) -> str:
     lines += [
         f"[{k3s_group}:children]",
     ]
-    for role, vms_in_role in role_groups.items():
+    for role, _vms_in_role in role_groups.items():
         if "k3s" in role.lower():
             lines.append(role.replace("-", "_"))
     lines.append("")

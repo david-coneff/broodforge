@@ -24,11 +24,10 @@ Stdlib only.
 import json
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Any, Callable, Optional
-from urllib.parse import urlparse
-from urllib.request import urlopen, Request
+from typing import Callable, Optional
 from urllib.error import URLError
-
+from urllib.parse import urlparse
+from urllib.request import Request, urlopen
 
 # ---------------------------------------------------------------------------
 # Dataclasses

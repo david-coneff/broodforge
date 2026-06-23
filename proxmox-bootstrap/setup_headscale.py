@@ -22,7 +22,6 @@ Stdlib only.
 from dataclasses import dataclass, field
 from typing import Optional
 
-
 # ---------------------------------------------------------------------------
 # HeadscaleConfig
 # ---------------------------------------------------------------------------
@@ -80,7 +79,7 @@ def generate_headscale_config(
       network_topology.profile → tls_cert_path selection
     """
     fqdn    = host_identity.get("fqdn") or "hatchery.home.example.com"
-    profile = network_topology.get("profile") or "lan"
+    network_topology.get("profile") or "lan"
 
     # Prefer explicit headscale_url (wan_config or top-level; setup_network writes
     # it at the top level), else derive from the FQDN.

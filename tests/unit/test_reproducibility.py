@@ -11,13 +11,10 @@ NOTE: ODS/ODT renderers (workbook.py, runbook.py) are deprecated.
 
 import hashlib
 import json
-import sys
 import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(ROOT / "doc-gen"))
-sys.path.insert(0, str(ROOT / "doc-gen" / "renderers"))
 
 TIER1_FIXTURE = ROOT / "tests" / "fixtures" / "tier1" / "manifest.json"
 
@@ -35,7 +32,7 @@ META_FIXED = {
 
 
 def _md5(data: str) -> str:
-    return hashlib.md5(data.encode()).hexdigest()
+    return hashlib.md5(data.encode()).hexdigest()  # noqa: S324
 
 
 class TestBootstrapReproducibility(unittest.TestCase):
@@ -85,8 +82,8 @@ class TestRecoveryRunbookReproducibility(unittest.TestCase):
     """Recovery runbook HTML must be deterministic."""
 
     def _generate(self, manifest: dict) -> str:
-        from html_recovery_runbook import build_recovery_runbook_html
         from dependencies import build_graph
+        from html_recovery_runbook import build_recovery_runbook_html
         from readiness import score_graph
         graph    = build_graph(manifest)
         readiness = score_graph(graph, manifest)

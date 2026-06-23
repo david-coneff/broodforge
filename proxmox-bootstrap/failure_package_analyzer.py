@@ -43,9 +43,7 @@ import urllib.parse
 import urllib.request
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from pathlib import Path
 from typing import Optional
-
 
 # ---------------------------------------------------------------------------
 # Phase catalogue — what each phase does and what failure means
@@ -555,7 +553,7 @@ def export_to_hatchery(
         with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310  # nosec B310
             return json.loads(resp.read().decode())
     except urllib.error.HTTPError as e:
-        raise urllib.error.URLError(f"Hatchery returned {e.code}: {e.reason}")
+        raise urllib.error.URLError(f"Hatchery returned {e.code}: {e.reason}") from e
 
 
 # ---------------------------------------------------------------------------

@@ -59,11 +59,18 @@ except ImportError:
 
 try:
     from forge_scripts import (
-        FORGE_CHECKPOINT_SH, FORGE_KEEPASS_GATE_SH,
+        FORGE_CHECKPOINT_SH,
+        FORGE_KEEPASS_GATE_SH,
         generate_forge_sh,
-        generate_phase_00_sh, generate_phase_01_sh, generate_phase_02_sh,
-        generate_phase_03_sh, generate_phase_04_sh, generate_phase_05_sh,
-        generate_phase_06_sh, generate_phase_07_sh, generate_phase_08_sh,
+        generate_phase_00_sh,
+        generate_phase_01_sh,
+        generate_phase_02_sh,
+        generate_phase_03_sh,
+        generate_phase_04_sh,
+        generate_phase_05_sh,
+        generate_phase_06_sh,
+        generate_phase_07_sh,
+        generate_phase_08_sh,
     )
     _HAS_SCRIPTS = True
 except ImportError:

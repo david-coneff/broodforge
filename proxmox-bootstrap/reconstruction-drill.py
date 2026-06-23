@@ -26,13 +26,12 @@ _REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from reconstruction_drill import (
-    start_drill,
-    save_drill_record,
-    get_last_drill,
-    generate_drill_report,
     DrillRecord,
+    generate_drill_report,
+    get_last_drill,
+    save_drill_record,
+    start_drill,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -64,7 +63,7 @@ def cmd_start(args: argparse.Namespace) -> None:
     print(f"[drill] Waves to execute: "
           f"{len(playbook.get('waves', []))}")
     print()
-    print(f"[drill] Record drill progress with --record-wave, then --complete.")
+    print("[drill] Record drill progress with --record-wave, then --complete.")
     print(f"[drill] Drill ID: {record.drill_id}")
 
     # Persist to state if --state given
@@ -101,7 +100,6 @@ def cmd_complete(args: argparse.Namespace) -> None:
     drills[0] = last
     _save_json(args.state, state)
 
-    from reconstruction_drill import DrillRecord
     record = DrillRecord(
         cell_id=last.get("cell_id", "?"),
         drill_id=drill_id,
@@ -135,7 +133,6 @@ def cmd_report(args: argparse.Namespace) -> None:
         print("[drill] No drill records found.", file=sys.stderr)
         sys.exit(1)
 
-    from reconstruction_drill import DrillRecord
     record = DrillRecord(cell_id=last.get("cell_id", "?"))
     for k, v in last.items():
         if hasattr(record, k):

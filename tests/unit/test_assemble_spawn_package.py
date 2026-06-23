@@ -1,19 +1,22 @@
 #!/usr/bin/env python3
 """Tests for Phase 12.E.7 + 12.E.7a — Spawn package assembler and KeePass gate."""
 
-import sys, unittest, tarfile, tempfile, json
+import json
+import sys
+import tarfile
+import tempfile
+import unittest
 from datetime import datetime, timezone
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(REPO_ROOT / "proxmox-bootstrap"))
 
 from assemble_spawn_package import (
+    CHECKPOINT_SH,
+    KEEPASS_GATE_SH,
+    _package_name,
     assemble_spawn_package,
     package_contents,
-    _package_name,
-    KEEPASS_GATE_SH,
-    CHECKPOINT_SH,
 )
 
 PLAN = {
@@ -378,7 +381,8 @@ class TestInternalScriptGeneration(unittest.TestCase):
 
     def test_wan_mode_spawn_sh_includes_tailscale_join(self):
         """WAN network_mode should add tailscale-join phase to spawn.sh."""
-        import tempfile, tarfile as tf
+        import tarfile as tf
+        import tempfile
         wan_plan = dict(PLAN_WITH_VMS, disposition={"execution_mode": "autonomous",
                                                      "network_mode": "wan"})
         with tempfile.TemporaryDirectory() as tmp:

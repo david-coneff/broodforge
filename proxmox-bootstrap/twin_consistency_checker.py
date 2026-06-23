@@ -21,16 +21,17 @@ Provides:
 Stdlib only.
 """
 
+import json
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from pathlib import Path
 from typing import Optional
-import json
 
 try:
     from twin_state_writer import (
-        TwinPaths, StalenessManifest, update_staleness,
-        ALL_STATE_CATEGORIES, STALENESS_THRESHOLDS,
+        ALL_STATE_CATEGORIES,
+        StalenessManifest,
+        TwinPaths,
+        update_staleness,
     )
 except ImportError:
     # Graceful import for testing without the full module chain
@@ -108,7 +109,7 @@ def check_twin_consistency(
 
     # 2. Check each state category
     staleness = update_staleness(paths, now_ts)
-    present_categories = {e.category for e in staleness.entries}
+    {e.category for e in staleness.entries}
 
     for category in ALL_STATE_CATEGORIES:
         path = paths.state_path(category)

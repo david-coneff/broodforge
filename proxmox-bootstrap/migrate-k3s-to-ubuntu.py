@@ -32,17 +32,15 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from migrate_k3s_lib import (
     MigrationRecord,
+    _local_runner,
+    append_migration_history,
+    make_migration_id,
+    rollback,
     run_preflight_checks,
     snapshot_state,
-    drain_node,
-    verify_cluster_health,
     update_os_variant,
-    append_migration_history,
-    rollback,
-    make_migration_id,
-    _local_runner,
+    verify_cluster_health,
 )
-
 
 DEFAULT_STATE = str(_ROOT / "proxmox-bootstrap" / "bootstrap-state.json")
 
@@ -143,7 +141,7 @@ def _commit_migration_record(
                       f"    stderr: {r.stderr.strip()}", flush=True)
                 return
         print(f"  [migrate] bootstrap-state.json committed to git repo at {repo_dir}")
-        print(f"  [migrate] Push to Forgejo to trigger Assessment Engine reassessment.")
+        print("  [migrate] Push to Forgejo to trigger Assessment Engine reassessment.")
     except Exception as exc:
         print(f"  [migrate] WARNING: could not commit to git: {exc}", flush=True)
 
@@ -259,7 +257,7 @@ def migrate_to_ubuntu(
         _proxmox_start_vm(vmid, runner=runner, dry_run=dry_run)
 
     # ── Step 6: Apply Cloud-Init + Ansible ────────────────────────────────
-    print(f"\n[migrate-to-ubuntu] Step 6: Apply Cloud-Init + Ansible k3s-server role")
+    print("\n[migrate-to-ubuntu] Step 6: Apply Cloud-Init + Ansible k3s-server role")
     if node_ip:
         ok = _ansible_apply_k3s(node_ip, runner=runner, dry_run=dry_run)
         if not ok:
@@ -273,7 +271,7 @@ def migrate_to_ubuntu(
             print(f"  WARNING: No IP found for '{node_vm_name}' — skipping Ansible")
 
     # ── Step 7: Verify cluster health ─────────────────────────────────────
-    print(f"\n[migrate-to-ubuntu] Step 7: Verify cluster health")
+    print("\n[migrate-to-ubuntu] Step 7: Verify cluster health")
     healthy = verify_cluster_health(runner=runner, dry_run=dry_run)
     if not healthy:
         print("[migrate-to-ubuntu] Cluster health check failed — initiating rollback")
@@ -282,7 +280,7 @@ def migrate_to_ubuntu(
         return False
 
     # ── Step 8: Update bootstrap-state ────────────────────────────────────
-    print(f"\n[migrate-to-ubuntu] Step 8: Update bootstrap-state.json")
+    print("\n[migrate-to-ubuntu] Step 8: Update bootstrap-state.json")
     completed_at = datetime.now(timezone.utc).isoformat()
     record.completed_at = completed_at
     record.outcome = "success"
@@ -306,10 +304,10 @@ def migrate_to_ubuntu(
         with open(state_path, "w") as f:
             json.dump(state, f, indent=2)
         print(f"  os_variant updated to 'ubuntu' for '{node_vm_name}'")
-        print(f"  Migration record appended to migration_history")
+        print("  Migration record appended to migration_history")
         _commit_migration_record(state_path, node_vm_name, "talos", "ubuntu", runner)
     else:
-        print(f"  [dry-run] Would update os_variant and migration_history")
+        print("  [dry-run] Would update os_variant and migration_history")
 
     print(f"\n[migrate-to-ubuntu] Migration complete — {node_vm_name} is now running Ubuntu.")
     return True

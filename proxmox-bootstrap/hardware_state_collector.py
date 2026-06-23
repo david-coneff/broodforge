@@ -27,13 +27,11 @@ Stdlib only.
 """
 
 import json
-import re
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Callable, Optional
 
-from collector_utils import local_runner, RunnerFn  # noqa: F401
-
+from collector_utils import RunnerFn, local_runner  # noqa: F401
 
 # ---------------------------------------------------------------------------
 # Dataclasses
@@ -245,7 +243,7 @@ def _parse_ip_link_json(output: str) -> list[NicEntry]:
 
 def _parse_meminfo(output: str) -> tuple[Optional[int], Optional[int]]:
     """Parse /proc/meminfo → (total_gib, available_gib)."""
-    total_kb = free_kb = avail_kb = None
+    total_kb = avail_kb = None
     for line in output.splitlines():
         if line.startswith("MemTotal:"):
             total_kb = _int(line.split()[1])

@@ -259,7 +259,7 @@ def plan_storage(storage: dict, hardware: dict | None = None) -> dict:
             })
 
     # ── Proxmox datastores ────────────────────────────────────────────────────
-    proxmox_datastores = storage.get("proxmox_datastores", [])
+    storage.get("proxmox_datastores", [])
     recommended_datastores = []
     for pool in pools:
         recommended_datastores.append({
@@ -315,7 +315,7 @@ def plan_storage(storage: dict, hardware: dict | None = None) -> dict:
 
 
 def _now_utc() -> str:
-    from datetime import datetime, timezone, timedelta
+    from datetime import datetime, timedelta, timezone
     utc = datetime.now(timezone.utc)
     local = utc + timedelta(hours=int(os.environ.get("LOCAL_TZ_OFFSET", "0")))
     tz_name = os.environ.get("LOCAL_TZ_NAME", "UTC")

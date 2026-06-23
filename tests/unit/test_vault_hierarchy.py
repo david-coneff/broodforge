@@ -7,13 +7,11 @@ test_vault_hierarchy.py — Tests for Phase 1.K (AD-061):
 
 import json
 import os
-import sys
 from pathlib import Path
 
 import pytest
 
 _ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-sys.path.insert(0, os.path.join(_ROOT, "proxmox-bootstrap"))
 
 import _vault_hierarchy as _vh
 import html_package_manifest as _hpm
@@ -480,7 +478,7 @@ class TestScopedVaultPlanHtml:
 # ===========================================================================
 
 try:
-    from hypothesis import given, settings, assume
+    from hypothesis import assume, given, settings
     from hypothesis import strategies as st
     _HAS_HYPOTHESIS = True
 except ImportError:

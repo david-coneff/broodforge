@@ -1,11 +1,6 @@
 """Tests for doc-gen/drift.py — field-level manifest diff and drift detection."""
 
-import sys
 import unittest
-from pathlib import Path
-
-ROOT = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(ROOT / "doc-gen"))
 
 from drift import compute_drift, doc_field_drift
 

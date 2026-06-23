@@ -11,30 +11,32 @@ a specific hardware profile and disposition. Tests validate that:
   - State updater integrates broodling into bootstrap-state
 """
 
-import sys, unittest, tempfile
-from datetime import datetime, timezone
-from pathlib import Path
-
-REPO_ROOT = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(REPO_ROOT / "proxmox-bootstrap"))
+import unittest
 
 from hatchery_state import (
-    SpawnManifest, read_hatchery_state,
-    next_vmid_block, next_ip_block, suggest_hostname,
+    SpawnManifest,
+    next_ip_block,
+    next_vmid_block,
+    read_hatchery_state,
+    suggest_hostname,
 )
-from validate_spawn import SpawnProposal, SpawnFinding, validate_spawn, is_valid, summarise
 from spawn_hardware_discovery import (
-    HardwareProfile, DiskInfo, NicInfo,
-    zfs_topology_for_profile, hardware_profile_to_dict,
+    DiskInfo,
+    HardwareProfile,
+    NicInfo,
+    hardware_profile_to_dict,
+    zfs_topology_for_profile,
 )
-from spawn_iac_generator import generate_tfvars, generate_cloudinit_user_data, generate_ansible_inventory
+from spawn_iac_generator import generate_ansible_inventory, generate_tfvars
 from spawn_scripts import (
-    generate_spawn_sh, generate_tailscale_join_sh,
-    generate_phase_00_host, generate_phase_04_k3s,
-    generate_phase_05_ha, generate_phase_06_verify,
+    generate_phase_00_host,
+    generate_phase_04_k3s,
+    generate_phase_05_ha,
+    generate_spawn_sh,
+    generate_tailscale_join_sh,
 )
-from update_state_after_spawn import SpawnResult, update_state_after_spawn, build_spawn_result
-
+from update_state_after_spawn import build_spawn_result, update_state_after_spawn
+from validate_spawn import SpawnProposal, is_valid, summarise, validate_spawn
 
 # ---------------------------------------------------------------------------
 # Shared hatchery fixture — represents a single-node hatchery already running
@@ -612,7 +614,8 @@ class TestStateUpdateAfterSpawn(unittest.TestCase):
         hw = _hw_compute()
         self.hw_dict = hardware_profile_to_dict(hw)
 
-        _NOW_FN = lambda: "2026-06-01T13:00:00+00:00"
+        def _NOW_FN():
+            return "2026-06-01T13:00:00+00:00"
 
         plan = _make_plan(
             hostname="pve02", vmids=[200, 201], ips=["192.168.1.50", "192.168.1.51"],
@@ -664,7 +667,7 @@ class TestStateUpdateAfterSpawn(unittest.TestCase):
 class TestScenarioWanMode(unittest.TestCase):
     def setUp(self):
         self.manifest = _make_manifest()
-        hw = _hw_compute()
+        _hw_compute()
         vmids = next_vmid_block(self.manifest, 2)
         ips   = next_ip_block(self.manifest, "192.168.1.0/24", 2)
         hostname = suggest_hostname(self.manifest, "pve", "home.example.com")
@@ -709,7 +712,7 @@ class TestScenarioWanMode(unittest.TestCase):
 class TestScenarioInteractiveMode(unittest.TestCase):
     def setUp(self):
         self.manifest = _make_manifest()
-        hw = _hw_compute()
+        _hw_compute()
         vmids = next_vmid_block(self.manifest, 1)
         ips   = next_ip_block(self.manifest, "192.168.1.0/24", 1)
         hostname = suggest_hostname(self.manifest, "pve", "home.example.com")

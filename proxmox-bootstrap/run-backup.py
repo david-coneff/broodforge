@@ -18,7 +18,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from backup_engine import BackupEngine, RcloneRunner, SpaceProbe
+from backup_engine import BackupEngine
 
 
 def _configure_logging(verbose: bool):
@@ -100,7 +100,7 @@ def main():
 
         # Report
         if result.all_failed:
-            print(f"  ✗ ALL DESTINATIONS FAILED — RED gap will be logged")
+            print("  ✗ ALL DESTINATIONS FAILED — RED gap will be logged")
         else:
             for dr in result.destination_results:
                 status = "✓" if (dr.success and dr.verified) else "✗"
@@ -123,7 +123,7 @@ def main():
 
     if not args.dry_run and results:
         _save_state(args.state, state)
-        print(f"\n[backup] bootstrap-state.json updated with backup_history")
+        print("\n[backup] bootstrap-state.json updated with backup_history")
 
     failed_layers = [r.layer for r in results if r.all_failed]
     if failed_layers:

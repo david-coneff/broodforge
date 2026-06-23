@@ -13,28 +13,25 @@ Covers:
   - auto_suggest_field: returns suggestions from manifest without session
 """
 
-import sys
 import unittest
-from pathlib import Path
-
-REPO_ROOT = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(REPO_ROOT / "proxmox-bootstrap"))
 
 from forge_planner import (
-    ForgePlannerSession,
-    FORGE_MODE_AUTONOMOUS, FORGE_MODE_IP_SELECTIVE,
-    FORGE_MODE_GROUP_MANUAL, FORGE_MODE_FULL_MANUAL,
+    FORGE_MODE_AUTONOMOUS,
+    FORGE_MODE_FULL_MANUAL,
+    FORGE_MODE_GROUP_MANUAL,
+    FORGE_MODE_IP_SELECTIVE,
     FORGE_MODES,
-    PROFILE_LAN, PROFILE_WAN,
+    PROFILE_LAN,
+    PROFILE_WAN,
+    ForgePlannerSession,
+    auto_suggest_field,
+    build_forge_manifest,
+    record_manual_field,
     step0_set_setup_mode,
     step1_run_guided_setup,
     step2_set_identity,
     step3_set_network_profile,
-    record_manual_field,
-    build_forge_manifest,
-    auto_suggest_field,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

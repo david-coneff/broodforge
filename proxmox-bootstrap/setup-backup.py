@@ -80,7 +80,7 @@ def _collect_destination_restic(layer: str) -> dict:
     print("    4. rclone — any rclone remote (Google Drive, etc.)")
     dtype_choice = _prompt("  Choice", "1")
 
-    dest_id = _prompt(f"  Destination label (e.g. local-drive, b2-cloud)", f"local-{layer}")
+    dest_id = _prompt("  Destination label (e.g. local-drive, b2-cloud)", f"local-{layer}")
     retention = int(_prompt("  Snapshots to keep", "5"))
     kp_prefix = _prompt(
         "  KeePass path prefix for repo passwords",
@@ -99,7 +99,7 @@ def _collect_destination_restic(layer: str) -> dict:
     }
 
     if dest_type == "local":
-        root = _prompt(f"  Local path", f"/mnt/backup/{layer}")
+        root = _prompt("  Local path", f"/mnt/backup/{layer}")
         dest["restic_repo_root"] = root
     elif dest_type == "b2":
         bucket = _prompt("  B2 bucket name")

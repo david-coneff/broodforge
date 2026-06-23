@@ -25,25 +25,25 @@ _HERE = Path(__file__).parent
 sys.path.insert(0, str(_HERE))
 
 from forge_planner import (
+    FORGE_MODE_AUTONOMOUS,
+    FORGE_MODE_FULL_MANUAL,
+    FORGE_MODE_GROUP_MANUAL,
+    FORGE_MODE_IP_SELECTIVE,
+    PROFILE_LAN,
+    PROFILE_WAN,
     ForgePlannerSession,
-    FORGE_MODE_AUTONOMOUS, FORGE_MODE_IP_SELECTIVE,
-    FORGE_MODE_GROUP_MANUAL, FORGE_MODE_FULL_MANUAL,
-    PROFILE_LAN, PROFILE_WAN,
+    build_forge_manifest,
+    record_manual_field,
     step0_set_setup_mode,
     step1_run_guided_setup,
     step2_set_identity,
     step3_set_network_profile,
-    record_manual_field,
-    build_forge_manifest,
 )
 from guided_setup import (
     SETTING_GROUPS,
     group_selector_rows,
     suggest,
-    set_value,
-    session_to_overrides,
 )
-
 
 # ---------------------------------------------------------------------------
 # I/O helpers
@@ -131,7 +131,6 @@ def _step1_guided(session: ForgePlannerSession) -> ForgePlannerSession:
     _header("Step 1 — Guided Setup")
 
     selected_groups = None
-    ip_values = {}
 
     if session.setup_mode == FORGE_MODE_IP_SELECTIVE:
         print("\n  Auto-calculating all settings; you will set IP addressing only.\n")
@@ -158,7 +157,7 @@ def _step1_guided(session: ForgePlannerSession) -> ForgePlannerSession:
         selected = []
         for row in rows:
             gid  = row["group_id"]
-            auto = row["auto_suggestion"]
+            row["auto_suggestion"]
             desc = row["description"]
             ans  = _prompt(f"  Configure {row['label']:<12} ({desc[:35]}) (y/N)", "n")
             if ans.lower() == "y":
@@ -198,7 +197,7 @@ def _step1_guided(session: ForgePlannerSession) -> ForgePlannerSession:
         step1_run_guided_setup(session)
         print("\n  Walking through all settings. Press Enter to accept suggestion.\n")
         gs = session.guided_session
-        for gid, gdef in SETTING_GROUPS.items():
+        for _gid, gdef in SETTING_GROUPS.items():
             _header(f"Group: {gdef['label']}")
             for fp in gdef["fields"]:
                 current = suggest(fp, gs)
@@ -313,10 +312,10 @@ def main():
             manifest = json.load(f)
 
     print(f"\n{'=' * 64}")
-    print(f"  Broodforge Forge Planner")
+    print("  Broodforge Forge Planner")
     print(f"{'=' * 64}")
-    print(f"\n  This planner generates a forge-manifest.json that captures")
-    print(f"  your configuration choices for the initial hatchery forge.\n")
+    print("\n  This planner generates a forge-manifest.json that captures")
+    print("  your configuration choices for the initial hatchery forge.\n")
 
     session = ForgePlannerSession(manifest=manifest)
 
@@ -341,7 +340,7 @@ def main():
         print(f"\n  Warnings ({len(session.warnings)}):")
         for w in session.warnings:
             print(f"    ⚠  {w}")
-    print(f"\n  Next steps:")
+    print("\n  Next steps:")
     print(f"    1. Review {out}")
     print(f"    2. Run: python3 assemble-forge-package.py --manifest {out}")
     print()

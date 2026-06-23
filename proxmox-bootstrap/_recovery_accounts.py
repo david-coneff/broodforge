@@ -39,7 +39,6 @@ Stdlib only.
 from datetime import datetime, timezone
 from typing import Optional
 
-
 # ---------------------------------------------------------------------------
 # Account identity defaults
 # ---------------------------------------------------------------------------

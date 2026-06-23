@@ -30,8 +30,7 @@ Stdlib only.
 """
 
 from dataclasses import dataclass, field
-from typing import Any, Callable, Optional
-
+from typing import Callable
 
 # ---------------------------------------------------------------------------
 # Score constants and helpers

@@ -40,7 +40,7 @@ import argparse
 import json
 import sys
 import uuid
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
@@ -215,7 +215,8 @@ class UserRegistryManager:
             roles = {}
 
         if now_fn is None:
-            now_fn = lambda: datetime.now(timezone.utc)
+            def now_fn():
+                return datetime.now(timezone.utc)
 
         record = UserRecord(
             id=str(uuid.uuid4()),
@@ -457,7 +458,7 @@ def _cmd_add_service(manager: UserRegistryManager, args) -> int:
     username, service = args.add_service
     role = args.role or "user"
     try:
-        record = manager.add_service(username, service, role=role)
+        manager.add_service(username, service, role=role)
         print(
             f"Enrolled {username!r} in {service!r} (role={role}).\n"
             f"\nNext: run forge-onboard-user.sh --add-service {username} {service}\n"

@@ -29,8 +29,10 @@ from typing import Optional
 
 try:
     from keepass_mfa import (
-        MfaConfig, provision_totp, render_mfa_provision_commands,
+        MfaConfig,
         print_totp_setup_to_tty,
+        provision_totp,
+        render_mfa_provision_commands,
     )
     _HAS_MFA = True
 except ImportError:
@@ -164,8 +166,8 @@ def generate_keepass_init_config(
     """
     if not suggested_passphrase:
         try:
-            import sys as _sys
             import os as _os
+            import sys as _sys
             _sys.path.insert(0, _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "..", "lib"))
             from passphrase import generate_master_password_suggestion
             suggested_passphrase, _ = generate_master_password_suggestion()
@@ -267,7 +269,7 @@ def render_init_commands(config: KeePassInitConfig) -> list[str]:
     cmds = [
         "# Phase 1.F.6 — KeePass database initialisation",
         "apt-get install -y keepassxc 2>/dev/null || true",
-        f"install -d -m 700 /etc/broodforge",
+        "install -d -m 700 /etc/broodforge",
         # Pipe master password via stdin; --set-password reads '-' as stdin in keepassxc-cli ≥2.6
         f"printf '%s\\n' \"$KEEPASS_MASTER_PASSWORD\" | keepassxc-cli db-create --set-password - {db_q}",
         "",
@@ -290,9 +292,9 @@ def render_init_commands(config: KeePassInitConfig) -> list[str]:
     cmds.append("")
     cmds.append(f"echo '[keepass] Database initialised at {db_q}'")
     if config.embed_in_packages:
-        cmds.append(f"echo '[keepass] Database will be embedded in spawn/phoenix packages.'")
+        cmds.append("echo '[keepass] Database will be embedded in spawn/phoenix packages.'")
     else:
-        cmds.append(f"echo '[keepass] Database NOT embedded — path-based access only.'")
+        cmds.append("echo '[keepass] Database NOT embedded — path-based access only.'")
 
     # MFA provisioning (if configured)
     if config.mfa_method != "none" and _HAS_MFA:

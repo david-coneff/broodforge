@@ -271,8 +271,8 @@ if str(_DOC_GEN_DIR) not in sys.path:
 
 try:
     from dependencies import build_graph as _build_graph
-    from readiness import score_graph as _score_graph
     from drift import compute_drift as _compute_drift
+    from readiness import score_graph as _score_graph
     _HAS_DOC_GEN = True
 except ImportError:
     _build_graph = None  # type: ignore

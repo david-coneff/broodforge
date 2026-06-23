@@ -20,7 +20,9 @@ def _fixed_now():
 
 def _load_module():
     """Import storage_manager from proxmox-bootstrap/ without package install."""
-    import importlib.util, pathlib, sys
+    import importlib.util
+    import pathlib
+    import sys
     here = pathlib.Path(__file__).parent
     mod_path = here.parent.parent / "proxmox-bootstrap" / "storage_manager.py"
     spec = importlib.util.spec_from_file_location("storage_manager", mod_path)

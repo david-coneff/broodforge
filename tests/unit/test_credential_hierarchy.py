@@ -13,22 +13,16 @@ Tests:
 """
 
 import json
-import sys
-import os
 from pathlib import Path
 
 import pytest
 
 # Make proxmox-bootstrap importable from the test directory
-_REPO_ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(_REPO_ROOT / "proxmox-bootstrap"))
-
 from credential_hierarchy import (
     ChildDatabase,
     CredentialHierarchy,
     HierarchyManager,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -222,7 +216,7 @@ class TestSaveRoundtrip:
         reloaded = manager.load()
 
         for orig_child, rel_child in zip(
-            original.child_databases, reloaded.child_databases
+            original.child_databases, reloaded.child_databases, strict=False
         ):
             assert rel_child.path == orig_child.path
             assert rel_child.master_entry == orig_child.master_entry

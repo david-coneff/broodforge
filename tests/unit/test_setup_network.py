@@ -15,24 +15,27 @@ Covers:
 """
 
 import json
-import sys
 import unittest
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(REPO_ROOT / "proxmox-bootstrap"))
 
 from setup_network import (
-    PROFILE_LAN, PROFILE_WAN,
-    LanNetworkConfig, WanNetworkConfig,
-    suggest_lan, suggest_wan,
-    validate_lan_config, validate_wan_config,
-    plan_migration_to_wan, plan_migration_to_lan,
-    lan_config_to_state, wan_config_to_state,
+    PROFILE_LAN,
+    PROFILE_WAN,
+    LanNetworkConfig,
+    WanNetworkConfig,
     apply_network_config_to_state,
     generate_dnsmasq_config,
+    lan_config_to_state,
+    plan_migration_to_lan,
+    plan_migration_to_wan,
+    suggest_lan,
+    suggest_wan,
+    validate_lan_config,
+    validate_wan_config,
+    wan_config_to_state,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

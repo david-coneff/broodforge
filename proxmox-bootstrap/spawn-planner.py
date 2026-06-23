@@ -26,21 +26,30 @@ from pathlib import Path
 _HERE = Path(__file__).parent
 sys.path.insert(0, str(_HERE))
 
+from guided_setup import SETTING_GROUPS
 from hatchery_state import read_hatchery_state
 from spawn_planner import (
-    ServiceCatalog, SpawnPlannerSession,
-    NET_LAN, NET_WAN, NET_SPECIFY,
-    EXEC_AUTONOMOUS, EXEC_INTERACTIVE,
-    SEL_FULL_MIRROR, SEL_GROUP, SEL_INDIVIDUAL,
-    FIT_OK, FIT_MARGINAL, FIT_NO_FIT,
-    step0_set_network_mode, step_guided_setup, step1_set_execution_mode,
-    step2_select_services, step3_allocate_resources,
-    assess_all_services, full_mirror_services,
+    EXEC_AUTONOMOUS,
+    EXEC_INTERACTIVE,
+    FIT_MARGINAL,
+    FIT_NO_FIT,
+    FIT_OK,
+    NET_LAN,
+    NET_SPECIFY,
+    NET_WAN,
+    SEL_FULL_MIRROR,
+    SEL_GROUP,
+    SEL_INDIVIDUAL,
+    ServiceCatalog,
+    SpawnPlannerSession,
+    assess_all_services,
     build_spawn_plan,
-    GROUPS,
+    step0_set_network_mode,
+    step1_set_execution_mode,
+    step2_select_services,
+    step3_allocate_resources,
+    step_guided_setup,
 )
-from guided_setup import SETTING_GROUPS, group_selector_rows, suggest, set_value
-
 
 # ---------------------------------------------------------------------------
 # I/O helpers
@@ -168,7 +177,8 @@ def _step0_5_guided_setup(
 
     if mode == "ip-selective":
         # Show IP field suggestions and prompt
-        from guided_setup import GuidedSetupSession, suggest as gs_suggest
+        from guided_setup import GuidedSetupSession
+        from guided_setup import suggest as gs_suggest
         _gs = GuidedSetupSession(mode=mode, manifest=state)
         ip_values = {}
         for fp in ("network.management_cidr", "network.gateway"):
@@ -179,7 +189,8 @@ def _step0_5_guided_setup(
 
     elif mode == "group-manual":
         # Show group selector
-        from guided_setup import GuidedSetupSession, group_selector_rows as _gsr
+        from guided_setup import GuidedSetupSession
+        from guided_setup import group_selector_rows as _gsr
         _gs = GuidedSetupSession(mode=mode, manifest=state)
         rows = _gsr(_gs)
         selected_groups = []
@@ -195,7 +206,8 @@ def _step0_5_guided_setup(
         for gid in selected_groups:
             gdef = SETTING_GROUPS[gid]
             _header(f"Group: {gdef['label']}")
-            from guided_setup import GuidedSetupSession, suggest as gs_suggest
+            from guided_setup import GuidedSetupSession
+            from guided_setup import suggest as gs_suggest
             _gs2 = GuidedSetupSession(mode=mode, manifest=state,
                                        selected_groups=set(selected_groups))
             for fp in gdef["fields"]:
@@ -220,9 +232,10 @@ def _step0_5_guided_setup(
 
     elif mode == "full-manual":
         field_values = {}
-        from guided_setup import GuidedSetupSession, suggest as gs_suggest
+        from guided_setup import GuidedSetupSession
+        from guided_setup import suggest as gs_suggest
         _gs = GuidedSetupSession(mode=mode, manifest=state)
-        for gid, gdef in SETTING_GROUPS.items():
+        for _gid, gdef in SETTING_GROUPS.items():
             _header(f"Group: {gdef['label']}")
             for fp in gdef["fields"]:
                 current = gs_suggest(fp, _gs)
@@ -265,10 +278,10 @@ def _step1_interactive(session: SpawnPlannerSession) -> SpawnPlannerSession:
 
     if session.execution_mode == EXEC_AUTONOMOUS:
         pw = session.temp_root_password
-        print(f"\n  Suggested temporary root password (use during Proxmox install):")
+        print("\n  Suggested temporary root password (use during Proxmox install):")
         print(f"    {pw}")
-        print(f"  This password is held in session memory and used for SSH discovery.")
-        print(f"  It will be replaced by a KeePass-managed credential during spawn.")
+        print("  This password is held in session memory and used for SSH discovery.")
+        print("  It will be replaced by a KeePass-managed credential during spawn.")
         _prompt("\nPress Enter when you have noted the password")
 
     return session
@@ -286,7 +299,7 @@ def _display_fit(fit_results: dict, catalog: ServiceCatalog):
         fit  = fit_results.get(name)
         if fit:
             sym  = symbols.get(fit.status, "[?]")
-            desc = svc.get("description", "")[:45]
+            svc.get("description", "")[:45]
             print(f"  {sym} {name:<22} {fit.reason[:40]}")
 
 
@@ -423,10 +436,10 @@ def main():
     print(f"  VMIDs:           {[v['vmid'] for v in plan.get('vms', [])]}")
     print(f"  IPs:             {[v['ip'] for v in plan.get('vms', [])]}")
     print(f"  k3s role:        {plan.get('k3s', {}).get('role', '?')}")
-    print(f"\n  Next steps:")
+    print("\n  Next steps:")
     print(f"    1. Review spawn-plan-{hostname}.json")
     print(f"    2. Run: python3 assemble-spawn-package.py --plan {plan_path} --state bootstrap-state.json")
-    print(f"    3. Copy spawn package to broodling and run: bash spawn.sh")
+    print("    3. Copy spawn package to broodling and run: bash spawn.sh")
     print()
 
 

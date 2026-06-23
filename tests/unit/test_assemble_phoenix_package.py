@@ -14,17 +14,14 @@ import warnings
 from datetime import datetime, timezone
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(REPO_ROOT / "proxmox-bootstrap"))
-
 from assemble_phoenix_package import (
-    assemble_phoenix_package,
-    package_contents,
-    package_name,
-    pack_state,
-    read_phoenix_manifest,
     _CHECKPOINT_SH,
     _load_version_from,
+    assemble_phoenix_package,
+    pack_state,
+    package_contents,
+    package_name,
+    read_phoenix_manifest,
 )
 
 _NOW = datetime(2026, 6, 1, 12, 0, 0, tzinfo=timezone.utc)
@@ -241,7 +238,8 @@ class TestPhoenixKeepassGate:
         assert "lib/phoenix-keepass-gate.sh" in contents
 
     def test_run_all_sh_sources_gate(self):
-        import tempfile, tarfile
+        import tarfile
+        import tempfile
         from datetime import datetime, timezone
         with tempfile.TemporaryDirectory() as tmpdir:
             pkg = assemble_phoenix_package(

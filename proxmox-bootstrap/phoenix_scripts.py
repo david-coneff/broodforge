@@ -122,11 +122,11 @@ def _step_block(step: dict) -> str:
     ck_q = shlex.quote(checkpoint_key)  # single-quoted for bash function args
 
     lines = [
-        f"",
+        "",
         f"# ── Step {sid}: {action}",
         f'if is_done {ck_q}; then',
         f'    checkpoint_skip {ck_q}',
-        f"else",
+        "else",
         f'    checkpoint_start {ck_q}',
         f"    echo '[step {sid}] {action}'",
     ]
@@ -144,7 +144,7 @@ def _step_block(step: dict) -> str:
             lines[-1] = f"    {stripped}"
 
     if val:
-        lines.append(f"    # Validation:")
+        lines.append("    # Validation:")
         for v in val:
             lines.append(f"    # {v.strip()}")
 
@@ -196,11 +196,11 @@ def generate_wave_script(wave: dict, playbook: Optional[dict] = None) -> str:
         for p in prereqs:
             lines.append(f"#   - {p}")
     lines.append("")
-    lines.append(f'echo ""')
+    lines.append('echo ""')
     lines.append(f"echo '[Wave {wave_num}] {wave_name}'")
     if est_mins:
         lines.append(f"echo '[Wave {wave_num}] Estimated: {est_mins} minutes'")
-    lines.append(f'echo ""')
+    lines.append('echo ""')
 
     for step in steps:
         lines.append(_step_block(step))
@@ -237,21 +237,21 @@ def generate_run_all_sh(playbook: dict) -> str:
     lines = [
         _header(f"Phoenix run-all.sh — {hostname}", None, playbook),
         _CHECKPOINT_STUB,
-        f'# ── KeePass unlock gate ──────────────────────────────────────────────',
-        f'if [ -f "$SCRIPT_DIR/lib/phoenix-keepass-gate.sh" ]; then',
-        f'  source "$SCRIPT_DIR/lib/phoenix-keepass-gate.sh"',
-        f'  phoenix_keepass_gate',
-        f'fi',
-        f'',
-        f"echo '============================================================='",
+        '# ── KeePass unlock gate ──────────────────────────────────────────────',
+        'if [ -f "$SCRIPT_DIR/lib/phoenix-keepass-gate.sh" ]; then',
+        '  source "$SCRIPT_DIR/lib/phoenix-keepass-gate.sh"',
+        '  phoenix_keepass_gate',
+        'fi',
+        '',
+        "echo '============================================================='",
         f"echo ' Phoenix Restoration: {hostname}'",
         f"echo ' Cell:   {cell_id}'",
         f"echo ' Scope:  {scope}'",
         f"echo ' Waves:  {len(waves)}'",
         f"echo ' Estimated: {est_total} minutes'",
         f"echo ' Generated: {generated}'",
-        f"echo '============================================================='",
-        f'echo ""',
+        "echo '============================================================='",
+        'echo ""',
         "",
     ]
 
@@ -268,23 +268,23 @@ def generate_run_all_sh(playbook: dict) -> str:
             f'bash "$SCRIPT_DIR/"{script_q} \\',
             f"    || {{ echo '[phoenix] FAILED at Wave {wave_num}: {wave_name}'; exit 1; }}",
             f"echo '[phoenix] Wave {wave_num} complete.'",
-            f'echo ""',
+            'echo ""',
             "",
         ]
 
     lines += [
-        f"echo '============================================================='",
+        "echo '============================================================='",
         f"echo ' Phoenix Restoration Complete: {hostname}'",
-        f"echo '============================================================='",
-        f'echo ""',
-        f"echo ' Post-restoration validation checklist:'",
+        "echo '============================================================='",
+        'echo ""',
+        "echo ' Post-restoration validation checklist:'",
     ]
     for item in checklist:
         lines.append(f"echo '   - {item}'")
     lines += [
-        f'echo ""',
-        f"echo ' Update bootstrap-state.json and commit to Forgejo.'",
-        f'echo ""',
+        'echo ""',
+        "echo ' Update bootstrap-state.json and commit to Forgejo.'",
+        'echo ""',
     ]
 
     return "\n".join(lines) + "\n"

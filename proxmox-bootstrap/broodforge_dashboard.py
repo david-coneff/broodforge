@@ -31,7 +31,6 @@ Stdlib only.
 """
 
 import argparse
-import hashlib
 import html as _html
 import http.server
 import json
@@ -40,11 +39,9 @@ import re
 import secrets
 import ssl
 import sys
-import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from http import HTTPStatus
-from pathlib import Path
 from typing import Optional
 from urllib.parse import urlparse
 
@@ -52,29 +49,35 @@ from urllib.parse import urlparse
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 try:
     from remediation_queue import (
-        load_queue, save_queue,
-        approve_proposal, reject_proposal, batch_approve,
+        approve_proposal,
+        batch_approve,
+        load_queue,
+        reject_proposal,
+        save_queue,
     )
     _HAS_REMEDIATION_QUEUE = True
 except ImportError:
     _HAS_REMEDIATION_QUEUE = False
 
 try:
-    from backup_manager import BackupManager, BackupScope, _parse_scope_arg
+    from backup_manager import BackupManager, _parse_scope_arg
     _HAS_BACKUP_MANAGER = True
 except ImportError:
     _HAS_BACKUP_MANAGER = False
 
 try:
-    from node_planner import NodePlanner, VALID_ROLES as _NP_VALID_ROLES
+    from node_planner import VALID_ROLES as _NP_VALID_ROLES
+    from node_planner import NodePlanner
     _HAS_NODE_PLANNER = True
 except ImportError:
     _HAS_NODE_PLANNER = False
 
 try:
     from continuous_assessment import (
-        assess_code_health, CodeHealthScore,
-        assess_dynamic_health, DynamicHealthScore,
+        CodeHealthScore,
+        DynamicHealthScore,
+        assess_code_health,
+        assess_dynamic_health,
     )
     _HAS_CODE_HEALTH = True
 except ImportError:
@@ -638,6 +641,8 @@ def _code_health_to_remediation_candidates(
     try:
         from continuous_assessment import (
             code_health_to_remediation_candidates as _static_candidates,
+        )
+        from continuous_assessment import (
             dynamic_health_to_remediation_candidates as _dynamic_candidates,
         )
     except ImportError:
@@ -739,7 +744,7 @@ def _remediation_card(p: dict) -> str:
     desc  = _e(p.get("action_description", ""))
     rev   = _e(p.get("reversibility", ""))
     kp    = p.get("keepass_gated", False)
-    status= p.get("status", "proposed")
+    p.get("status", "proposed")
     ts    = _e((p.get("proposed_at") or "")[:16])
     raw_pid = p.get("proposal_id", "")
 
@@ -861,7 +866,7 @@ def _build_cqb_backup_panel(cqb_backups: list[dict], cfg: DashboardConfig) -> st
     # Trigger backup form
     trigger_form = ""
     if has_bm:
-        trigger_form = f"""<div style="margin-top:12px;padding:12px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius)">
+        trigger_form = """<div style="margin-top:12px;padding:12px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius)">
   <strong style="font-size:.88em">Trigger Backup</strong>
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center">
     <select id="cqb-scope" style="background:var(--bg2);color:var(--text);border:1px solid var(--border);border-radius:3px;padding:4px 8px;font-size:.85em">
@@ -882,7 +887,7 @@ def _build_cqb_backup_panel(cqb_backups: list[dict], cfg: DashboardConfig) -> st
     # Restore form
     restore_form = ""
     if has_bm:
-        restore_form = f"""<div style="margin-top:8px;padding:12px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius)">
+        restore_form = """<div style="margin-top:8px;padding:12px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius)">
   <strong style="font-size:.88em">Restore from Backup</strong>
   <p style="color:var(--muted);font-size:.8em;margin:4px 0 8px">Restore prints a procedure — it does not automatically overwrite live state. Use the Restore… buttons in the table above, or enter a backup ID:</p>
   <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
@@ -1220,7 +1225,7 @@ def generate_dashboard_html(
     sec_has_scan  = security.get("has_scan", False)
     sec_score_c   = {"GREEN": "var(--green)", "YELLOW": "var(--yellow)",
                      "ORANGE": "var(--orange)", "RED": "var(--red)"}.get(sec_score, "var(--muted)")
-    sec_findings  = security.get("findings", [])
+    security.get("findings", [])
 
     bkp_dests = backup.get("destinations", [])
     bkp_last  = backup.get("last_run") or "Never"
@@ -2260,7 +2265,8 @@ class _DashboardHandler(http.server.BaseHTTPRequestHandler):
             return
 
         state_dir = os.path.dirname(os.path.abspath(self._cfg.state_path))
-        import io, contextlib
+        import contextlib
+        import io
         buf = io.StringIO()
         try:
             manager = BackupManager(state_dir=state_dir)
@@ -2489,7 +2495,7 @@ def run_server(cfg: DashboardConfig) -> None:
             server.socket = ctx.wrap_socket(server.socket, server_side=True)
             proto = "https"
         else:
-            print(f"[dashboard] WARNING: ssl_cert/ssl_key not found — running HTTP", file=sys.stderr)
+            print("[dashboard] WARNING: ssl_cert/ssl_key not found — running HTTP", file=sys.stderr)
             proto = "http"
     else:
         proto = "http"
@@ -2517,7 +2523,7 @@ def run_server(cfg: DashboardConfig) -> None:
         file=sys.stderr,
     )
     if cfg.action_token:
-        print(f"[dashboard] Action token set — POST endpoints require X-Broodforge-Token header",
+        print("[dashboard] Action token set — POST endpoints require X-Broodforge-Token header",
               file=sys.stderr)
     else:
         print("[dashboard] WARNING: No auth token configured — all POST endpoints are unprotected",

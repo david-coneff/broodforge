@@ -12,16 +12,14 @@ Covers:
 """
 
 import json
-import sys
 import os
 
+import pytest
+
 _ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-sys.path.insert(0, os.path.join(_ROOT, "proxmox-bootstrap"))
-sys.path.insert(0, os.path.join(_ROOT, "doc-gen"))
 
 import capability_state as _cs
 import secret_reference_state as _sr
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

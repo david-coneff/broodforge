@@ -69,7 +69,7 @@ def main() -> None:
     waves = playbook.get("waves") or []
 
     print(f"\n{'=' * 64}")
-    print(f"  Phoenix Package Assembled")
+    print("  Phoenix Package Assembled")
     print(f"{'=' * 64}")
     print(f"  Package:  {pkg}")
     print(f"  SHA-256:  {hashlib.sha256(pkg.read_bytes()).hexdigest()}")
@@ -77,10 +77,10 @@ def main() -> None:
     print(f"  Node:     {node}")
     print(f"  Scope:    {scope}")
     print(f"  Waves:    {len(waves)}")
-    print(f"\n  Next steps:")
+    print("\n  Next steps:")
     print(f"    1. Copy {pkg.name} to the replacement hardware")
     print(f"    2. Extract: tar -xzf {pkg.name}")
-    print(f"    3. Run:     bash run-all.sh")
+    print("    3. Run:     bash run-all.sh")
     print()
 
 

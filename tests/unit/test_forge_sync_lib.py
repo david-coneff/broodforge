@@ -11,11 +11,9 @@ Test groups:
 
 import importlib.util
 import os
-import sys
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch, MagicMock
 
 # ---------------------------------------------------------------------------
 # Load forge-sync-lib.py (hyphenated name — cannot use plain import)
@@ -44,7 +42,6 @@ try:
             kp._filepath = path
             kp._password = password
             kp._keyfile = None
-            import pykeepass.entry as _e
             import libkeepass  # noqa
             raise ImportError("create_database not available")
     _PYKEEPASS_AVAILABLE = True

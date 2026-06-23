@@ -51,9 +51,8 @@ Stdlib only (run_continuous_assessment() lazily imports remediation_queue + reme
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Callable, Optional
-
 
 # ---------------------------------------------------------------------------
 # 24.1 — Assessment Schedule
@@ -96,8 +95,8 @@ def plan_assessment_schedule(
 
     Returns runs that are due (last run + interval < now).
     """
-    from datetime import datetime, timezone
     import hashlib
+    from datetime import datetime, timezone
     now_str = (now_fn or (lambda: datetime.now(timezone.utc).isoformat()))()
     now     = datetime.fromisoformat(now_str.replace("Z", "+00:00"))
 
@@ -674,8 +673,8 @@ def assess_code_health(
         run_fn: injectable subprocess runner (defaults to subprocess.run)
         now_fn: injectable clock (defaults to utcnow)
     """
-    import subprocess as _subprocess
     import json as _json
+    import subprocess as _subprocess
 
     _run = run_fn or _subprocess.run
     _now = (now_fn or (lambda: datetime.now(timezone.utc).isoformat()))()
@@ -826,10 +825,9 @@ def assess_dynamic_health(
         run_fn: injectable subprocess runner (defaults to subprocess.run)
         now_fn: injectable clock (defaults to utcnow)
     """
-    import subprocess as _subprocess
-    import json as _json
-    import os as _os
     import glob as _glob
+    import os as _os
+    import subprocess as _subprocess
 
     _run = run_fn or _subprocess.run
     _now = (now_fn or (lambda: datetime.now(timezone.utc).isoformat()))()
@@ -861,7 +859,7 @@ def assess_dynamic_health(
                 # Parse "X failed, Y passed" summary line
                 for line in hy.stdout.splitlines():
                     if "failed" in line and ("passed" in line or "error" in line):
-                        for token, nxt in zip(line.split(), line.split()[1:]):
+                        for token, nxt in zip(line.split(), line.split()[1:], strict=False):
                             if nxt.rstrip(",") in ("failed", "error"):
                                 try:
                                     hypothesis_failures += int(token)
@@ -976,7 +974,8 @@ def code_health_to_remediation_candidates(
     proposed_at. Only static findings are handled here; for dynamic findings
     see dynamic_health_to_remediation_candidates().
     """
-    from datetime import datetime, timezone as _tz
+    from datetime import datetime
+    from datetime import timezone as _tz
     candidates: list[dict] = []
     now = (now_fn or (lambda: datetime.now(_tz.utc).isoformat()))()
 
@@ -1020,7 +1019,8 @@ def dynamic_health_to_remediation_candidates(
     remediation candidate dicts. Returns an empty list when score is
     not_implemented or has an error (no infrastructure → no candidates).
     """
-    from datetime import datetime, timezone as _tz
+    from datetime import datetime
+    from datetime import timezone as _tz
     candidates: list[dict] = []
 
     if getattr(score, "not_implemented", False) or getattr(score, "error", None):
@@ -1132,7 +1132,8 @@ def _candidate_to_proposal(
 ) -> Any:
     """Convert a health candidate dict to a RemediationProposal (lazy import)."""
     import uuid as _uuid
-    from remediation_planner import RemediationProposal, _REVERSIBILITY, _ESTIMATED_DURATION
+
+    from remediation_planner import _ESTIMATED_DURATION, _REVERSIBILITY, RemediationProposal
 
     ts          = (now_fn or (lambda: datetime.now(timezone.utc).isoformat()))()
     source      = candidate.get("source") or "assess_code_health/unknown"
@@ -1199,7 +1200,8 @@ def run_continuous_assessment(
     Requires ``remediation_queue`` and ``remediation_planner`` from the same
     ``proxmox-bootstrap/`` directory (lazily imported; not stdlib).
     """
-    from remediation_queue import load_queue, add_proposal, save_queue as _save_queue
+    from remediation_queue import add_proposal, load_queue
+    from remediation_queue import save_queue as _save_queue
 
     assessed_at = (now_fn or (lambda: datetime.now(timezone.utc).isoformat()))()
 

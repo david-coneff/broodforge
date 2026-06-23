@@ -251,7 +251,7 @@ def plan_naming(
 
 
 def _now_utc() -> str:
-    from datetime import datetime, timezone, timedelta
+    from datetime import datetime, timedelta, timezone
     utc = datetime.now(timezone.utc)
     local = utc + timedelta(hours=int(os.environ.get("LOCAL_TZ_OFFSET", "0")))
     tz_name = os.environ.get("LOCAL_TZ_NAME", "UTC")

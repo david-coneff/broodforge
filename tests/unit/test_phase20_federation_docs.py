@@ -10,17 +10,11 @@ Covers:
   20.9  build_validation_sheet_html()
 """
 
-import sys
-import os
 
-_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-sys.path.insert(0, os.path.join(_ROOT, "proxmox-bootstrap"))
-sys.path.insert(0, os.path.join(_ROOT, "doc-gen", "renderers"))
 
 import federation_docs as _fd
 import federation_state as _fs
 import html_base as _hb
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

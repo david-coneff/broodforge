@@ -12,16 +12,15 @@ Covers:
 """
 
 import json
-import sys
 import unittest
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(REPO_ROOT / "proxmox-bootstrap"))
 
 # Import from the script (strip .py for importability — it's a direct-run script,
 # so we import by path manipulation)
 import importlib.util
+
 _spec = importlib.util.spec_from_file_location(
     "generate_setup_manifest",
     REPO_ROOT / "proxmox-bootstrap" / "generate-setup-manifest.py"

@@ -9,34 +9,21 @@ require a live Ansible installation.
 from __future__ import annotations
 
 import json
-import sys
-import tempfile
-from collections import Counter
-from pathlib import Path
-from unittest.mock import MagicMock, patch
 
-import pytest
-
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
-import engine.modules  # trigger all parser registrations
-
+from engine.db import HistoryDB, _compute_guest_summary
 from engine.modules.guest_inventory import (
-    InventoryResult,
-    _parse_inventory_json,
-    _parse_ansible_output,
-    _extract_os,
+    _extract_containers,
     _extract_ips,
     _extract_mounts,
+    _extract_os,
     _extract_services,
-    _extract_containers,
+    _parse_ansible_output,
+    _parse_inventory_json,
     normalize_guest,
 )
 from engine.modules.guest_parser import parse_guests
 from engine.report_guest import generate_guest_report
-from engine.db import HistoryDB, _compute_guest_summary
 from engine.schema import validate_assessment
-
 
 # ===========================================================================
 # Fixtures
@@ -605,7 +592,7 @@ class TestGuestHistoryDB:
         db.close()
 
         # Read raw DB content as text and verify
-        raw = db_path.read_bytes().decode("utf-8", errors="replace")
+        db_path.read_bytes().decode("utf-8", errors="replace")
         # The field name may appear (it's in the guest JSON blob); the value must not
         # appear in the guest_summaries table specifically – check the summary is clean
         db2 = HistoryDB(db_path)

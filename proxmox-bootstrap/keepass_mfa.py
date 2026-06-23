@@ -18,13 +18,11 @@ Stdlib only.
 import base64
 import hashlib
 import hmac
-import os
 import secrets
 import struct
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Optional
-
 
 # ---------------------------------------------------------------------------
 # TOTP — RFC 6238

@@ -24,7 +24,6 @@ Stdlib only.
 
 import shlex
 from pathlib import Path
-from typing import Optional
 
 _SHEBANG  = "#!/usr/bin/env bash"
 _STRICT   = "set -euo pipefail"
@@ -67,23 +66,23 @@ def generate_spawn_sh(plan: dict, include_wan_phase: bool = False) -> str:
 
     lines = [
         _plan_header(plan, "spawn.sh — orchestrated entry point"),
-        f'exec > >(tee -a "$SPAWN_LOG") 2>&1',
-        f"echo '================================================================='",
+        'exec > >(tee -a "$SPAWN_LOG") 2>&1',
+        "echo '================================================================='",
         f"echo ' Broodforge Spawn — {hostname}'",
         f"echo ' Mode: {exec_mode}   k3s role: {k3s_role}'",
         f"echo ' Package: {package_id}'",
-        f"echo '================================================================='",
-        f'echo ""',
-        f'',
+        "echo '================================================================='",
+        'echo ""',
+        '',
     ]
 
     lines += [
-        f'# ── KeePass unlock gate ──────────────────────────────────────────────',
-        f'if [ -f "$SCRIPT_DIR/lib/keepass-gate.sh" ]; then',
-        f'  source "$SCRIPT_DIR/lib/keepass-gate.sh"',
-        f'  keepass_unlock_gate',
-        f'fi',
-        f'',
+        '# ── KeePass unlock gate ──────────────────────────────────────────────',
+        'if [ -f "$SCRIPT_DIR/lib/keepass-gate.sh" ]; then',
+        '  source "$SCRIPT_DIR/lib/keepass-gate.sh"',
+        '  keepass_unlock_gate',
+        'fi',
+        '',
     ]
 
     phases = []
@@ -107,20 +106,20 @@ def generate_spawn_sh(plan: dict, include_wan_phase: bool = False) -> str:
             f'echo "[spawn] Phase {phase_id}: {desc}"',
             f'bash "$SCRIPT_DIR/{script}.sh" \\',
             f'  || {{ echo "[spawn] FAILED: {desc}"; exit 1; }}',
-            f'echo ""',
-            f'',
+            'echo ""',
+            '',
         ]
 
     lines += [
-        f"echo '================================================================='",
+        "echo '================================================================='",
         f"echo ' Spawn complete: {hostname}'",
-        f"echo ' Report success to hatchery to trigger bootstrap-state update.'",
-        f"echo '================================================================='",
-        f'echo ""',
-        f"echo ' Post-spawn validation:'",
-        f"echo '   qm list                     # all VMs running'",
-        f"echo '   kubectl get nodes            # all nodes Ready'",
-        f"echo '   flux get kustomizations      # Flux reconciled'",
+        "echo ' Report success to hatchery to trigger bootstrap-state update.'",
+        "echo '================================================================='",
+        'echo ""',
+        "echo ' Post-spawn validation:'",
+        "echo '   qm list                     # all VMs running'",
+        "echo '   kubectl get nodes            # all nodes Ready'",
+        "echo '   flux get kustomizations      # Flux reconciled'",
     ]
     return "\n".join(lines) + "\n"
 
@@ -147,9 +146,9 @@ def generate_phase_00_preflight(plan: dict) -> str:
 
     return (
         _plan_header(plan, "phase-00-preflight.sh — hardware pre-flight (read-only)") +
-        f'echo "[preflight] Checking hardware against embedded profile..."\n'
-        f'FAILS=()\n\n'
-        f'# ── Disk presence ────────────────────────────────────────────────\n'
+        'echo "[preflight] Checking hardware against embedded profile..."\n'
+        'FAILS=()\n\n'
+        '# ── Disk presence ────────────────────────────────────────────────\n'
         + disks_check + "\n\n"
         f'# ── No conflicting ZFS pool ──────────────────────────────────────\n'
         f'if zpool list {pool_q} &>/dev/null; then\n'
@@ -202,8 +201,8 @@ def generate_phase_00_host(plan: dict) -> str:
 
     # Shell-quote plan values before embedding them in generated bash
     h   = shlex.quote(hostname)
-    l   = shlex.quote(lan_ip)
-    dom = shlex.quote(domain)
+    shlex.quote(lan_ip)
+    shlex.quote(domain)
     br  = shlex.quote(bridge)
     p   = shlex.quote(pool)
     topo = shlex.quote(topology)
@@ -347,11 +346,11 @@ def generate_phase_03_cloudinit(plan: dict) -> str:
                 v.get("vmid", "?"), v.get("name", "?"))
             for v in vms
         ) + "\n"
-        f'  checkpoint_done "vm-start"\n'
-        f'}}\n\n'
-        f'# Wait for SSH readiness on each VM\n'
+        '  checkpoint_done "vm-start"\n'
+        '}\n\n'
+        '# Wait for SSH readiness on each VM\n'
         + vm_waits + "\n"
-        f'\necho "[cloud-init] All VMs booted and SSH-ready"\n'
+        '\necho "[cloud-init] All VMs booted and SSH-ready"\n'
     )
 
 
@@ -482,8 +481,8 @@ def generate_phase_06_verify(plan: dict) -> str:
 
     return (
         _plan_header(plan, "phase-06-verify.sh — post-spawn health check") +
-        f'FAILS=()\n\n'
-        f'# ── VMs running ─────────────────────────────────────────────────\n'
+        'FAILS=()\n\n'
+        '# ── VMs running ─────────────────────────────────────────────────\n'
         + vm_checks + "\n\n"
         f'# ── k3s node visible ────────────────────────────────────────────\n'
         f'if command -v kubectl &>/dev/null; then\n'

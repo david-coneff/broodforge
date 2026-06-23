@@ -1,17 +1,21 @@
 #!/usr/bin/env python3
 """Tests for Phase 12.E.6 — Spawn scripts generator."""
 
-import sys, unittest, tempfile
+import tempfile
+import unittest
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(REPO_ROOT / "proxmox-bootstrap"))
-
 from spawn_scripts import (
-    generate_spawn_sh, generate_tailscale_join_sh,
-    generate_phase_00_preflight, generate_phase_00_host,
-    generate_phase_01_proxmox, generate_phase_02_vms, generate_phase_03_cloudinit,
-    generate_phase_04_k3s, generate_phase_05_ha, generate_phase_06_verify,
+    generate_phase_00_host,
+    generate_phase_00_preflight,
+    generate_phase_01_proxmox,
+    generate_phase_02_vms,
+    generate_phase_03_cloudinit,
+    generate_phase_04_k3s,
+    generate_phase_05_ha,
+    generate_phase_06_verify,
+    generate_spawn_sh,
+    generate_tailscale_join_sh,
     write_all_scripts,
 )
 

@@ -34,7 +34,6 @@ from typing import Callable, Dict, List, Optional
 
 from remediation_planner import (
     RemediationProposal,
-    RemediationPlan,
     dict_to_proposal,
     proposal_to_dict,
 )
@@ -134,7 +133,7 @@ def add_proposal(
     if threshold is None:
         return
 
-    from remediation_planner import _SEVERITY_RANK, _NEVER_AUTO_APPROVE
+    from remediation_planner import _NEVER_AUTO_APPROVE, _SEVERITY_RANK
     if proposal.action_type in _NEVER_AUTO_APPROVE:
         return
     if proposal.reversibility == "irreversible":
@@ -292,7 +291,7 @@ def batch_approve(
     now_fn:      Optional[Callable] = None,
 ) -> int:
     """Approve all pending proposals at or below max_severity. Returns count approved."""
-    from remediation_planner import _SEVERITY_RANK, _NEVER_AUTO_APPROVE
+    from remediation_planner import _NEVER_AUTO_APPROVE, _SEVERITY_RANK
     threshold_rank = _SEVERITY_RANK.get(max_severity, 0)
     count = 0
     for p in queue.proposals:

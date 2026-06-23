@@ -16,9 +16,8 @@ Requirements: PyYAML  (pip install pyyaml)
 Fallback:     Without PyYAML, runs structural checks via text scanning only.
 """
 
-import os
-import sys
 import re
+import sys
 from pathlib import Path
 
 METADATA_DIR = Path(__file__).parent / "metadata"
@@ -131,7 +130,7 @@ def validate_k3s_cluster(data: dict) -> list[str]:
     if ha_policy:
         threshold = ha_policy.get("control_plane_ha_threshold")
         if threshold is not None and threshold < 3:
-            errors.append(f"  ha_policy.control_plane_ha_threshold must be >= 3 (etcd quorum)")
+            errors.append("  ha_policy.control_plane_ha_threshold must be >= 3 (etcd quorum)")
     return errors
 
 
@@ -163,7 +162,7 @@ def cross_file_checks(all_data: dict[str, dict]) -> list[str]:
     """Validate consistency between metadata files."""
     errors = []
 
-    cell = all_data.get("cell-identity.yaml", {})
+    all_data.get("cell-identity.yaml", {})
     network = all_data.get("network-topology.yaml", {})
     k3s = all_data.get("k3s-cluster.yaml", {})
     naming = all_data.get("naming-convention.yaml", {})
@@ -182,7 +181,7 @@ def cross_file_checks(all_data: dict[str, dict]) -> list[str]:
     mgmt_cidr = (network.get("management_network") or {}).get("cidr", "")
     k3s_net = k3s.get("networking", {})
     pod_cidr = k3s_net.get("pod_cidr", "")
-    svc_cidr = k3s_net.get("service_cidr", "")
+    k3s_net.get("service_cidr", "")
     if mgmt_cidr and "POPULATE" not in mgmt_cidr:
         if pod_cidr and not pod_cidr.startswith("10.") and mgmt_cidr.startswith(pod_cidr.split(".")[0]):
             errors.append(f"  POTENTIAL OVERLAP: pod_cidr '{pod_cidr}' may overlap with mgmt '{mgmt_cidr}'")

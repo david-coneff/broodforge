@@ -7,23 +7,16 @@ test_recovery_readiness_certificate.py — Tests for Phase 1.I (AD-059):
 """
 
 import json
-import os
-import sys
 from datetime import datetime, timezone
 from pathlib import Path
-
-_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-sys.path.insert(0, os.path.join(_ROOT, "proxmox-bootstrap"))
-sys.path.insert(0, os.path.join(_ROOT, "doc-gen"))
-sys.path.insert(0, _ROOT)
 
 import _recovery_readiness_certificate as _rrc
 import html_package_manifest as _hpm
 from dependencies import build_graph
-from readiness import score_graph
 from drift import compute_drift
-from history.index import build_index
+from readiness import score_graph
 
+from history.index import build_index
 
 _NOW_ISO = "2026-06-08T12:00:00+00:00"
 _NOW = datetime(2026, 6, 8, 12, 0, 0, tzinfo=timezone.utc)

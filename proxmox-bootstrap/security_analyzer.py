@@ -45,13 +45,11 @@ import argparse
 import json
 import os
 import re
-import stat
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from html import escape as _e
 from pathlib import Path
 from typing import Callable, Dict, List, Optional
-
 
 # ---------------------------------------------------------------------------
 # Data types
@@ -818,7 +816,6 @@ def watch(
         poll_interval: seconds between poll iterations (fallback mode)
     """
     import time
-    import threading
 
     # Track file positions so we only emit new content
     positions: Dict[str, int] = {}

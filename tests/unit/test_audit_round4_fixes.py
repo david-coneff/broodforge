@@ -19,7 +19,7 @@ import os
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 REPO_ROOT = Path(__file__).parent.parent.parent
 
@@ -118,8 +118,8 @@ class TestScoreMigrationHealth(unittest.TestCase):
         self.assertIn("TALOS-ALTERNATIVE", gaps[0].remediation)
 
     def test_wired_into_score_graph(self):
-        from readiness import score_graph, _score_migration_health
         from dependencies import build_graph
+        from readiness import _score_migration_health, score_graph
         manifest = {
             "host": {"hostname": "pve01"},
             "vms": [], "containers": [],
@@ -162,8 +162,9 @@ class TestSpawnCompleteRouting(unittest.TestCase):
     """Verify that /api/spawn-complete routes to _handle_spawn_complete."""
 
     def _make_handler(self, path, body=None, token=""):
-        import hatchery_receiver as hr
         from unittest.mock import MagicMock
+
+        import hatchery_receiver as hr
         data = json.dumps(body or {}).encode()
 
         cfg = hr.HatcheryReceiverConfig(auth_token=token)

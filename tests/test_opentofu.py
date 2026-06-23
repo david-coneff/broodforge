@@ -5,25 +5,15 @@ comparison report, schema validation, and CLI commands.
 
 from __future__ import annotations
 
+import contextlib
 import io
 import json
-import sys
-import contextlib
-import tempfile
-from pathlib import Path
 
-import pytest
-
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
-import engine.modules  # trigger parser registrations
-
-from engine.opentofu import parse_state_file, ingest_state, StateParseResult, _detect_tool, _normalise_provider
-from engine.compare import compare, ComparisonResult, _resource_key, _guest_key
+from engine.cli import build_parser, cmd_compare, cmd_opentofu_ingest
+from engine.compare import ComparisonResult, _guest_key, _resource_key, compare
+from engine.opentofu import _detect_tool, _normalise_provider, ingest_state, parse_state_file
 from engine.report_compare import generate_comparison_report
 from engine.schema import validate_assessment
-from engine.cli import build_parser, cmd_opentofu_ingest, cmd_compare
-
 
 # ===========================================================================
 # Fixtures

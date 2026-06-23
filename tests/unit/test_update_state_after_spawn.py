@@ -15,10 +15,11 @@ import unittest
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(REPO_ROOT / "proxmox-bootstrap"))
 
 from update_state_after_spawn import (
-    SpawnResult, update_state_after_spawn, build_spawn_result,
+    SpawnResult,
+    build_spawn_result,
+    update_state_after_spawn,
 )
 
 # ---------------------------------------------------------------------------
@@ -257,7 +258,6 @@ class TestCLI(unittest.TestCase):
     def test_cli_updates_state_file(self):
         import json
         import subprocess
-        import sys
         import tempfile
         from pathlib import Path
 
@@ -282,7 +282,6 @@ class TestCLI(unittest.TestCase):
 
     def test_cli_missing_plan_exits_1(self):
         import subprocess
-        import sys
         import tempfile
         from pathlib import Path
 

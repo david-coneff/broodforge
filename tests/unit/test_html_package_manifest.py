@@ -8,11 +8,7 @@ Covers:
   AD-047 architecture pattern  — HTML manifest present in forge and spawn package contents
 """
 
-import sys
-import os
 
-_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-sys.path.insert(0, os.path.join(_ROOT, "proxmox-bootstrap"))
 
 import html_package_manifest as _hpm
 

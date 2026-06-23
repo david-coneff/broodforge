@@ -1,27 +1,34 @@
 #!/usr/bin/env python3
 """Tests for Phase 12.E.3 — Spawn planner (service catalog, fit assessment, plan builder)."""
 
-import sys, unittest
+import unittest
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(REPO_ROOT / "proxmox-bootstrap"))
 
 from spawn_planner import (
-    ServiceCatalog, FitResult,
+    EXEC_AUTONOMOUS,
+    EXEC_INTERACTIVE,
+    FIT_MARGINAL,
+    FIT_NO_FIT,
+    FIT_OK,
+    NET_LAN,
+    NET_SPECIFY,
+    NET_WAN,
+    SEL_GROUP,
+    SEL_INDIVIDUAL,
+    ServiceCatalog,
     SpawnPlannerSession,
-    FIT_OK, FIT_MARGINAL, FIT_NO_FIT,
-    NET_LAN, NET_WAN, NET_SPECIFY,
-    EXEC_AUTONOMOUS, EXEC_INTERACTIVE,
-    SEL_FULL_MIRROR, SEL_GROUP, SEL_INDIVIDUAL,
-    assess_service_fit, assess_all_services,
-    full_mirror_services,
-    build_spawn_plan,
-    step0_set_network_mode, step1_set_execution_mode,
-    step2_select_services, step3_allocate_resources,
-    generate_temp_password,
     _parse_service_catalog_yaml,
-    GROUPS,
+    assess_all_services,
+    assess_service_fit,
+    build_spawn_plan,
+    full_mirror_services,
+    generate_temp_password,
+    step0_set_network_mode,
+    step1_set_execution_mode,
+    step2_select_services,
+    step3_allocate_resources,
 )
 
 # ---------------------------------------------------------------------------
@@ -645,6 +652,7 @@ class TestR3002HeadscaleCommand(unittest.TestCase):
 
     def test_spawn_planner_library_uses_preauthkeys(self):
         import inspect
+
         import spawn_planner as _spl
         src = inspect.getsource(_spl)
         self.assertNotIn("authkeys generate", src,
@@ -678,13 +686,12 @@ if __name__ == "__main__":
 # ---------------------------------------------------------------------------
 
 try:
-    from hypothesis import given, settings, assume
+    from hypothesis import given, settings
     from hypothesis import strategies as st
     _HAS_HYPOTHESIS = True
 except ImportError:
     _HAS_HYPOTHESIS = False
 
-import pytest
 
 if _HAS_HYPOTHESIS:
     class TestGenerateTempPasswordProperties:

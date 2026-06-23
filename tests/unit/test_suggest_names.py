@@ -7,8 +7,6 @@ Run: py -3 tests/unit/test_suggest_names.py
 
 import importlib.util
 import json
-import sys
-import tempfile
 import unittest
 from pathlib import Path
 
@@ -338,7 +336,6 @@ class TestSSHKeyResolution(unittest.TestCase):
 
     def test_actual_key_when_pubkey_file_exists(self):
         """When ssh/public-keys/{name}.pub exists, embed the actual key."""
-        import tempfile, os
         vm = {"name": "test-vm", "vmid": 999, "role": "test",
               "initial_ip": "10.0.0.99", "initial_user": "ubuntu",
               "extra_packages": [], "workspace_path": None,
@@ -437,7 +434,8 @@ class TestNamingConventionAndSchemaConsistency(unittest.TestCase):
 
     def test_suggest_names_preview_runs(self):
         """print_preview should execute without error."""
-        import io, contextlib
+        import contextlib
+        import io
         out = io.StringIO()
         with contextlib.redirect_stdout(out):
             self.sn.print_preview(

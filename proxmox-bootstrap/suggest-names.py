@@ -43,10 +43,8 @@ Convention:
       Reserved:    .1 (gateway), .2–.9 (infrastructure), .11–.19 (reserved)
 """
 
-import json
 import sys
 from pathlib import Path
-
 
 # ---------------------------------------------------------------------------
 # IP suggestion
@@ -271,7 +269,6 @@ def discover_keepass_databases() -> list[str]:
     """
     import os
     import platform
-    from pathlib import Path
 
     found: list[str] = []
     seen: set[str] = set()
@@ -419,7 +416,7 @@ def print_preview(
         print(f"  {secret_id:<35} {path}")
 
     # SSH public keys
-    print(f"\nSSH public keys (saved to proxmox-bootstrap/ssh/public-keys/):")
+    print("\nSSH public keys (saved to proxmox-bootstrap/ssh/public-keys/):")
     for name in vm_names:
         print(f"  ssh/public-keys/{name}.pub")
 

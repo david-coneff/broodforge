@@ -2,20 +2,19 @@
 Tests for Phase 1.L/1.M: assess_code_health(), DynamicHealthScore, and dashboard Code Health card.
 """
 import json
-import sys
-from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
-
-sys.path.insert(0, str(Path(__file__).parent.parent / "proxmox-bootstrap"))
-
 from continuous_assessment import (
-    assess_code_health, CodeHealthScore, _score_code_health,
-    assess_dynamic_health, DynamicHealthScore, _score_dynamic_health,
+    CodeHealthScore,
+    DynamicHealthScore,
+    _score_code_health,
+    _score_dynamic_health,
+    assess_code_health,
+    assess_dynamic_health,
     code_health_to_remediation_candidates,
-    dynamic_health_to_remediation_candidates,
     collect_health_remediation_candidates,
+    dynamic_health_to_remediation_candidates,
 )
 
 
@@ -276,7 +275,7 @@ class TestDashboardCodeHealthCard:
 
     def test_generate_dashboard_html_includes_code_health(self):
         """generate_dashboard_html should accept and render code_health kwarg."""
-        from broodforge_dashboard import generate_dashboard_html, DashboardConfig
+        from broodforge_dashboard import DashboardConfig, generate_dashboard_html
         cfg = DashboardConfig()
         score = CodeHealthScore(overall=88, bandit_high_count=0, shellcheck_findings=0)
         html = generate_dashboard_html(

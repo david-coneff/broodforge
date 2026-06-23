@@ -5,9 +5,6 @@ Run: py -3 tests/unit/test_roles.py
 """
 
 import importlib.util
-import json
-import os
-import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -500,7 +497,6 @@ class TestKeepassDiscovery(unittest.TestCase):
 
     def test_discovers_kdbx_in_temp_dir(self):
         """Test that the scanner finds a real .kdbx file if placed in home-adjacent dir."""
-        import shutil
         with tempfile.TemporaryDirectory() as tmpdir:
             fake_db = Path(tmpdir) / "test.kdbx"
             fake_db.write_bytes(b"fake kdbx content")

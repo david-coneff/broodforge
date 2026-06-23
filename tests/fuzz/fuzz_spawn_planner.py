@@ -11,11 +11,8 @@ On non-Linux platforms or without atheris installed this module imports
 cleanly but does nothing — it is a no-op so the test suite can import it.
 """
 
-import sys
-import os
 import struct
-
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "proxmox-bootstrap"))
+import sys
 
 try:
     import atheris
@@ -24,7 +21,7 @@ except ImportError:
     _HAS_ATHERIS = False
 
 try:
-    from spawn_planner import ServiceCatalog, assess_service_fit, FIT_OK, FIT_MARGINAL, FIT_NO_FIT
+    from spawn_planner import FIT_MARGINAL, FIT_NO_FIT, FIT_OK, ServiceCatalog, assess_service_fit
     _HAS_SPAWN = True
 except ImportError:
     _HAS_SPAWN = False

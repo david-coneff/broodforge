@@ -24,7 +24,6 @@ Stdlib only.
 from dataclasses import dataclass, field
 from typing import Optional
 
-
 # ---------------------------------------------------------------------------
 # DnsmasqConfig
 # ---------------------------------------------------------------------------
@@ -81,7 +80,7 @@ def generate_dnsmasq_config(
     # Derive listen address from management CIDR gateway
     # (hatchery LAN IP is the gateway minus 1 subnet slot, or use first host)
     listen_address = None
-    gateway = network_topology.get("gateway") or ""
+    network_topology.get("gateway") or ""
 
     # Find hatchery entry in dns_registry (role=proxmox-host or name=hatchery)
     hatchery_fqdn   = None
@@ -207,7 +206,7 @@ def validate_dnsmasq_config(config: DnsmasqConfig) -> list[DnsmasqValidationErro
 
     # Check for duplicate FQDNs
     seen_fqdns: set[str] = set()
-    for fqdn, ip in config.address_entries:
+    for fqdn, _ip in config.address_entries:
         if fqdn in seen_fqdns:
             errors.append(DnsmasqValidationError(
                 "address_entries",
@@ -274,7 +273,6 @@ def _cli_main() -> None:
     import argparse
     import json
     import os
-    import sys
 
     ap = argparse.ArgumentParser(description="Generate the dnsmasq config for the hatchery.")
     src = ap.add_mutually_exclusive_group(required=True)

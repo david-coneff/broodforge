@@ -34,9 +34,9 @@ sys.path.insert(0, str(_HERE))
 from hatchery_state import SpawnManifest
 from validate_spawn import (
     SpawnProposal,
-    validate_spawn,
     is_valid,
     summarise,
+    validate_spawn,
 )
 
 

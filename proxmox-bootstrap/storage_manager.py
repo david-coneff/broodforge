@@ -44,7 +44,7 @@ import logging
 import os
 import subprocess
 import sys
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable, List, Optional
@@ -259,10 +259,10 @@ def generate_longhorn_values_yaml(
     lines += [
         "",
         "persistence:",
-        f"  defaultClass: true",
+        "  defaultClass: true",
         f"  defaultClassReplicaCount: {default_replica_count}",
-        f"  defaultDataLocality: best-effort",
-        f"  reclaimPolicy: Delete",
+        "  defaultDataLocality: best-effort",
+        "  reclaimPolicy: Delete",
         "",
         "ingress:",
         "  enabled: false",

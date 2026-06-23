@@ -24,16 +24,13 @@ Stdlib only.
 
 import re
 from dataclasses import dataclass, field
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Callable, List, Optional
 
 from remediation_planner import (
-    ALLOWED_ACTION_TYPES,
-    RemediationProposal,
-    _SEVERITY_RANK,
-    _KEEPASS_GATED,
     _NEVER_AUTO_APPROVE,
-    _REVERSIBILITY,
+    _SEVERITY_RANK,
+    RemediationProposal,
 )
 
 # ---------------------------------------------------------------------------

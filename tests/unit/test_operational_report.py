@@ -14,15 +14,11 @@ Covers:
   - engine.py --mode operational is wired (run_operational function exists)
 """
 
-import json
-import sys
 import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(REPO_ROOT / "doc-gen" / "renderers"))
-sys.path.insert(0, str(REPO_ROOT / "doc-gen"))
 
 
 def _future_iso(days: int) -> str:
@@ -31,8 +27,8 @@ def _future_iso(days: int) -> str:
 
 
 def _build_report(manifest_extras=None):
-    from html_operational_report import build_operational_report_html
     from dependencies import build_graph
+    from html_operational_report import build_operational_report_html
     from readiness import score_graph
 
     manifest = {

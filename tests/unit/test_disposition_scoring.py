@@ -11,12 +11,7 @@ Covers:
   - Multiple broodlings scored independently
 """
 
-import sys
 import unittest
-from pathlib import Path
-
-REPO_ROOT = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(REPO_ROOT / "doc-gen"))
 
 from readiness import _score_disposition_compliance
 

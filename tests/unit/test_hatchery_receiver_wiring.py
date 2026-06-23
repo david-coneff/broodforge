@@ -10,21 +10,14 @@ Covers:
   - phase-06-verify.sh contains the /api/spawn-complete POST call
 """
 
-import sys
 import unittest
-from pathlib import Path
 
-REPO_ROOT = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(REPO_ROOT / "proxmox-bootstrap"))
-
-from update_state_after_spawn import (
-    update_state_after_spawn,
-    build_spawn_result,
-    SpawnResult,
-)
 import hatchery_receiver as _hr
 import spawn_scripts as _ss
-
+from update_state_after_spawn import (
+    build_spawn_result,
+    update_state_after_spawn,
+)
 
 # ---------------------------------------------------------------------------
 # Fixtures

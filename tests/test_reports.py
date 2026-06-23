@@ -5,17 +5,10 @@ Tests for Phase 4: node assessment report, combined report, and CLI commands.
 from __future__ import annotations
 
 import json
-import sys
-from pathlib import Path
 
-import pytest
-
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
-from engine.report import generate_report, _bytes, _uptime
+from engine.cli import build_parser, cmd_full_report, cmd_report
+from engine.report import _bytes, _uptime, generate_report
 from engine.report_combined import generate_combined_report
-from engine.cli import build_parser, cmd_report, cmd_full_report
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

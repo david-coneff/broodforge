@@ -15,17 +15,12 @@ credential value.
 
 import os
 import re
-import sys
 from pathlib import Path
-
-import pytest
 
 _ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 _PB_DIR = Path(_ROOT) / "proxmox-bootstrap"
-sys.path.insert(0, str(_PB_DIR))
 
 import phoenix_playbook as pp
-
 
 _MANIFEST = {
     "cell_id": "proxmox-cell-a",

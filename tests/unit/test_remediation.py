@@ -17,17 +17,12 @@ Covers:
         auto-disable triggers, guard checks
 """
 
-import sys
-import os
 
-_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-sys.path.insert(0, os.path.join(_ROOT, "proxmox-bootstrap"))
 
-import remediation_planner as _rp
-import remediation_queue   as _rq
 import remediation_executor as _re
-import remediation_policy  as _pol
-
+import remediation_planner as _rp
+import remediation_policy as _pol
+import remediation_queue as _rq
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -685,8 +680,6 @@ class TestDashboardRemediation:
         return s
 
     def test_remediations_from_state(self):
-        import sys
-        sys.path.insert(0, os.path.join(_ROOT, "proxmox-bootstrap"))
         from broodforge_dashboard import _remediations_from_state
         s = self._state_with_proposals()
         rem = _remediations_from_state(s)
@@ -696,8 +689,6 @@ class TestDashboardRemediation:
         assert rem["auto_enabled"] is False
 
     def test_remediations_auto_enabled_flag(self):
-        import sys
-        sys.path.insert(0, os.path.join(_ROOT, "proxmox-bootstrap"))
         from broodforge_dashboard import _remediations_from_state
         s = _state()
         s["remediation_policy"] = {"autonomous": {"enabled": True, "expires_at": "2026-07-02T12:00:00+00:00"}}
@@ -705,9 +696,7 @@ class TestDashboardRemediation:
         assert rem["auto_enabled"] is True
 
     def test_generate_dashboard_html_includes_remediations(self):
-        import sys
-        sys.path.insert(0, os.path.join(_ROOT, "proxmox-bootstrap"))
-        from broodforge_dashboard import generate_dashboard_html, DashboardConfig
+        from broodforge_dashboard import DashboardConfig, generate_dashboard_html
         s = self._state_with_proposals()
         cfg = DashboardConfig()
         rem = {
@@ -724,9 +713,7 @@ class TestDashboardRemediation:
         assert "GATED" in html or "AUTO" in html
 
     def test_dashboard_html_auto_badge_active(self):
-        import sys
-        sys.path.insert(0, os.path.join(_ROOT, "proxmox-bootstrap"))
-        from broodforge_dashboard import generate_dashboard_html, DashboardConfig
+        from broodforge_dashboard import DashboardConfig, generate_dashboard_html
         s = _state()
         cfg = DashboardConfig()
         rem = {"pending": [], "approved": [], "recent": [],
@@ -756,19 +743,16 @@ class TestOperationalReportSection8:
         return m
 
     def test_section_remediation_summary_no_proposals(self):
-        sys.path.insert(0, os.path.join(_ROOT, "doc-gen", "renderers"))
         import html_operational_report as _hor
         html = _hor._section_remediation_summary(_state())
         assert "No remediation proposals" in html
 
     def test_section_remediation_summary_with_proposals(self):
-        sys.path.insert(0, os.path.join(_ROOT, "doc-gen", "renderers"))
         import html_operational_report as _hor
         html = _hor._section_remediation_summary(self._manifest_with_proposals())
         assert "Pending" in html or "ORANGE" in html
 
     def test_section_remediation_shows_auto_executions(self):
-        sys.path.insert(0, os.path.join(_ROOT, "doc-gen", "renderers"))
         import html_operational_report as _hor
         html = _hor._section_remediation_summary(self._manifest_with_proposals())
         assert "auto-policy" in html or "Autonomous" in html

@@ -11,36 +11,26 @@ from __future__ import annotations
 
 import json
 import os
-import sys
 import tempfile
 import unittest
 
-# ── path setup ─────────────────────────────────────────────────────────────────
 REPO_ROOT = os.path.join(os.path.dirname(__file__), "..", "..")
 PROXMOX_BOOTSTRAP = os.path.join(REPO_ROOT, "proxmox-bootstrap")
 DOC_GEN = os.path.join(REPO_ROOT, "doc-gen")
 DATA_MODEL = os.path.join(REPO_ROOT, "data-model")
 
-for p in (PROXMOX_BOOTSTRAP, DOC_GEN, REPO_ROOT):
-    if p not in sys.path:
-        sys.path.insert(0, p)
-
 from generate_talos_config import (
-    TalosNodeSpec,
     TalosClusterSpec,
+    TalosNodeSpec,
     build_cluster_spec,
-    generate_installer_template,
-    generate_node_patch,
     generate_base_controlplane,
     generate_base_worker,
-    generate_talosconfig_stub,
+    generate_installer_template,
+    generate_node_patch,
     generate_talos_configs,
-    _find_vm_ip,
-    _gateway,
-    _nameserver,
+    generate_talosconfig_stub,
 )
 from readiness import _score_talos_config_completeness
-
 
 # ── Fixtures ───────────────────────────────────────────────────────────────────
 
@@ -471,7 +461,7 @@ class TestPhoenixPlaybookTalos(unittest.TestCase):
     """Tests for Talos-specific changes in phoenix_playbook.py."""
 
     def setUp(self):
-        sys.path.insert(0, PROXMOX_BOOTSTRAP)
+        pass
 
     def _make_manifest(self, os_variant: str = "talos") -> dict:
         return {

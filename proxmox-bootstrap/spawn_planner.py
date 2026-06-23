@@ -415,14 +415,15 @@ def build_spawn_plan(
     """
     # Support both SpawnManifest wrapper and raw dict
     if hasattr(manifest, "raw"):
-        m = manifest.raw
+        pass
     elif isinstance(manifest, dict):
-        m = manifest
+        pass
     else:
-        m = {}
+        pass
 
     # For allocation helpers that need the SpawnManifest object
-    from hatchery_state import SpawnManifest as _SM, read_hatchery_state as _rhs
+    from hatchery_state import SpawnManifest as _SM
+    from hatchery_state import read_hatchery_state as _rhs
     _manifest_obj = manifest if isinstance(manifest, _SM) else _rhs(bootstrap_state, {})
 
     now  = (now_fn or (lambda: datetime.now(timezone.utc).isoformat()))()
@@ -437,11 +438,9 @@ def build_spawn_plan(
     if exec_mode == EXEC_AUTONOMOUS:
         services  = session.selected_services
         excluded  = session.excluded_services
-        sel_mode  = session.selection_mode
     else:
         services  = []
         excluded  = []
-        sel_mode  = None
 
     # VMIDs — use allocated_vmids from session; fall back to manifest allocation
     vmids = list(session.allocated_vmids)
@@ -526,8 +525,8 @@ def build_spawn_plan(
             "node_labels":        [f"{k3s_role}=true"],
             "worker_join_token":  _k3s_secrets.get("worker_join_token"),
             "server_join_token":  _k3s_secrets.get("server_join_token"),
-            "worker_token_path":  f"Infrastructure/k3s/worker-join-token",
-            "server_token_path":  f"Infrastructure/k3s/server-join-token",
+            "worker_token_path":  "Infrastructure/k3s/worker-join-token",
+            "server_token_path":  "Infrastructure/k3s/server-join-token",
         },
         "k3s_role": k3s_role,
     }
@@ -775,9 +774,11 @@ def step_guided_setup(
     """
     from guided_setup import (
         GuidedSetupSession,
-        set_value as gs_set_value,
         run_ip_selective_suggestions,
         session_to_overrides,
+    )
+    from guided_setup import (
+        set_value as gs_set_value,
     )
 
     if mode == "autonomous":
@@ -828,7 +829,7 @@ def step3_allocate_resources(
         manifest: SpawnManifest object (from read_hatchery_state) or raw dict.
                   SpawnManifest is preferred; raw dict support is for convenience.
     """
-    from hatchery_state import next_vmid_block, next_ip_block, suggest_hostname, SpawnManifest
+    from hatchery_state import SpawnManifest, next_ip_block, next_vmid_block, suggest_hostname
 
     # Accept either SpawnManifest or raw dict
     if isinstance(manifest, SpawnManifest):

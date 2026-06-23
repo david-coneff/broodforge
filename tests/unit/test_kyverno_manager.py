@@ -1,14 +1,11 @@
 """Unit tests for kyverno_manager.py — Phase 2.J."""
 import json
 import os
-import sys
 import tempfile
 from datetime import datetime, timezone
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
-
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../proxmox-bootstrap"))
 from kyverno_manager import (
     KyvernoDeployment,
     KyvernoManager,
@@ -17,7 +14,8 @@ from kyverno_manager import (
 )
 
 FIXED_TS = datetime(2026, 6, 11, 12, 0, 0, tzinfo=timezone.utc)
-_now = lambda: FIXED_TS
+def _now():
+    return FIXED_TS
 
 
 @pytest.fixture
