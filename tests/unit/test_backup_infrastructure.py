@@ -517,8 +517,8 @@ class TestBackupEngineRestic(unittest.TestCase):
         stats_json = json.dumps({"total_size": 1024 * 1024, "total_file_count": 42})
         keys_json  = json.dumps([{"id": "oldkeyid", "current": False}])
 
-        _VERBS = {"init", "backup", "stats", "forget", "restore", "check", "snapshots"}
-        _SUBS  = {"add", "remove", "list"}
+        _VERBS = {"init", "backup", "stats", "forget", "restore", "check", "snapshots"}  # noqa: N806
+        _SUBS  = {"add", "remove", "list"}  # noqa: N806
 
         def mock_restic(cmd, env, input_text=None):
             # Route by restic subcommand verb — avoids false matches in repo paths
@@ -630,7 +630,7 @@ class TestRestoreEngine(unittest.TestCase):
     def _make_engine(self, restore_ok=True, check_ok=True):
         bc = _minimal_backup_config(history=HISTORY)
 
-        _VERBS = {"init", "restore", "check", "stats", "snapshots"}
+        _VERBS = {"init", "restore", "check", "stats", "snapshots"}  # noqa: N806
 
         def mock_restic(cmd, env, input_text=None):
             verb = next((a for a in cmd if a in _VERBS), "")

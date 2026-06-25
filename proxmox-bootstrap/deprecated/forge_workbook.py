@@ -185,7 +185,7 @@ class _SheetBuilder:
         return self
 
     def headers(self, *labels: str) -> "_SheetBuilder":
-        self._rows.append(_row([_cell(l, "ce_label") for l in labels]))
+        self._rows.append(_row([_cell(lbl, "ce_label") for lbl in labels]))
         return self
 
     def section(self, title: str) -> "_SheetBuilder":

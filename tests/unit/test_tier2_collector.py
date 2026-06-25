@@ -541,7 +541,7 @@ class TestDryRun(unittest.TestCase):
         }
 
         try:
-            with patch("collect_tier2.SSHClient") as MockSSH:
+            with patch("collect_tier2.SSHClient") as MockSSH:  # noqa: N806
                 instance = MockSSH.return_value
                 instance.test_connection.return_value = True
                 instance.run.side_effect = lambda cmd: next(

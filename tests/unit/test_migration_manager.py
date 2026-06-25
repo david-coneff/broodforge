@@ -540,7 +540,7 @@ class TestAppendMigrationLog(unittest.TestCase):
 # TestMigrateScript_initial_to_baseline
 # ---------------------------------------------------------------------------
 
-class TestMigrateScript_initial_to_baseline(unittest.TestCase):
+class TestMigrateScript_initial_to_baseline(unittest.TestCase):  # noqa: N801
     def setUp(self):
         self.migration = _import_migration(
             f"migrate_{_V_INITIAL}__to__{_V_BASELINE}.py",

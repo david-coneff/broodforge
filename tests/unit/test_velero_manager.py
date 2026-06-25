@@ -119,7 +119,7 @@ class TestStorageLocationRegistry:
         mgr.register_storage_location("a", "aws", "bucket-a", is_default=True)
         mgr.register_storage_location("b", "aws", "bucket-b", is_default=True)
         locs = mgr.load().storage_locations
-        defaults = [l for l in locs if l.is_default]
+        defaults = [loc for loc in locs if loc.is_default]
         assert len(defaults) == 1
         assert defaults[0].name == "b"
 

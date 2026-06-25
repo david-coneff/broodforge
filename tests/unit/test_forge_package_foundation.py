@@ -405,7 +405,7 @@ class TestForgeManifestSchema:
         try:
             import jsonschema
         except ImportError:
-            import pytest; pytest.skip("jsonschema not installed")
+            import pytest; pytest.skip("jsonschema not installed")  # noqa: I001
         s = self._schema()
         jsonschema.validate(self._valid_manifest(), s)
 
@@ -413,7 +413,7 @@ class TestForgeManifestSchema:
         try:
             import jsonschema
         except ImportError:
-            import pytest; pytest.skip("jsonschema not installed")
+            import pytest; pytest.skip("jsonschema not installed")  # noqa: I001
         m = self._valid_manifest()
         del m["cell_id"]
         s = self._schema()
@@ -427,7 +427,7 @@ class TestForgeManifestSchema:
         try:
             import jsonschema
         except ImportError:
-            import pytest; pytest.skip("jsonschema not installed")
+            import pytest; pytest.skip("jsonschema not installed")  # noqa: I001
         m = self._valid_manifest()
         m["setup_mode"] = "turbo"
         s = self._schema()
@@ -441,7 +441,7 @@ class TestForgeManifestSchema:
         try:
             import jsonschema
         except ImportError:
-            import pytest; pytest.skip("jsonschema not installed")
+            import pytest; pytest.skip("jsonschema not installed")  # noqa: I001
         m = self._valid_manifest()
         m["network_topology"]["profile"] = "wan"
         m["network_topology"]["wan_config"] = {
@@ -456,7 +456,7 @@ class TestForgeManifestSchema:
         try:
             import jsonschema
         except ImportError:
-            import pytest; pytest.skip("jsonschema not installed")
+            import pytest; pytest.skip("jsonschema not installed")  # noqa: I001
         m = self._valid_manifest()
         m["setup_overrides"] = {
             "network.management_cidr": {"value": "10.0.0.0/24", "source": "manual"}
@@ -468,7 +468,7 @@ class TestForgeManifestSchema:
         try:
             import jsonschema
         except ImportError:
-            import pytest; pytest.skip("jsonschema not installed")
+            import pytest; pytest.skip("jsonschema not installed")  # noqa: I001
         m = self._valid_manifest()
         m["host_identity"]["hostname"] = "PVE-01"  # uppercase not allowed
         s = self._schema()

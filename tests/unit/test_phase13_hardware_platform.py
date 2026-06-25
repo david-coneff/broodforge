@@ -112,7 +112,7 @@ class TestHardwareStateSchema:
         try:
             import jsonschema
         except ImportError:
-            import pytest; pytest.skip("jsonschema not installed")
+            import pytest; pytest.skip("jsonschema not installed")  # noqa: I001
         s = self._schema()
         doc = {
             "schema_version": "1.0",
@@ -126,7 +126,7 @@ class TestHardwareStateSchema:
         try:
             import jsonschema
         except ImportError:
-            import pytest; pytest.skip("jsonschema not installed")
+            import pytest; pytest.skip("jsonschema not installed")  # noqa: I001
         s = self._schema()
         doc = {
             "schema_version": "1.0",
@@ -167,7 +167,7 @@ class TestPlatformStateSchema:
         try:
             import jsonschema
         except ImportError:
-            import pytest; pytest.skip("jsonschema not installed")
+            import pytest; pytest.skip("jsonschema not installed")  # noqa: I001
         s = self._schema()
         doc = {
             "schema_version": "1.0",

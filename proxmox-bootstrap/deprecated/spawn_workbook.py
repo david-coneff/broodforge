@@ -183,7 +183,7 @@ class _SheetBuilder:
         return self
 
     def headers(self, *labels: str) -> "_SheetBuilder":
-        self._rows.append(_row([_cell(l, "ce_label") for l in labels]))
+        self._rows.append(_row([_cell(lbl, "ce_label") for lbl in labels]))
         return self
 
     def section(self, title: str) -> "_SheetBuilder":
@@ -442,7 +442,7 @@ def _sheet_k3s(plan: dict) -> _SheetBuilder:
             str(k3s.get("worker_token_path") or k3s.get("server_token_path") or "(in spawn-plan.json)"),
             note="Retrieved via KeePass gate — not stored in plain text")
     s.field("Node Labels",
-            "\n".join(str(l) for l in (k3s.get("node_labels") or [])) or "(none)",
+            "\n".join(str(lbl) for lbl in (k3s.get("node_labels") or [])) or "(none)",
             note="Applied during k3s join")
     s.section("Phase-04 Status")
     s.phase_row("phase-04-k3s", "Ansible k3s role — applies join token and labels")

@@ -72,7 +72,7 @@ class TestFederationStateSchema:
         try:
             import jsonschema
         except ImportError:
-            import pytest; pytest.skip("jsonschema not installed")
+            import pytest; pytest.skip("jsonschema not installed")  # noqa: I001
         schema = self._schema()
         fed = _fed()
         _fs.declare_trust(fed, "pve01-cell", "pve02-cell", _fs.TRUST_PEER, now_fn=_now)

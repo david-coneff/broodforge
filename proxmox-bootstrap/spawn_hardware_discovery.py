@@ -151,7 +151,7 @@ def _parse_ip_link(output: str) -> list[NicInfo]:
     Parse `ip -j link show` JSON output.
     Returns only physical NICs (skips lo, bridge, veth, vmbr*, bond*).
     """
-    SKIP_PATTERNS = re.compile(r'^(lo|veth|vmbr|bond|docker|br-|dummy)')
+    SKIP_PATTERNS = re.compile(r'^(lo|veth|vmbr|bond|docker|br-|dummy)')  # noqa: N806
     nics = []
     try:
         entries = json.loads(output)

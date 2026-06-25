@@ -614,7 +614,7 @@ class TestStateUpdateAfterSpawn(unittest.TestCase):
         hw = _hw_compute()
         self.hw_dict = hardware_profile_to_dict(hw)
 
-        def _NOW_FN():
+        def _NOW_FN():  # noqa: N802
             return "2026-06-01T13:00:00+00:00"
 
         plan = _make_plan(

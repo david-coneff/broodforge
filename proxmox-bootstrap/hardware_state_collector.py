@@ -222,7 +222,7 @@ def _parse_ip_link_json(output: str) -> list[NicEntry]:
     except (json.JSONDecodeError, TypeError):
         return nics
 
-    SKIP_PREFIXES = ("lo", "vmbr", "veth", "bond", "dummy", "tap", "docker")
+    SKIP_PREFIXES = ("lo", "vmbr", "veth", "bond", "dummy", "tap", "docker")  # noqa: N806
     for iface in (data or []):
         name = iface.get("ifname", "")
         if any(name.startswith(p) for p in SKIP_PREFIXES):

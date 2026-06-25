@@ -189,7 +189,7 @@ def _load_version_from(version_py: Path) -> str:
     import importlib.util
     import warnings as _warnings
 
-    _DEFAULT = "0000-00-00_00-00-00_0000000"
+    _DEFAULT = "0000-00-00_00-00-00_0000000"  # noqa: N806
     try:
         spec = importlib.util.spec_from_file_location("_broodforge_ver", version_py)
         if spec is not None and spec.loader is not None:

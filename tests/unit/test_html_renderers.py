@@ -258,7 +258,7 @@ class TestCheckboxBehavior:
         assert "italic" in page
         assert "done" in page
 
-    def test_checkbox_localStorage_in_js(self):
+    def test_checkbox_localStorage_in_js(self):  # noqa: N802
         page = _hb.html_page("T", _hb.checkbox_item("item"))
         assert "localStorage" in page
 

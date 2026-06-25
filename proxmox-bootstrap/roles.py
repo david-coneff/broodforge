@@ -610,8 +610,8 @@ def select_roles_interactive(non_interactive: bool = False) -> list[str]:
                 else:
                     line += word + " "
             lines.append(line)
-            for l in lines:
-                print(l.rstrip())
+            for line_out in lines:
+                print(line_out.rstrip())
     print()
 
     selected = list(REQUIRED_ROLES)

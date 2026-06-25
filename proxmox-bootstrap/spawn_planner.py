@@ -422,7 +422,7 @@ def build_spawn_plan(
         pass
 
     # For allocation helpers that need the SpawnManifest object
-    from hatchery_state import SpawnManifest as _SM
+    from hatchery_state import SpawnManifest as _SM  # noqa: N814
     from hatchery_state import read_hatchery_state as _rhs
     _manifest_obj = manifest if isinstance(manifest, _SM) else _rhs(bootstrap_state, {})
 

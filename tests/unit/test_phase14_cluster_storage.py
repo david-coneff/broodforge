@@ -50,7 +50,7 @@ class TestClusterStateSchema:
         try:
             import jsonschema
         except ImportError:
-            import pytest; pytest.skip("jsonschema not installed")
+            import pytest; pytest.skip("jsonschema not installed")  # noqa: I001
         s = self._schema()
         jsonschema.validate({
             "schema_version": "1.0",
@@ -87,7 +87,7 @@ class TestStorageStateSchema:
         try:
             import jsonschema
         except ImportError:
-            import pytest; pytest.skip("jsonschema not installed")
+            import pytest; pytest.skip("jsonschema not installed")  # noqa: I001
         s = self._schema()
         jsonschema.validate({
             "schema_version": "1.0",

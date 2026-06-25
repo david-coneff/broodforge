@@ -17,7 +17,7 @@ class TestCollectorUtils:
         result = _cu.local_runner("echo hello")
         assert isinstance(result, str)
 
-    def test_runnerFn_type_alias_exported(self):
+    def test_runnerFn_type_alias_exported(self):  # noqa: N802
         assert hasattr(_cu, "RunnerFn")
 
 

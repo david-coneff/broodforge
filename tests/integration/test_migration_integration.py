@@ -194,7 +194,7 @@ class TestRunMigrationsIntegration:
         run_migrations(self.state_dir, self.migrations_dir)
         log_path = self.state_dir / HISTORY_FILENAME
         assert log_path.exists(), "migration-history.jsonl was not created"
-        lines = [l for l in log_path.read_text().splitlines() if l.strip()]
+        lines = [ln for ln in log_path.read_text().splitlines() if ln.strip()]
         assert len(lines) == 1
         entry = json.loads(lines[0])
         assert entry["success"] is True
@@ -241,7 +241,7 @@ class TestRunMigrationsIntegration:
         state = _read_state(self.state_dir)
         assert state["schema_version"] == "2026-06-11_00-00-00_ccccccc"
         log_path = self.state_dir / HISTORY_FILENAME
-        lines = [l for l in log_path.read_text().splitlines() if l.strip()]
+        lines = [ln for ln in log_path.read_text().splitlines() if ln.strip()]
         assert len(lines) == 3  # one log entry per migration
 
     def test_halts_on_migration_failure(self):
@@ -300,7 +300,7 @@ class TestRunMigrationsIntegration:
         run_migrations(self.state_dir, self.migrations_dir)
         run_migrations(self.state_dir, self.migrations_dir)  # second run
         log_path = self.state_dir / HISTORY_FILENAME
-        lines = [l for l in log_path.read_text().splitlines() if l.strip()]
+        lines = [ln for ln in log_path.read_text().splitlines() if ln.strip()]
         # Second run finds nothing to do → only one log entry (from first run)
         assert len(lines) == 1
 

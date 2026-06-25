@@ -52,7 +52,7 @@ def _load_schema_version() -> str:
     updated by ``scripts/forge-stamp-version.sh`` and exposes no functions.
     """
     version_file = Path(__file__).parent / "version.py"
-    _DEFAULT = "2026-06-09_00-00-00_0000000"
+    _DEFAULT = "2026-06-09_00-00-00_0000000"  # noqa: N806
     try:
         spec = importlib.util.spec_from_file_location("_broodforge_version", version_file)
         if spec is not None and spec.loader is not None:
