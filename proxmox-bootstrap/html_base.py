@@ -34,7 +34,6 @@ Stdlib only. No external dependencies.
 import json
 from html import escape as _e
 
-
 # ---------------------------------------------------------------------------
 # CSS + JS (embedded once per page)
 # ---------------------------------------------------------------------------
