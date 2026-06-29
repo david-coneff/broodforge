@@ -1324,12 +1324,14 @@ Phase 7   Monitoring ────────────────  GATE 4: p
 ## Development Status
 
 Broodforge is under active development. See [ROADMAP.md](ROADMAP.md) for full
-milestone detail and [pap/state/SESSION_HANDOFF.md](pap/state/SESSION_HANDOFF.md)
-for the latest session context (this pointer moved from the now-retired
-`docs/SESSION-HANDOFF.md` — preserved at
-[docs/deprecated/SESSION-HANDOFF.md](docs/deprecated/SESSION-HANDOFF.md) —
-when broodforge's session-continuity practice transitioned to PAP; see
-[pap/revisions/2026-06-07_session-continuity-transition-to-pap.md](pap/revisions/2026-06-07_session-continuity-transition-to-pap.md)).
+milestone detail and [rhiz-memory/state/SESSION_HANDOFF.md](rhiz-memory/state/SESSION_HANDOFF.md)
+for the latest session context. Broodforge follows the
+[Rhizome](https://github.com/david-coneff/rhizome) methodology as a child
+instance; its memory layer — session handoff, decisions, and audit records —
+lives under [`rhiz-memory/`](rhiz-memory/_instance.md). (The session pointer was
+previously `docs/SESSION-HANDOFF.md`, retired when broodforge adopted
+methodology-governed session continuity; the original is preserved at
+[docs/deprecated/SESSION-HANDOFF.md](docs/deprecated/SESSION-HANDOFF.md).)
 
 ### Completed
 

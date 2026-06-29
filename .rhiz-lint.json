@@ -1,0 +1,6 @@
+{
+  "knowledge_roots": ["rhiz-memory"],
+  "index_names": ["index.md", "README.md", "_instance.md"],
+  "line_warn": 1200,
+  "entry_points": ["README.md", "ARCHITECTURE.md", "rhiz-memory/_instance.md"]
+}

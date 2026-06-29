@@ -10,12 +10,17 @@
 
 When starting a session on broodforge under the Rhizome methodology:
 
-1. `david-coneff/rhizome` — `rhizome/core/rhiz-core.md` (always loaded)
-2. `david-coneff/rhizome` — `rhizome/core/rhiz-core.manifest.yaml` (select modules for task)
+1. `david-coneff/rhizome` — `protocol/core/rhiz-core.md` (always loaded)
+2. `david-coneff/rhizome` — `protocol/core/rhiz-core.manifest.yaml` (select modules for task)
 3. `rhiz-memory/_instance.md` (this file — project identity + startup)
-4. `rhiz-memory/state/SESSION_HANDOFF.md` (current work context and next action)
+4. [`rhiz-memory/state/SESSION_HANDOFF.md`](state/SESSION_HANDOFF.md) (current work
+   context and next action; portable save-state in
+   [`state/RESUME_BLOCK.md`](state/RESUME_BLOCK.md))
 
-The Rhizome protocol specs live entirely in `david-coneff/rhizome`.
+The Rhizome protocol specs live entirely in `david-coneff/rhizome`. This repo
+references them through the `tools-stable` channel (see Executable tooling below)
+and never copies them — per rhiz-child-repo-convention
+(`david-coneff/rhizome` → `protocol/docs/rhiz-child-repo-convention.md`) §1.
 
 ---
 
@@ -100,19 +105,53 @@ deployment strategy (see decisions.md AD-013, AD-014, AD-032, AD-034).
 
 ## Memory structure
 
+Per rhiz-State §2 (`david-coneff/rhizome` → `protocol/modules/rhiz-state/rhiz-state.md`),
+the fourteen memory categories and where each is addressed in this repo:
+
 | Category | Location |
 |---|---|
-| Governance | `rhiz-memory/_instance.md` (this file) |
-| Decisions | `rhiz-memory/state/decisions.md` |
+| Decisions | [`rhiz-memory/state/decisions.md`](state/decisions.md); project governance in this `_instance.md` |
 | Evidence | Cited inline in audit records and session handoffs |
-| Planning | `rhiz-memory/state/SESSION_HANDOFF.md`, `ROADMAP.md` |
-| State | `rhiz-memory/state/SESSION_HANDOFF.md`, `rhiz-memory/state/RESUME_BLOCK.md` |
-| Risk | `rhiz-memory/audits/` (audit finding registers) |
+| Planning | [`rhiz-memory/state/SESSION_HANDOFF.md`](state/SESSION_HANDOFF.md), `ROADMAP.md` |
+| State | [`rhiz-memory/state/SESSION_HANDOFF.md`](state/SESSION_HANDOFF.md), [`rhiz-memory/state/RESUME_BLOCK.md`](state/RESUME_BLOCK.md) |
+| Risk | [`rhiz-memory/audits/`](audits/index.md) (audit finding registers) |
 | Debt | Named inline in audit findings |
-| Research | `rhiz-memory/audits/` |
+| Research | [`rhiz-memory/audits/`](audits/index.md) |
 | Assumptions | Named inline where made; no separate assumption log yet |
-| Contracts | `manifest.json` schema; `pyproject.toml`; `schemas/` |
+| Contracts | `manifest.json` schema; `pyproject.toml`; `schemas/`; the `tools/rhiz.py` channel bootstrap |
 | Testing | `tests/`, `tests/unit/` |
-| Dependencies | `pyproject.toml`; `ansible/requirements.yml` |
+| Dependencies | `pyproject.toml`; `ansible/requirements.yml`; rhiz tooling via the `tools-stable` channel |
 | Documentation | `README.md`, `ARCHITECTURE.md`, `docs/` |
-| Oversight | `rhiz-memory/audits/` |
+| Oversight | [`rhiz-memory/audits/`](audits/index.md) |
+| Failure Paths | Per-finding root causes recorded in the audit records under [`rhiz-memory/audits/`](audits/index.md) |
+
+---
+
+## Executable tooling
+
+Broodforge resolves rhizome's tooling (`rhiz-lint`, `rhiz-search`, `doc-graph`)
+through the shared **`tools-stable`** channel — referenced, never copied — per
+rhiz-child-repo-convention §1.1:
+
+- `tools/rhiz.py` — the stable bootstrap shim. It resolves
+  `david-coneff/rhizome@tools-stable` into a gitignored `.rhiz-tools/` cache and
+  forwards a subcommand (`lint`, `search`, `docs`, `verify`, `maintain`) with this
+  repo as `--root`. Locally, `RHIZ_TOOLS_PATH=<sibling rhizome> python3 tools/rhiz.py lint`
+  runs auth-free.
+- `.rhiz-lint.json` — this repo's layout (`knowledge_roots: rhiz-memory`;
+  `entry_points: README.md`, `rhiz-memory/_instance.md`). The methodology layer is
+  linted; product docs (`docs/`, `proxmox-bootstrap/`, …) keep their own indexes.
+- `.github/workflows/rhiz-maintain.yml` — the mechanical maintenance loop in CI.
+  The rhizome-checkout `token:` line ships commented; `RHIZOME_TOOLS_TOKEN` is only
+  needed if rhizome goes private (`david-coneff/rhizome` → `protocol/docs/tooling-access.md`).
+
+## Provenance
+
+Broodforge predates the current convention: it carried an embedded `pap/` protocol
+copy (PAP, Rhizome's predecessor), retired 2026-06-17 when the memory layer moved
+under `rhiz-memory/`. Migrated to the present Rhizome methodology 2026-06-29:
+session-startup paths repointed from the old `rhizome/core/...` to `protocol/core/...`
+(the B-series rename), the loose `audits/` records given a discoverable
+[`index.md`](audits/index.md), stale `pap/...` links in `README.md` repointed, and
+the executable-tooling channel wired up (above). The historical PAP-AUDIT records
+keep their original names and provenance notes unchanged.

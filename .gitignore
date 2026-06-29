@@ -22,3 +22,9 @@ bf-commit.ps1
 
 # ChatGPT architecture corpus — synthesized into ARCHITECTURE.md/ROADMAP.md; files kept on disk but not tracked
 chatgpt architecture/
+
+# rhiz tooling channel — gitignored: resolved tools cache, generated search
+# index, and full-doc roll-ups (rhiz-child-repo-convention §1.1)
+.rhiz-tools/
+.rhiz-search/
+*.full.md

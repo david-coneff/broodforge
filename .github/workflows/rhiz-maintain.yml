@@ -1,0 +1,48 @@
+name: rhiz-maintain
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+jobs:
+  maintain:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # Resolve the shared tooling channel — the ONE version of the tools.
+      # If rhizome is a private repo, add a token with read access:
+      #   token: ${{ secrets.RHIZOME_TOOLS_TOKEN }}
+      - name: Check out rhizome tooling @ tools-stable
+        uses: actions/checkout@v4
+        with:
+          repository: david-coneff/rhizome
+          ref: tools-stable
+          path: .rhiz-tools/rhizome
+
+      # Drift-guard: this repo must track the channel, not a hard SHA.
+      - name: Drift-guard (must track tools-stable)
+        run: |
+          ch=$(python3 tools/rhiz.py channel)
+          echo "tracking tools channel: $ch"
+          [ "$ch" = "tools-stable" ] || { echo "::error::off-channel tools pin: $ch"; exit 1; }
+
+      # Mechanical maintenance — no LLM: lint + rebuild search index + render docs.
+      - name: Mechanical maintenance
+        env:
+          RHIZ_TOOLS_PATH: ${{ github.workspace }}/.rhiz-tools/rhizome
+        run: python3 tools/rhiz.py maintain
+
+      # Advisory: the judgment-residue worklist (never fails the build).
+      - name: Judgment-residue report
+        env:
+          RHIZ_TOOLS_PATH: ${{ github.workspace }}/.rhiz-tools/rhizome
+        run: python3 tools/rhiz.py report
