@@ -112,7 +112,7 @@ the fourteen memory categories and where each is addressed in this repo:
 |---|---|
 | Decisions | [`rhiz-memory/state/decisions.md`](state/decisions.md); project governance in this `_instance.md` |
 | Evidence | Cited inline in audit records and session handoffs |
-| Planning | [`rhiz-memory/state/SESSION_HANDOFF.md`](state/SESSION_HANDOFF.md), `ROADMAP.md` |
+| Planning | [`rhiz-memory/state/SESSION_HANDOFF.md`](state/SESSION_HANDOFF.md), `ROADMAP.md`, [`rhiz-memory/roadmap/index.md`](roadmap/index.md) |
 | State | [`rhiz-memory/state/SESSION_HANDOFF.md`](state/SESSION_HANDOFF.md), [`rhiz-memory/state/RESUME_BLOCK.md`](state/RESUME_BLOCK.md) |
 | Risk | [`rhiz-memory/audits/`](audits/index.md) (audit finding registers) |
 | Debt | Named inline in audit findings |
